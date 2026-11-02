@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Factorio Ratios</title>
+<link rel="icon" href="icons/iron-gear-wheel.png">
+<style>
+:root{
+  --bg:#1f1e1f; --panel:#313031; --panel2:#3a393a; --line:#4a4849;
+  --fg:#ffe6c0; --muted:#c2b59e; --faint:#8d8474; --accent:#f6a52d; --accent2:#ffce6b; --ok:#8fd36e; --warn:#f0c674; --bad:#ff7c6b;
+  --mono:"Cascadia Mono","Consolas","SF Mono",ui-monospace,Menlo,monospace;
+  --sans:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --r:6px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.35 var(--sans);-webkit-text-size-adjust:100%}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--accent2)}
+img.ic{display:inline-block;width:32px;height:32px;vertical-align:middle;background:linear-gradient(#2a292a,#1b1a1b);border-radius:4px;box-shadow:inset 0 0 0 1px #111,0 0 0 1px #3d3c3d;padding:2px;flex:none}
+img.ic.sm{width:24px;height:24px;padding:1px}
+img.ic.lg{width:48px;height:48px;padding:3px}
+img.ic.xs{width:20px;height:20px;padding:1px;box-shadow:none;background:none}
+.icw{position:relative;display:inline-block;line-height:0;vertical-align:middle;flex:none}
+.icw .bd{position:absolute;right:-3px;bottom:-3px;font:bold 10px/1 var(--mono);background:#111;color:var(--accent2);border:1px solid #555;border-radius:3px;padding:1px 3px;font-style:normal}
+.lead{color:var(--muted);font-size:13px;margin-right:4px}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:8px 10px 6px;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.searchwrap{display:flex;gap:6px;align-items:center;position:relative}
+#q{flex:1;min-width:0;height:46px;padding:0 14px;border-radius:var(--r);border:2px solid var(--line);background:#141314;color:var(--fg);font-size:18px;outline:none}
+#q:focus{border-color:var(--accent)}
+#q::placeholder{color:var(--faint)}
+.iconbtn{height:46px;min-width:46px;padding:0 10px;border-radius:var(--r);border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:20px;line-height:1;flex:none}
+.iconbtn:hover{background:var(--panel2)}
+.iconbtn.star.on{color:var(--accent)}
+.iconbtn.home{display:inline-flex;align-items:center;gap:7px;padding:0 13px 0 10px;font-size:15px;font-weight:600}
+/* the small ↺ beside a value moved off its default; hidden until then */
+.undo{width:24px;height:24px;border:0;border-radius:50%;background:transparent;color:var(--faint);font-size:16px;line-height:1;padding:0;flex:none}
+.undo:hover{color:var(--accent);background:#2a292a}
+.undo[hidden]{display:none}
+.settings .undo{width:22px;height:22px;font-size:14px}
+.iconbtn.home svg{width:21px;height:21px;flex:none}
+.iconbtn.sm{height:32px;min-width:32px;font-size:13px;padding:0 8px;font-weight:400;text-transform:none;letter-spacing:0;white-space:nowrap}
+#strip{display:flex;gap:6px;align-items:center;margin-top:6px;min-height:0;flex-wrap:wrap}
+#strip[hidden]{display:none}
+.hit{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:var(--r);background:#141314;padding:3px;cursor:pointer;color:var(--muted);max-width:100%}
+.hit.sel{border-color:var(--accent);background:#4a3a1d;color:var(--fg)}
+.hit .nm{padding-right:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;font-size:13px}
+.hit:not(.sel) .nm{max-width:130px}
+.hit.sel kbd{font:11px var(--mono);color:var(--faint);border:1px solid var(--line);border-radius:3px;padding:0 4px;margin-right:4px}
+.parse{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--muted);margin-right:6px}
+.parse .ch{background:#141314;border:1px solid var(--line);border-radius:999px;padding:2px 8px;display:inline-flex;align-items:center;gap:4px}
+.parse .ch.n{font-family:var(--mono);color:var(--accent2)}
+.settings{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-top:8px;font-size:13px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:#141314}
+.seg button{border:0;background:transparent;color:var(--muted);padding:3px 8px;display:flex;align-items:center;gap:5px;min-height:34px;white-space:nowrap}
+.seg button.on{background:#4a3a1d;color:var(--fg);box-shadow:inset 0 0 0 1px var(--accent)}
+.seg button:hover:not(.on){background:#2a292a}
+.settings select,.settings input{background:#141314;border:1px solid var(--line);border-radius:var(--r);min-height:34px;padding:0 6px;color:var(--fg)}
+.settings label{display:inline-flex;align-items:center;gap:5px}
+/* the folded "Your base" line: only on narrow screens */
+.base-sum{display:none;align-items:center;gap:6px;width:100%;min-height:38px;padding:2px 10px 2px 8px;border:1px solid var(--line);border-radius:var(--r);background:#141314;color:var(--fg);font-size:13px;text-align:left}
+.base-sum .lead{margin:0 2px 0 0}
+.base-sum .arr{margin-left:auto;color:var(--faint);font-size:14px}
+.chiprow{display:contents}
+main{padding:12px 10px 40px;max-width:1040px;margin:0 auto}
+h1{font-size:22px;margin:4px 0 6px;display:flex;align-items:center;gap:10px}
+h1 .ttl{flex:1;min-width:0}
+h1 .sub{font-weight:400;margin-top:2px}
+h2{font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:18px 0 6px;font-weight:600;display:flex;align-items:center;gap:8px}
+h3{font-size:13px;color:var(--faint);margin:12px 0 4px;font-weight:600}
+.sub{color:var(--muted);font-size:13px;font-weight:400}
+.hint{color:var(--faint);font-size:13px;margin:6px 0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px}
+.try{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:2px 0 6px}
+.ex{background:#141314;border:1px solid var(--line);border-radius:999px;color:var(--accent2);padding:5px 12px;font-family:var(--mono);font-size:14px}
+.ex:hover{border-color:var(--accent)}
+/* the chain table: Item | Machines making it | Amount */
+.tbl{display:grid;grid-template-columns:minmax(170px,1.1fr) minmax(330px,1.3fr) minmax(130px,.5fr);gap:4px 0;align-items:stretch;margin:6px 0}
+.tbl.two{grid-template-columns:minmax(200px,1.4fr) minmax(260px,1fr)}
+.th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:4px 10px;display:flex;align-items:flex-end;gap:4px}
+.th.amth{display:block;text-align:right}
+.th .u{display:block;text-transform:none;letter-spacing:0;color:var(--fg);font-size:13px}
+.th .uu{display:block;text-transform:none;letter-spacing:0;color:var(--faint);font-size:11px}
+.tr{display:contents}
+.td{background:var(--panel);border-top:1px solid #3c3b3c;border-bottom:1px solid #3c3b3c;min-height:56px;display:flex;align-items:center;gap:8px;padding:6px 10px;min-width:0}
+.tr .td:first-child{border-left:1px solid #3c3b3c;border-radius:var(--r) 0 0 var(--r)}
+.tr .td:last-child{border-right:1px solid #3c3b3c;border-radius:0 var(--r) var(--r) 0}
+.tr.product .td{background:#3a3020;border-color:#6a5230}
+.tr.sep .td{grid-column:1/-1;background:transparent;border:0;min-height:0;padding:8px 10px 2px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.tr.sep .td.hint{text-transform:none;letter-spacing:0;font-size:13px;color:var(--faint);padding:6px 10px}
+/* a resource page: the supply row, then one block per item made from it, separated by a line */
+.blk{display:contents}
+.tr.line .td{grid-column:1/-1;display:block;background:transparent;border:0;min-height:0;padding:7px 0}
+.tr.line .rule{display:block;border-top:1px solid var(--line)}
+.td.item{padding-left:calc(10px + var(--d,0) * 18px)}
+.td.item .nmtxt{min-width:0;line-height:1.3}
+.td.item b,.td.item .lnk{font-weight:600;font-size:16px}
+.td.item .lnk{color:var(--fg);text-decoration:none;border-bottom:1px dotted var(--faint)}
+.td.item .lnk:hover{color:var(--accent2);border-bottom-color:var(--accent2)}
+.td .sub select{background:#141314;border:1px solid var(--line);border-radius:4px;color:var(--fg);min-height:26px}
+.td.amt{font:20px var(--mono);font-variant-numeric:tabular-nums;justify-content:flex-end;text-align:right}
+.td.amt .unit{font:13px var(--sans);color:var(--muted)}
+.td::before{content:attr(data-label);display:none}
+.exp{width:28px;height:40px;border:0;background:transparent;color:var(--faint);font-size:28px;line-height:1;padding:0;flex:none}
+.exp:hover{color:var(--fg)}
+.exp.none{visibility:hidden;width:6px}
+input.num{width:96px;height:44px;text-align:right;font:22px var(--mono);font-variant-numeric:tabular-nums;background:#141314;border:2px solid var(--line);border-radius:var(--r);color:var(--fg);padding:0 8px;outline:none;flex:none}
+input.num:focus{border-color:var(--accent2);background:#1c1a16}
+input.num.bad{border-color:var(--bad)}
+.build{font:13px var(--mono);color:var(--muted);white-space:nowrap}
+.build:empty{display:none}
+.unit{font-size:13px;color:var(--muted);white-space:nowrap}
+.big{font:22px var(--mono);color:var(--fg);padding:0 4px}
+.mbtn{display:inline-flex;align-items:center;gap:6px;padding:3px 6px;border:1px solid transparent;border-radius:var(--r);background:transparent;color:var(--fg);font-size:14px;min-height:44px;min-width:0}
+.mbtn .mname{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mbtn.can{border-color:var(--line);background:#141314}
+.mbtn.can:hover{border-color:var(--accent)}
+.mbtn .arr{font-size:11px;color:var(--faint)}
+.note{background:#3a2f17;color:var(--warn);border-radius:var(--r);padding:6px 10px;font-size:13px;margin:6px 0}
+.pill{display:inline-block;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 8px;margin-left:6px;font-weight:400;text-transform:none;letter-spacing:0}
+.summary{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0 2px;font-size:13px}
+.summary .s{display:inline-flex;align-items:center;gap:4px;background:#141314;border:1px solid var(--line);border-radius:999px;padding:2px 8px 2px 3px;color:var(--muted)}
+.summary .s b{font-family:var(--mono);color:var(--fg);font-weight:500}
+/* the factory ledger: Item | machines | makes | uses | left over, with a meter under the balance */
+.tbl.fac{grid-template-columns:minmax(150px,1.1fr) minmax(240px,1fr) repeat(3,minmax(104px,.5fr))}
+.tbl.fac .mbtn .mname{white-space:normal;line-height:1.15}
+.tr.cons .td{background:#2b2a2b;min-height:40px;font-size:13px;color:var(--muted)}
+.tr.cons .td.amt{font-size:15px}
+.td.amt.bal{flex-direction:column;align-items:flex-end;justify-content:center;gap:4px;font:14px var(--sans)}
+.td.amt.bal .short{color:var(--bad)}
+.td.amt.bal .spare{color:var(--ok)}
+.td.amt.bal .none{color:var(--faint)}
+.td.amt.bal small{display:block;font-size:12px;color:var(--muted)}
+.meter{display:block;width:100%;height:6px;border-radius:3px;background:#1a191a;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--ok);border-radius:3px}
+.meter.short i{background:var(--bad)}
+.meter.none i{background:#4a4849}
+.summary .s.none{color:var(--faint)}
+.iconbtn.sm.cta{border-color:var(--accent);color:var(--accent2)}
+.mbtn select{background:#141314;border:1px solid var(--line);border-radius:4px;color:var(--fg);min-height:26px;margin-left:4px}
+.summary .s.short{border-color:#7a3a33;color:var(--bad)}
+.summary .s.short b{color:var(--bad)}
+.chip2.short{border-color:#7a3a33}
+.chip2.short .sub{color:var(--bad)}
+/* a short item's chip: the name goes to its row, x dismisses it; then Dismiss all and Bring back for the tab */
+.chip2.dz{padding:0 4px 0 0;gap:0;cursor:default}
+.chip2.dz .go{display:inline-flex;align-items:center;gap:6px;background:transparent;border:0;color:inherit;font:inherit;padding:4px;min-height:38px;border-radius:999px;cursor:pointer}
+.chip2.dz .x{width:26px;height:26px;border:0;border-radius:50%;background:transparent;color:var(--faint);font-size:16px;line-height:1;padding:0;flex:none;cursor:pointer}
+.chip2.dz .x:hover{background:#2a292a;color:var(--fg)}
+.fac-sum .iconbtn.sm{margin-left:2px}
+/* "used but not entered" is a filter: press it for only those rows, again for all of them */
+.summary button.s{font:inherit;cursor:pointer}
+.summary button.s.none{color:var(--muted)}
+.summary button.s:hover{border-color:var(--accent)}
+.summary button.s.on{border-color:var(--accent);color:var(--fg);background:#3a2f1d;box-shadow:inset 0 0 0 1px var(--accent)}
+input.num::placeholder{color:var(--faint)}
+/* the ledger's tabs: Everything, then one per kind of machine; a red count where something is short */
+.factabs{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px}
+.factabs button{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:var(--r);color:var(--muted);padding:5px 12px 5px 8px;min-height:38px;font-size:14px}
+.factabs button:hover{background:var(--panel2)}
+.factabs button.on{background:#4a3a1d;color:var(--fg);border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.factabs .n{font:12px var(--mono);background:#7a3a33;color:#ffd6cf;border-radius:999px;padding:1px 7px}
+.seg.mini button{min-height:26px;padding:2px 9px;font-size:12px}
+.tr.full .td{grid-column:1/-1;display:block;background:transparent;border:0;min-height:0;padding:2px 0 4px}
+.mbtn .mname small{color:var(--faint);font-size:12px}
+.vs{font-size:13px;white-space:nowrap;margin-left:4px}
+.vs.short{color:var(--bad)}
+.vs.spare{color:var(--ok)}
+/* blueprint import: a dashed box under each tab, then a panel with what it did and what it asks */
+.bp{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0;padding:8px 10px;border:1px dashed #5a5859;border-radius:var(--r)}
+.bp .txt{flex:1;min-width:220px}
+.bp-panel{margin:10px 0;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);display:flex;flex-direction:column;gap:8px}
+.bp-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.bp-split{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.bp-split label{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--muted)}
+.bp-split input.num{width:64px;height:36px;font-size:16px}
+.bp-left{display:inline-flex;align-items:center;font-size:13px;white-space:nowrap;border:1px solid var(--line);border-radius:999px;padding:2px 9px;background:#141314;color:var(--warn)}
+.bp-left.done{color:var(--ok);border-color:#3f5a35}
+.bp-left.over{color:var(--bad);border-color:#7a3a33}
+.bp-err{color:var(--bad)}
+.chip2.static{cursor:default}
+.chip2.bp-pick{cursor:pointer}
+.chip2.bp-pick input{margin:0 2px 0 4px}
+/* the "Add an item" row: a dashed outline at the bottom of the ledger */
+.tr.add .td{background:transparent;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);border-color:#5a5859}
+.tr.add .td:first-child{border-left:1px dashed #5a5859}
+.tr.add .td:last-child{border-right:1px dashed #5a5859}
+input.txt{flex:1;min-width:0;height:40px;padding:0 10px;font:15px var(--sans);background:#141314;border:1px solid var(--line);border-radius:var(--r);color:var(--fg);outline:none}
+input.txt:focus{border-color:var(--accent)}
+input.txt::placeholder{color:var(--faint)}
+.tr.add-hits .td{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;padding:6px 10px 10px;background:transparent;border:0;min-height:0;border-radius:0}
+.tr.add-hits .td:empty{display:none}
+#addhits.all{max-height:320px;overflow-y:auto;align-content:flex-start}
+#addhits .add-group{width:100%;margin:6px 0 0}
+#addhits .add-head{width:100%;display:flex;justify-content:flex-end;position:sticky;top:0;z-index:1;height:0;overflow:visible}
+#addhits .add-head .iconbtn{font-size:20px;line-height:1;padding:0;width:32px;background:var(--panel2)}
+/* popover */
+.pop{position:absolute;z-index:20;background:var(--panel);border:1px solid var(--accent);border-radius:var(--r);padding:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;box-shadow:0 10px 30px rgba(0,0,0,.6);max-width:min(96vw,520px)}
+.pop .lead{width:100%}
+.pop button{border:1px solid var(--line);background:#141314;border-radius:var(--r);min-width:64px;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;color:var(--muted);padding:4px}
+.pop button.on{border-color:var(--accent);color:var(--fg)}
+.pop button:disabled{opacity:.4;cursor:not-allowed}
+/* home */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.card{display:flex;gap:10px;align-items:center;padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);cursor:pointer;text-align:left;color:var(--fg);min-height:64px}
+.card:hover{background:var(--panel2);border-color:#6a5230}
+.card .t{font-weight:600}
+.card .d{font-size:12px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip2{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 10px 4px 4px;cursor:pointer;color:var(--fg);min-height:40px}
+.chip2:hover{background:var(--panel2)}
+/* home: a page with remembered numbers gets a quiet double border in the app's gold */
+.chip2.mem,.card.mem{border-color:#8f7446;box-shadow:inset 0 0 0 1px #8f7446}
+.iconbtn.sm.infac{border-color:#8f7446;color:var(--muted)}
+.chip2 .sub{font-family:var(--mono)}
+/* tables on the reference page */
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:6px 8px;border-bottom:1px solid #3c3b3c;text-align:left;vertical-align:middle}
+th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+td.n,th.n{text-align:right;font-family:var(--mono)}
+footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30px}
+/* small windows and phones: "Your base" folds into one line (its choices as icons) that opens the full strip */
+@media (max-width:900px){
+  .settings .base-sum{display:flex}
+  .settings > .lead{display:none}
+  .settings:not(.open) > :not(.base-sum){display:none}
+  .settings.open{max-height:55vh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:4px}
+  .settings.open .base-sum{position:sticky;top:0;z-index:1}
+}
+/* small desktop windows: the ledger's five columns, narrower, so they still fit */
+@media (min-width:701px) and (max-width:900px){
+  .tbl.fac{grid-template-columns:minmax(120px,1fr) minmax(230px,1fr) repeat(3,minmax(84px,.5fr))}
+  .tbl.fac input.num{width:76px}
+}
+/* phones and narrow windows */
+@media (max-width:700px){
+  /* header: back, Home and Factory, the search box on its own row, and "Your base" folded into one line */
+  .iconbtn.home{padding:0 9px 0 8px;font-size:14px;gap:5px}
+  .searchwrap{flex-wrap:wrap}
+  #q{flex-basis:100%;order:9}
+  .settings{gap:8px 10px}
+  .settings label{flex-wrap:wrap;max-width:100%}
+  .settings .seg{flex-wrap:wrap;max-width:100%}
+  main{padding:10px 8px 40px}
+  /* a page title keeps the width; its buttons go under it */
+  h1{font-size:19px;flex-wrap:wrap}
+  h1 .ttl{flex:1 1 220px}
+  h1 .ttl + .iconbtn{margin-left:auto}
+  /* tables: one card per row, each value with its caption above it */
+  .tbl,.tbl.two,.tbl.fac{grid-template-columns:1fr;gap:0}
+  .th{display:none}
+  .tbl:not(.fac) .th.amth{display:block;text-align:left;padding:0 2px 6px}
+  .tbl.fac .th.amth{display:none}
+  .tr{display:grid;grid-template-columns:1fr 1fr;margin:0 0 8px;border:1px solid #3c3b3c;border-radius:var(--r);overflow:hidden;background:var(--panel)}
+  .tr > .td{grid-column:1/-1}
+  .tbl.fac .tr:not(.cons):not(.add) > .td.amt:not(.bal){grid-column:auto}
+  .tr.product{border-color:#6a5230}
+  .tr.sep{border:0;background:transparent;margin:0}
+  .tr.line,.tr.add-hits,.tr.full{border:0;background:transparent;margin:0 0 8px}
+  .tr.line .td{padding:2px 0}
+  .td{border:0 !important;border-radius:0 !important;min-height:0;padding:6px 10px}
+  .td.item{padding-top:8px;padding-left:calc(10px + var(--d,0) * 10px)}
+  .td.mach,.td.amt{padding-top:0;justify-content:flex-start;flex-wrap:wrap;text-align:left}
+  .td.amt{font-size:18px}
+  .td.amt.bal{align-items:stretch}
+  .tr.add .td.amt{justify-content:flex-end}
+  .td[data-label]::before{display:block;flex:0 0 100%;font:11px/1.3 var(--sans);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:0 0 2px}
+  .td.amt.bal[data-label]::before{flex:none}
+  .tbl.fac .tr:not(.cons):not(.add) > .td.amt:not(.bal)[data-label]::before{min-height:2.6em}
+  .mbtn .mname{white-space:normal}
+  .td.mach .mbtn{flex:1 1 130px;min-width:0}
+  .td:empty{display:none}
+  input.num{width:88px;font-size:20px}
+  /* the ledger: tabs three to a row, and the short list in one line that scrolls sideways */
+  .factabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .factabs button{justify-content:center;text-align:center;padding:4px 6px;font-size:13px;line-height:1.15}
+  .factabs button .icw,.factabs button img.ic{display:none}
+  .fac-sum .chiprow{display:flex;flex:1 1 100%;flex-wrap:nowrap;align-items:center;gap:6px;overflow-x:auto;padding-bottom:3px;scrollbar-width:thin}
+  .fac-sum .chiprow > *{flex:none}
+  /* the reference tables scroll sideways instead of running off the screen */
+  #main table{display:block;overflow-x:auto;white-space:nowrap}
+}
+/* touch screens: bigger targets, and 16px text in typed boxes so phones do not zoom in on them */
+@media (pointer:coarse){
+  input.num{height:46px}
+  input.txt,select{font-size:16px}
+  .iconbtn.sm{height:38px;min-width:38px}
+  .chip2.dz .x{width:36px;height:36px;font-size:18px}
+  .undo{width:32px;height:32px}
+  .settings .undo{width:30px;height:30px}
+  .seg.mini button{min-height:34px}
+  .summary .s{min-height:30px}
+  .td .sub select,.mbtn select,.settings select{min-height:36px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="searchwrap">
+    <button id="back" class="iconbtn" title="Back (Esc)" aria-label="Back" tabindex="-1">&#8592;</button>
+    <button id="home" class="iconbtn home" title="Home screen" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-6h4v6"/></svg><span>Home</span></button>
+    <button id="fac" class="iconbtn home" title="Your factory: what you have, and where it runs short" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V9.5l5.5 3.5V9.5l5.5 3.5V9.5l5.5 3.5V20z"/><path d="M16.5 9V4h3v8"/></svg><span>Factory</span></button>
+    <input id="q" type="text" placeholder="What are you making?" autocomplete="off" spellcheck="false" enterkeyhint="go" aria-label="Search">
+  </div>
+  <div id="strip" hidden></div>
+  <div id="settings" class="settings"></div>
+</header>
+<main id="main"></main>
+<footer>Change any number and the rest follow. Numbers come from the Factorio <span id="ver"></span> base-game files; no modules, beacons, quality or Space Age. <b>Esc</b> goes back, <b>Tab</b> moves between boxes.</footer>
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

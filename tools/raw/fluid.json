@@ -1,0 +1,74 @@
+{
+"fluid": {
+"water": {
+"type": "fluid",
+"name": "water",
+"subgroup": "fluid",
+"default_temperature": 15,
+"max_temperature": 100,
+"heat_capacity": "2kJ",
+"icon": "__base__/graphics/icons/fluid/water.png",
+"order": "a[fluid]-a[water]-a[water]"
+},
+"steam": {
+"type": "fluid",
+"name": "steam",
+"subgroup": "fluid",
+"default_temperature": 15,
+"max_temperature": 500,
+"heat_capacity": "0.2kJ",
+"icon": "__base__/graphics/icons/fluid/steam.png",
+"order": "a[fluid]-a[water]-b[steam]",
+"gas_temperature": 15,
+"auto_barrel": false
+},
+"sulfuric-acid": {
+"type": "fluid",
+"name": "sulfuric-acid",
+"subgroup": "fluid",
+"default_temperature": 25,
+"icon": "__base__/graphics/icons/fluid/sulfuric-acid.png",
+"order": "a[fluid]-b[oil]-f[sulfuric-acid]"
+},
+"crude-oil": {
+"type": "fluid",
+"name": "crude-oil",
+"subgroup": "fluid",
+"default_temperature": 25,
+"icon": "__base__/graphics/icons/fluid/crude-oil.png",
+"order": "a[fluid]-b[oil]-a[crude-oil]"
+},
+"heavy-oil": {
+"type": "fluid",
+"name": "heavy-oil",
+"subgroup": "fluid",
+"default_temperature": 25,
+"icon": "__base__/graphics/icons/fluid/heavy-oil.png",
+"order": "a[fluid]-b[oil]-d[heavy-oil]"
+},
+"light-oil": {
+"type": "fluid",
+"name": "light-oil",
+"subgroup": "fluid",
+"default_temperature": 25,
+"icon": "__base__/graphics/icons/fluid/light-oil.png",
+"order": "a[fluid]-b[oil]-c[light-oil]"
+},
+"petroleum-gas": {
+"type": "fluid",
+"name": "petroleum-gas",
+"subgroup": "fluid",
+"default_temperature": 25,
+"icon": "__base__/graphics/icons/fluid/petroleum-gas.png",
+"order": "a[fluid]-b[oil]-b[petroleum-gas]"
+},
+"lubricant": {
+"type": "fluid",
+"name": "lubricant",
+"subgroup": "fluid",
+"default_temperature": 25,
+"icon": "__base__/graphics/icons/fluid/lubricant.png",
+"order": "a[fluid]-b[oil]-e[lubricant]"
+}
+}
+}

@@ -1,0 +1,273 @@
+{
+"transport-belt": {
+"transport-belt": {
+"type": "transport-belt",
+"name": "transport-belt",
+"icon": "__base__/graphics/icons/transport-belt.png",
+"minable": {
+"mining_time": 0.1,
+"result": "transport-belt"
+},
+"max_health": 150,
+"corpse": "transport-belt-remnants",
+"dying_explosion": "transport-belt-explosion",
+"animation_speed_coefficient": 32,
+"fast_replaceable_group": "transport-belt",
+"related_underground_belt": "underground-belt",
+"next_upgrade": "fast-transport-belt",
+"speed": 0.03125
+},
+"fast-transport-belt": {
+"type": "transport-belt",
+"name": "fast-transport-belt",
+"icon": "__base__/graphics/icons/fast-transport-belt.png",
+"minable": {
+"mining_time": 0.1,
+"result": "fast-transport-belt"
+},
+"max_health": 160,
+"corpse": "fast-transport-belt-remnants",
+"dying_explosion": "fast-transport-belt-explosion",
+"animation_speed_coefficient": 32,
+"fast_replaceable_group": "transport-belt",
+"related_underground_belt": "fast-underground-belt",
+"next_upgrade": "express-transport-belt",
+"speed": 0.0625
+},
+"express-transport-belt": {
+"type": "transport-belt",
+"name": "express-transport-belt",
+"icon": "__base__/graphics/icons/express-transport-belt.png",
+"minable": {
+"mining_time": 0.1,
+"result": "express-transport-belt"
+},
+"max_health": 170,
+"corpse": "express-transport-belt-remnants",
+"dying_explosion": "express-transport-belt-explosion",
+"animation_speed_coefficient": 32,
+"related_underground_belt": "express-underground-belt",
+"fast_replaceable_group": "transport-belt",
+"speed": 0.09375
+}
+},
+"underground-belt": {
+"underground-belt": {
+"type": "underground-belt",
+"name": "underground-belt",
+"icon": "__base__/graphics/icons/underground-belt.png",
+"minable": {
+"mining_time": 0.1,
+"result": "underground-belt"
+},
+"max_health": 150,
+"corpse": "underground-belt-remnants",
+"dying_explosion": "underground-belt-explosion",
+"max_distance": 5,
+"animation_speed_coefficient": 32,
+"fast_replaceable_group": "transport-belt",
+"next_upgrade": "fast-underground-belt",
+"speed": 0.03125
+},
+"fast-underground-belt": {
+"type": "underground-belt",
+"name": "fast-underground-belt",
+"icon": "__base__/graphics/icons/fast-underground-belt.png",
+"minable": {
+"mining_time": 0.1,
+"result": "fast-underground-belt"
+},
+"max_health": 160,
+"corpse": "fast-underground-belt-remnants",
+"dying_explosion": "fast-underground-belt-explosion",
+"max_distance": 7,
+"animation_speed_coefficient": 32,
+"fast_replaceable_group": "transport-belt",
+"next_upgrade": "express-underground-belt",
+"speed": 0.0625
+},
+"express-underground-belt": {
+"type": "underground-belt",
+"name": "express-underground-belt",
+"icon": "__base__/graphics/icons/express-underground-belt.png",
+"minable": {
+"mining_time": 0.1,
+"result": "express-underground-belt"
+},
+"max_health": 170,
+"corpse": "express-underground-belt-remnants",
+"dying_explosion": "express-underground-belt-explosion",
+"max_distance": 9,
+"animation_speed_coefficient": 32,
+"fast_replaceable_group": "transport-belt",
+"speed": 0.09375
+}
+},
+"splitter": {
+"splitter": {
+"type": "splitter",
+"name": "splitter",
+"icon": "__base__/graphics/icons/splitter.png",
+"minable": {
+"mining_time": 0.1,
+"result": "splitter"
+},
+"max_health": 170,
+"corpse": "splitter-remnants",
+"dying_explosion": "splitter-explosion",
+"animation_speed_coefficient": 32,
+"structure_animation_speed_coefficient": 0.7,
+"structure_animation_movement_cooldown": 10,
+"fast_replaceable_group": "transport-belt",
+"next_upgrade": "fast-splitter",
+"speed": 0.03125,
+"related_transport_belt": "transport-belt"
+},
+"fast-splitter": {
+"type": "splitter",
+"name": "fast-splitter",
+"icon": "__base__/graphics/icons/fast-splitter.png",
+"minable": {
+"mining_time": 0.1,
+"result": "fast-splitter"
+},
+"max_health": 180,
+"corpse": "fast-splitter-remnants",
+"dying_explosion": "fast-splitter-explosion",
+"animation_speed_coefficient": 32,
+"structure_animation_speed_coefficient": 1.2,
+"structure_animation_movement_cooldown": 10,
+"fast_replaceable_group": "transport-belt",
+"next_upgrade": "express-splitter",
+"speed": 0.0625,
+"related_transport_belt": "fast-transport-belt"
+},
+"express-splitter": {
+"type": "splitter",
+"name": "express-splitter",
+"icon": "__base__/graphics/icons/express-splitter.png",
+"minable": {
+"mining_time": 0.1,
+"result": "express-splitter"
+},
+"max_health": 190,
+"corpse": "express-splitter-remnants",
+"dying_explosion": "express-splitter-explosion",
+"animation_speed_coefficient": 32,
+"structure_animation_speed_coefficient": 1.2,
+"structure_animation_movement_cooldown": 10,
+"fast_replaceable_group": "transport-belt",
+"speed": 0.09375,
+"related_transport_belt": "express-transport-belt"
+}
+},
+"loader": {
+"loader": {
+"type": "loader",
+"name": "loader",
+"icon": "__base__/graphics/icons/loader.png",
+"hidden": true,
+"minable": {
+"mining_time": 0.1,
+"result": "loader"
+},
+"max_health": 170,
+"filter_count": 5,
+"corpse": "small-remnants",
+"animation_speed_coefficient": 32,
+"fast_replaceable_group": "loader",
+"speed": 0.03125,
+"structure_render_layer": "lower-object"
+},
+"fast-loader": {
+"type": "loader",
+"name": "fast-loader",
+"icon": "__base__/graphics/icons/fast-loader.png",
+"hidden": true,
+"minable": {
+"mining_time": 0.1,
+"result": "fast-loader"
+},
+"max_health": 170,
+"filter_count": 5,
+"corpse": "small-remnants",
+"animation_speed_coefficient": 32,
+"fast_replaceable_group": "loader",
+"speed": 0.0625,
+"structure_render_layer": "lower-object"
+},
+"express-loader": {
+"type": "loader",
+"name": "express-loader",
+"icon": "__base__/graphics/icons/express-loader.png",
+"hidden": true,
+"minable": {
+"mining_time": 0.1,
+"result": "express-loader"
+},
+"max_health": 170,
+"filter_count": 5,
+"corpse": "small-remnants",
+"animation_speed_coefficient": 32,
+"fast_replaceable_group": "loader",
+"speed": 0.09375,
+"structure_render_layer": "lower-object"
+}
+},
+"loader-1x1": {
+"loader-1x1": {
+"type": "loader-1x1",
+"name": "loader-1x1",
+"icon": "__base__/graphics/icons/loader.png",
+"hidden": true,
+"subgroup": "other",
+"max_health": 170,
+"filter_count": 5,
+"animation_speed_coefficient": 32,
+"container_distance": 1,
+"speed": 0.03125,
+"structure_render_layer": "lower-object"
+}
+},
+"linked-belt": {
+"linked-belt": {
+"type": "linked-belt",
+"name": "linked-belt",
+"icon": "__base__/graphics/icons/linked-belt.png",
+"hidden": true,
+"minable": {
+"mining_time": 0.1,
+"result": "linked-belt"
+},
+"max_health": 160,
+"corpse": "underground-belt-remnants",
+"dying_explosion": "underground-belt-explosion",
+"animation_speed_coefficient": 32,
+"fast_replaceable_group": "linked-belts",
+"speed": 0.03125,
+"structure_render_layer": "object",
+"allow_clone_connection": true,
+"allow_blueprint_connection": true,
+"allow_side_loading": false
+}
+},
+"lane-splitter": {
+"lane-splitter": {
+"type": "lane-splitter",
+"name": "lane-splitter",
+"hidden": true,
+"minable": {
+"mining_time": 0.1,
+"result": "lane-splitter"
+},
+"max_health": 170,
+"corpse": "splitter-remnants",
+"dying_explosion": "splitter-explosion",
+"animation_speed_coefficient": 32,
+"structure_animation_speed_coefficient": 0.7,
+"structure_animation_movement_cooldown": 10,
+"fast_replaceable_group": "transport-belt",
+"speed": 0.03125
+}
+}
+}

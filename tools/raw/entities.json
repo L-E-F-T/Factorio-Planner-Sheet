@@ -1,0 +1,2331 @@
+{
+"character-corpse": {
+"character-corpse": {
+"type": "character-corpse",
+"name": "character-corpse",
+"icon": "__core__/graphics/icons/entity/character.png",
+"minable": {
+"mining_time": 2
+},
+"time_to_live": 0,
+"selection_priority": 100,
+"hidden": true
+}
+},
+"optimized-particle": {
+"character-footprint-particle": {
+"type": "optimized-particle",
+"name": "character-footprint-particle",
+"render_layer": "decals",
+"render_layer_when_on_ground": "decals",
+"life_time": 600,
+"fade_away_duration": 125
+}
+},
+"character": {
+"character": {
+"type": "character",
+"name": "character",
+"icon": "__core__/graphics/icons/entity/character.png",
+"max_health": 250,
+"alert_when_damaged": false,
+"healing_per_tick": 0.15,
+"crafting_categories": [
+"crafting",
+"hand-crafting"
+],
+"character_corpse": "character-corpse",
+"inventory_size": 80,
+"build_distance": 10,
+"drop_item_distance": 10,
+"reach_distance": 10,
+"item_pickup_distance": 1,
+"loot_pickup_distance": 2,
+"enter_vehicle_distance": 3,
+"reach_resource_distance": 2.7,
+"grounded_landing_search_radius": 5,
+"ticks_to_keep_gun": 600,
+"ticks_to_keep_aiming_direction": 100,
+"ticks_to_stay_in_combat": 600,
+"running_speed": 0.15,
+"distance_per_frame": 0.13,
+"maximum_corner_sliding_distance": 0.7,
+"subgroup": "creatures",
+"order": "a",
+"mining_speed": 0.5
+}
+},
+"furnace": {
+"stone-furnace": {
+"type": "furnace",
+"name": "stone-furnace",
+"icon": "__base__/graphics/icons/stone-furnace.png",
+"minable": {
+"mining_time": 0.2,
+"result": "stone-furnace"
+},
+"fast_replaceable_group": "furnace",
+"next_upgrade": "steel-furnace",
+"max_health": 200,
+"corpse": "stone-furnace-remnants",
+"dying_explosion": "stone-furnace-explosion",
+"allowed_effects": [
+"speed",
+"consumption",
+"pollution"
+],
+"impact_category": "stone",
+"crafting_categories": [
+"smelting"
+],
+"result_inventory_size": 1,
+"energy_usage": "90kW",
+"crafting_speed": 1,
+"source_inventory_size": 1,
+"energy_source": {
+"type": "burner",
+"fuel_categories": [
+"chemical"
+],
+"effectivity": 1,
+"fuel_inventory_size": 1,
+"emissions_per_minute": {
+"pollution": 2
+},
+"light_flicker": {
+"color": [
+0,
+0,
+0
+],
+"minimum_intensity": 0.6,
+"maximum_intensity": 0.95
+},
+"smoke": [
+{
+"name": "smoke",
+"deviation": [
+0.1,
+0.1
+],
+"frequency": 5,
+"position": [
+0.0,
+-0.8
+],
+"starting_vertical_speed": 0.08,
+"starting_frame_deviation": 60
+}
+]
+}
+},
+"electric-furnace": {
+"type": "furnace",
+"name": "electric-furnace",
+"icon": "__base__/graphics/icons/electric-furnace.png",
+"minable": {
+"mining_time": 0.2,
+"result": "electric-furnace"
+},
+"fast_replaceable_group": "furnace",
+"max_health": 350,
+"corpse": "electric-furnace-remnants",
+"dying_explosion": "electric-furnace-explosion",
+"module_slots": 2,
+"allowed_effects": [
+"consumption",
+"speed",
+"productivity",
+"pollution",
+"quality"
+],
+"crafting_categories": [
+"smelting"
+],
+"result_inventory_size": 1,
+"crafting_speed": 2,
+"energy_usage": "180kW",
+"source_inventory_size": 1,
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-input",
+"emissions_per_minute": {
+"pollution": 1
+}
+},
+"impact_category": "metal"
+},
+"steel-furnace": {
+"type": "furnace",
+"name": "steel-furnace",
+"icon": "__base__/graphics/icons/steel-furnace.png",
+"minable": {
+"mining_time": 0.2,
+"result": "steel-furnace"
+},
+"fast_replaceable_group": "furnace",
+"max_health": 300,
+"corpse": "steel-furnace-remnants",
+"dying_explosion": "steel-furnace-explosion",
+"impact_category": "metal",
+"allowed_effects": [
+"speed",
+"consumption",
+"pollution"
+],
+"crafting_categories": [
+"smelting"
+],
+"result_inventory_size": 1,
+"energy_usage": "90kW",
+"crafting_speed": 2,
+"source_inventory_size": 1,
+"energy_source": {
+"type": "burner",
+"fuel_categories": [
+"chemical"
+],
+"effectivity": 1,
+"emissions_per_minute": {
+"pollution": 4
+},
+"fuel_inventory_size": 1,
+"light_flicker": {
+"color": [
+0,
+0,
+0
+],
+"minimum_intensity": 0.6,
+"maximum_intensity": 0.95
+},
+"smoke": [
+{
+"name": "smoke",
+"frequency": 10,
+"position": [
+0.7,
+-1.2
+],
+"starting_vertical_speed": 0.08,
+"starting_frame_deviation": 60
+}
+]
+}
+}
+},
+"fish": {
+"fish": {
+"type": "fish",
+"name": "fish",
+"icon": "__base__/graphics/icons/fish-entity.png",
+"minable": {
+"mining_time": 0.4,
+"result": "raw-fish",
+"count": 5
+},
+"max_health": 20,
+"subgroup": "creatures",
+"order": "b-a",
+"protected_from_tile_building": false
+}
+},
+"boiler": {
+"boiler": {
+"type": "boiler",
+"name": "boiler",
+"icon": "__base__/graphics/icons/boiler.png",
+"minable": {
+"mining_time": 0.2,
+"result": "boiler"
+},
+"fast_replaceable_group": "boiler",
+"max_health": 200,
+"corpse": "boiler-remnants",
+"dying_explosion": "boiler-explosion",
+"impact_category": "metal-large",
+"mode": "output-to-separate-pipe",
+"target_temperature": 165,
+"energy_consumption": "1.8MW",
+"energy_source": {
+"type": "burner",
+"fuel_categories": [
+"chemical"
+],
+"effectivity": 1,
+"fuel_inventory_size": 1,
+"emissions_per_minute": {
+"pollution": 30
+},
+"light_flicker": {
+"color": [
+0,
+0,
+0
+],
+"minimum_intensity": 0.6,
+"maximum_intensity": 0.95
+},
+"smoke": [
+{
+"name": "smoke",
+"north_position": {
+"__expr": "util.by_pixel(-38, -47.5)"
+},
+"south_position": {
+"__expr": "util.by_pixel(38.5, -32)"
+},
+"east_position": {
+"__expr": "util.by_pixel(20, -70)"
+},
+"west_position": {
+"__expr": "util.by_pixel(-19, -8.5)"
+},
+"frequency": 15,
+"starting_vertical_speed": 0.0,
+"starting_frame_deviation": 60
+}
+]
+},
+"fire_flicker_enabled": true,
+"fire_glow_flicker_enabled": true,
+"burning_cooldown": 20
+},
+"heat-exchanger": {
+"type": "boiler",
+"name": "heat-exchanger",
+"icon": "__base__/graphics/icons/heat-boiler.png",
+"minable": {
+"mining_time": 0.1,
+"result": "heat-exchanger"
+},
+"fast_replaceable_group": "heat-exchanger",
+"max_health": 200,
+"corpse": "heat-exchanger-remnants",
+"dying_explosion": "heat-exchanger-explosion",
+"impact_category": "metal",
+"mode": "output-to-separate-pipe",
+"target_temperature": 500,
+"energy_consumption": "10MW",
+"energy_source": {
+"type": "heat",
+"max_temperature": 1000,
+"specific_heat": "1MJ",
+"max_transfer": "2GW",
+"min_working_temperature": 500,
+"minimum_glow_temperature": 350,
+"connections": [
+{
+"position": [
+0,
+0.5
+],
+"direction": {
+"__expr": "defines.direction.south"
+}
+}
+],
+"pipe_covers": {
+"__expr": "make_4way_animation_from_spritesheet(\n        {\n          filename = \"__base__/graphics/entity/heat-exchanger/heatex-endings.png\",\n          width = 64,\n          height = 64,\n          direction_count = 4,\n          scale = 0.5\n        })"
+},
+"heat_pipe_covers": {
+"__expr": "make_4way_animation_from_spritesheet(\n        apply_heat_pipe_glow{\n          filename = \"__base__/graphics/entity/heat-exchanger/heatex-endings-heated.png\",\n          width = 64,\n          height = 64,\n          direction_count = 4,\n          scale = 0.5\n        })"
+},
+"heat_picture": {
+"north": {
+"layers": [
+{
+"__expr": "apply_heat_pipe_glow"
+},
+{
+"filename": "__base__/graphics/entity/heat-exchanger/heatex-N-heated.png",
+"priority": "extra-high",
+"width": 44,
+"height": 96,
+"shift": {
+"__expr": "util.by_pixel(-0.5, 8.5)"
+},
+"scale": 0.5
+},
+{
+"__expr": "apply_heat_pipe_glow(util.sprite_load( \"__base__/graphics/entity/heat-exchanger/heatex-N-glow\",\n              {\n                priority = \"extra-high\",\n                blend_mode = \"additive\",\n                scale = 0.5\n              }\n            ))"
+}
+]
+},
+"east": {
+"layers": [
+{
+"__expr": "apply_heat_pipe_glow"
+},
+{
+"filename": "__base__/graphics/entity/heat-exchanger/heatex-E-heated.png",
+"priority": "extra-high",
+"width": 80,
+"height": 80,
+"shift": {
+"__expr": "util.by_pixel(-21, -13)"
+},
+"scale": 0.5
+},
+{
+"__expr": "apply_heat_pipe_glow(util.sprite_load( \"__base__/graphics/entity/heat-exchanger/heatex-E-glow\",\n              {\n                priority = \"extra-high\",\n                blend_mode = \"additive\",\n                scale = 0.5\n              }\n            ))"
+}
+]
+},
+"south": {
+"layers": [
+{
+"__expr": "apply_heat_pipe_glow"
+},
+{
+"filename": "__base__/graphics/entity/heat-exchanger/heatex-S-heated.png",
+"priority": "extra-high",
+"width": 28,
+"height": 40,
+"shift": {
+"__expr": "util.by_pixel(-1, -30)"
+},
+"scale": 0.5
+},
+{
+"__expr": "apply_heat_pipe_glow(util.sprite_load( \"__base__/graphics/entity/heat-exchanger/heatex-S-glow\",\n              {\n                priority = \"extra-high\",\n                blend_mode = \"additive\",\n                scale = 0.5\n              }\n            ))"
+}
+]
+},
+"west": {
+"layers": [
+{
+"__expr": "apply_heat_pipe_glow"
+},
+{
+"filename": "__base__/graphics/entity/heat-exchanger/heatex-W-heated.png",
+"priority": "extra-high",
+"width": 64,
+"height": 76,
+"shift": {
+"__expr": "util.by_pixel(23, -13)"
+},
+"scale": 0.5
+},
+{
+"__expr": "apply_heat_pipe_glow(util.sprite_load( \"__base__/graphics/entity/heat-exchanger/heatex-W-glow\",\n              {\n                priority = \"extra-high\",\n                blend_mode = \"additive\",\n                scale = 0.5\n              }\n            ))"
+}
+]
+}
+}
+},
+"fire_flicker_enabled": true,
+"fire_glow_flicker_enabled": true,
+"burning_cooldown": 20
+}
+},
+"container": {
+"wooden-chest": {
+"type": "container",
+"name": "wooden-chest",
+"icon": "__base__/graphics/icons/wooden-chest.png",
+"minable": {
+"mining_time": 0.1,
+"result": "wooden-chest"
+},
+"max_health": 100,
+"corpse": "wooden-chest-remnants",
+"dying_explosion": "wooden-chest-explosion",
+"fast_replaceable_group": "container",
+"inventory_size": 16,
+"impact_category": "wood"
+},
+"iron-chest": {
+"type": "container",
+"name": "iron-chest",
+"icon": "__base__/graphics/icons/iron-chest.png",
+"minable": {
+"mining_time": 0.2,
+"result": "iron-chest"
+},
+"max_health": 200,
+"corpse": "iron-chest-remnants",
+"dying_explosion": "iron-chest-explosion",
+"fast_replaceable_group": "container",
+"inventory_size": 32,
+"impact_category": "metal"
+},
+"steel-chest": {
+"type": "container",
+"name": "steel-chest",
+"icon": "__base__/graphics/icons/steel-chest.png",
+"minable": {
+"mining_time": 0.2,
+"result": "steel-chest"
+},
+"max_health": 350,
+"corpse": "steel-chest-remnants",
+"dying_explosion": "steel-chest-explosion",
+"fast_replaceable_group": "container",
+"inventory_size": 48,
+"impact_category": "metal"
+},
+"bottomless-chest": {
+"type": "container",
+"name": "bottomless-chest",
+"hidden": true,
+"minable": {
+"mining_time": 0.2,
+"result": "bottomless-chest"
+},
+"max_health": 4000,
+"corpse": "steel-chest-remnants",
+"dying_explosion": "steel-chest-explosion",
+"fast_replaceable_group": "container",
+"inventory_size": 1,
+"inventory_type": "with_custom_stack_size",
+"impact_category": "metal"
+}
+},
+"electric-pole": {
+"small-electric-pole": {
+"type": "electric-pole",
+"name": "small-electric-pole",
+"icon": "__base__/graphics/icons/small-electric-pole.png",
+"quality_indicator_scale": 0.75,
+"minable": {
+"mining_time": 0.1,
+"result": "small-electric-pole"
+},
+"max_health": 100,
+"corpse": "small-electric-pole-remnants",
+"dying_explosion": "small-electric-pole-explosion",
+"drawing_box_vertical_extension": 2.2,
+"maximum_wire_distance": 7.5,
+"supply_area_distance": 2.5,
+"impact_category": "wood",
+"fast_replaceable_group": "electric-pole"
+},
+"big-electric-pole": {
+"type": "electric-pole",
+"name": "big-electric-pole",
+"icon": "__base__/graphics/icons/big-electric-pole.png",
+"minable": {
+"mining_time": 0.1,
+"result": "big-electric-pole"
+},
+"fast_replaceable_group": "big-electric-pole",
+"max_health": 150,
+"corpse": "big-electric-pole-remnants",
+"dying_explosion": "big-electric-pole-explosion",
+"drawing_box_vertical_extension": 3,
+"maximum_wire_distance": 32,
+"supply_area_distance": 2,
+"impact_category": "metal",
+"track_coverage_during_drag_building": false
+},
+"medium-electric-pole": {
+"type": "electric-pole",
+"name": "medium-electric-pole",
+"icon": "__base__/graphics/icons/medium-electric-pole.png",
+"quality_indicator_scale": 0.75,
+"minable": {
+"mining_time": 0.1,
+"result": "medium-electric-pole"
+},
+"max_health": 100,
+"corpse": "medium-electric-pole-remnants",
+"dying_explosion": "medium-electric-pole-explosion",
+"fast_replaceable_group": "electric-pole",
+"drawing_box_vertical_extension": 2.3,
+"maximum_wire_distance": 9,
+"supply_area_distance": 3.5,
+"impact_category": "metal"
+},
+"substation": {
+"type": "electric-pole",
+"name": "substation",
+"icon": "__base__/graphics/icons/substation.png",
+"minable": {
+"mining_time": 0.1,
+"result": "substation"
+},
+"fast_replaceable_group": "substation",
+"max_health": 200,
+"corpse": "substation-remnants",
+"dying_explosion": "substation-explosion",
+"drawing_box_vertical_extension": 2,
+"maximum_wire_distance": 18,
+"supply_area_distance": 9,
+"impact_category": "metal"
+}
+},
+"generator": {
+"steam-engine": {
+"type": "generator",
+"name": "steam-engine",
+"icon": "__base__/graphics/icons/steam-engine.png",
+"minable": {
+"mining_time": 0.3,
+"result": "steam-engine"
+},
+"max_health": 400,
+"corpse": "steam-engine-remnants",
+"dying_explosion": "steam-engine-explosion",
+"effectivity": 1,
+"fluid_usage_per_tick": 0.5,
+"maximum_temperature": 165,
+"fast_replaceable_group": "steam-engine",
+"minimum_input_temperature": 100.0,
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-output"
+},
+"two_direction_only": true,
+"impact_category": "metal-large"
+},
+"steam-turbine": {
+"type": "generator",
+"name": "steam-turbine",
+"icon": "__base__/graphics/icons/steam-turbine.png",
+"minable": {
+"mining_time": 0.3,
+"result": "steam-turbine"
+},
+"max_health": 300,
+"corpse": "steam-turbine-remnants",
+"dying_explosion": "steam-turbine-explosion",
+"effectivity": 1,
+"fluid_usage_per_tick": 1,
+"maximum_temperature": 500,
+"burns_fluid": false,
+"fast_replaceable_group": "steam-engine",
+"minimum_input_temperature": 100.0,
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-output"
+},
+"two_direction_only": true,
+"impact_category": "metal-large"
+}
+},
+"offshore-pump": {
+"offshore-pump": {
+"type": "offshore-pump",
+"name": "offshore-pump",
+"icon": "__base__/graphics/icons/offshore-pump.png",
+"minable": {
+"mining_time": 0.1,
+"result": "offshore-pump"
+},
+"fast_replaceable_group": "offshore-pump",
+"max_health": 150,
+"corpse": "offshore-pump-remnants",
+"dying_explosion": "offshore-pump-explosion",
+"energy_source": {
+"type": "void"
+},
+"energy_usage": "60kW",
+"pumping_speed": 20,
+"tile_width": 1,
+"tile_height": 1,
+"impact_category": "metal",
+"always_draw_fluid": true
+}
+},
+"inserter": {
+"inserter": {
+"type": "inserter",
+"name": "inserter",
+"icon": "__base__/graphics/icons/inserter.png",
+"minable": {
+"mining_time": 0.1,
+"result": "inserter"
+},
+"max_health": 150,
+"corpse": "inserter-remnants",
+"dying_explosion": "inserter-explosion",
+"energy_per_movement": "5kJ",
+"energy_per_rotation": "5kJ",
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-input",
+"drain": "0.4kW"
+},
+"extension_speed": 0.035,
+"rotation_speed": 0.014,
+"filter_count": 5,
+"fast_replaceable_group": "inserter",
+"next_upgrade": "fast-inserter",
+"impact_category": "metal"
+},
+"fast-inserter": {
+"type": "inserter",
+"name": "fast-inserter",
+"icon": "__base__/graphics/icons/fast-inserter.png",
+"minable": {
+"mining_time": 0.1,
+"result": "fast-inserter"
+},
+"max_health": 150,
+"corpse": "fast-inserter-remnants",
+"dying_explosion": "fast-inserter-explosion",
+"energy_per_movement": "7kJ",
+"energy_per_rotation": "7kJ",
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-input",
+"drain": "0.5kW"
+},
+"extension_speed": 0.1,
+"rotation_speed": 0.04,
+"filter_count": 5,
+"fast_replaceable_group": "inserter",
+"next_upgrade": "bulk-inserter",
+"impact_category": "metal"
+},
+"long-handed-inserter": {
+"type": "inserter",
+"name": "long-handed-inserter",
+"icon": "__base__/graphics/icons/long-handed-inserter.png",
+"minable": {
+"mining_time": 0.1,
+"result": "long-handed-inserter"
+},
+"max_health": 160,
+"corpse": "long-handed-inserter-remnants",
+"dying_explosion": "long-handed-inserter-explosion",
+"starting_distance": 1.7,
+"energy_per_movement": "5kJ",
+"energy_per_rotation": "5kJ",
+"extension_speed": 0.05,
+"rotation_speed": 0.02,
+"filter_count": 5,
+"hand_size": 1.5,
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-input",
+"drain": "0.4kW"
+},
+"fast_replaceable_group": "long-handed-inserter",
+"impact_category": "metal"
+},
+"burner-inserter": {
+"type": "inserter",
+"name": "burner-inserter",
+"icon": "__base__/graphics/icons/burner-inserter.png",
+"minable": {
+"mining_time": 0.1,
+"result": "burner-inserter"
+},
+"max_health": 100,
+"corpse": "burner-inserter-remnants",
+"dying_explosion": "burner-inserter-explosion",
+"energy_per_movement": "50kJ",
+"energy_per_rotation": "50kJ",
+"energy_source": {
+"type": "burner",
+"fuel_categories": [
+"chemical"
+],
+"initial_fuel": "wood",
+"initial_fuel_percent": 0.25,
+"effectivity": 1,
+"fuel_inventory_size": 1,
+"light_flicker": {
+"color": [
+0,
+0,
+0
+]
+},
+"smoke": [
+{
+"name": "smoke",
+"deviation": [
+0.1,
+0.1
+],
+"frequency": 9
+}
+]
+},
+"extension_speed": 0.035,
+"rotation_speed": 0.013,
+"filter_count": 5,
+"fast_replaceable_group": "inserter",
+"impact_category": "metal"
+},
+"bulk-inserter": {
+"type": "inserter",
+"name": "bulk-inserter",
+"icon": "__base__/graphics/icons/bulk-inserter.png",
+"bulk": true,
+"minable": {
+"mining_time": 0.1,
+"result": "bulk-inserter"
+},
+"max_health": 160,
+"corpse": "bulk-inserter-remnants",
+"dying_explosion": "bulk-inserter-explosion",
+"starting_distance": 0.85,
+"energy_per_movement": "20kJ",
+"energy_per_rotation": "20kJ",
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-input",
+"drain": "1kW"
+},
+"extension_speed": 0.1,
+"rotation_speed": 0.04,
+"filter_count": 5,
+"fast_replaceable_group": "inserter"
+}
+},
+"item-entity": {
+"item-on-ground": {
+"type": "item-entity",
+"name": "item-on-ground",
+"icon": "__core__/graphics/item-on-ground.png",
+"minable": {
+"mining_time": 0.025
+}
+}
+},
+"pipe": {
+"pipe": {
+"type": "pipe",
+"name": "pipe",
+"icon": "__base__/graphics/icons/pipe.png",
+"minable": {
+"mining_time": 0.1,
+"result": "pipe"
+},
+"max_health": 100,
+"corpse": "pipe-remnants",
+"dying_explosion": "pipe-explosion",
+"fast_replaceable_group": "pipe",
+"impact_category": "metal"
+}
+},
+"radar": {
+"radar": {
+"type": "radar",
+"name": "radar",
+"icon": "__base__/graphics/icons/radar.png",
+"minable": {
+"mining_time": 0.1,
+"result": "radar"
+},
+"fast_replaceable_group": "radar",
+"max_health": 250,
+"corpse": "radar-remnants",
+"dying_explosion": "radar-explosion",
+"energy_per_sector": "10MJ",
+"max_distance_of_sector_revealed": 14,
+"max_distance_of_nearby_sector_revealed": 3,
+"energy_per_nearby_scan": "250kJ",
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-input"
+},
+"energy_usage": "300kW",
+"impact_category": "metal",
+"rotation_speed": 0.01,
+"is_military_target": false
+}
+},
+"lamp": {
+"small-lamp": {
+"type": "lamp",
+"name": "small-lamp",
+"icon": "__base__/graphics/icons/small-lamp.png",
+"fast_replaceable_group": "lamp",
+"minable": {
+"mining_time": 0.1,
+"result": "small-lamp"
+},
+"max_health": 100,
+"corpse": "lamp-remnants",
+"dying_explosion": "lamp-explosion",
+"impact_category": "glass",
+"energy_source": {
+"type": "electric",
+"usage_priority": "lamp"
+},
+"energy_usage_per_tick": "5kW",
+"darkness_for_all_lamps_on": 0.5,
+"darkness_for_all_lamps_off": 0.3,
+"glow_size": 6,
+"glow_color_intensity": 1,
+"glow_render_mode": "multiplicative"
+}
+},
+"arrow": {
+"orange-arrow-with-circle": {
+"type": "arrow",
+"name": "orange-arrow-with-circle",
+"hidden": true,
+"blinking": true
+},
+"fake-selection-box-2x2": {
+"type": "arrow",
+"name": "fake-selection-box-2x2",
+"hidden": true
+}
+},
+"pipe-to-ground": {
+"pipe-to-ground": {
+"type": "pipe-to-ground",
+"name": "pipe-to-ground",
+"icon": "__base__/graphics/icons/pipe-to-ground.png",
+"minable": {
+"mining_time": 0.1,
+"result": "pipe-to-ground"
+},
+"max_health": 150,
+"corpse": "pipe-to-ground-remnants",
+"dying_explosion": "pipe-to-ground-explosion",
+"fast_replaceable_group": "pipe",
+"impact_category": "metal"
+}
+},
+"assembling-machine": {
+"assembling-machine-1": {
+"type": "assembling-machine",
+"name": "assembling-machine-1",
+"icon": "__base__/graphics/icons/assembling-machine-1.png",
+"minable": {
+"mining_time": 0.2,
+"result": "assembling-machine-1"
+},
+"max_health": 300,
+"corpse": "assembling-machine-1-remnants",
+"dying_explosion": "assembling-machine-1-explosion",
+"fast_replaceable_group": "assembling-machine",
+"next_upgrade": "assembling-machine-2",
+"animation_random_start_frame": true,
+"crafting_categories": [
+"crafting",
+"advanced-crafting"
+],
+"crafting_speed": 0.5,
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-input",
+"emissions_per_minute": {
+"pollution": 4
+}
+},
+"energy_usage": "75kW",
+"allowed_effects": [
+"speed",
+"consumption",
+"pollution"
+],
+"impact_category": "metal"
+},
+"assembling-machine-2": {
+"type": "assembling-machine",
+"name": "assembling-machine-2",
+"icon": "__base__/graphics/icons/assembling-machine-2.png",
+"minable": {
+"mining_time": 0.2,
+"result": "assembling-machine-2"
+},
+"max_health": 350,
+"corpse": "assembling-machine-2-remnants",
+"dying_explosion": "assembling-machine-2-explosion",
+"fluid_boxes_off_when_no_fluid_recipe": true,
+"fast_replaceable_group": "assembling-machine",
+"next_upgrade": "assembling-machine-3",
+"animation_random_start_frame": true,
+"impact_category": "metal",
+"crafting_categories": [
+"crafting",
+"advanced-crafting",
+"crafting-with-fluid"
+],
+"crafting_speed": 0.75,
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-input",
+"emissions_per_minute": {
+"pollution": 3
+}
+},
+"energy_usage": "150kW",
+"module_slots": 2,
+"allowed_effects": [
+"consumption",
+"speed",
+"productivity",
+"pollution",
+"quality"
+]
+},
+"assembling-machine-3": {
+"type": "assembling-machine",
+"name": "assembling-machine-3",
+"icon": "__base__/graphics/icons/assembling-machine-3.png",
+"minable": {
+"mining_time": 0.2,
+"result": "assembling-machine-3"
+},
+"max_health": 400,
+"corpse": "assembling-machine-3-remnants",
+"dying_explosion": "assembling-machine-3-explosion",
+"fluid_boxes_off_when_no_fluid_recipe": true,
+"impact_category": "metal",
+"drawing_box_vertical_extension": 0.2,
+"fast_replaceable_group": "assembling-machine",
+"animation_random_start_frame": true,
+"crafting_categories": [
+"crafting",
+"advanced-crafting",
+"crafting-with-fluid"
+],
+"crafting_speed": 1.25,
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-input",
+"emissions_per_minute": {
+"pollution": 2
+}
+},
+"energy_usage": "375kW",
+"module_slots": 4,
+"allowed_effects": [
+"consumption",
+"speed",
+"productivity",
+"pollution",
+"quality"
+]
+},
+"oil-refinery": {
+"type": "assembling-machine",
+"name": "oil-refinery",
+"icon": "__base__/graphics/icons/oil-refinery.png",
+"minable": {
+"mining_time": 0.2,
+"result": "oil-refinery"
+},
+"fast_replaceable_group": "oil-refinery",
+"max_health": 350,
+"corpse": "oil-refinery-remnants",
+"dying_explosion": "oil-refinery-explosion",
+"drawing_box_vertical_extension": 0.3,
+"module_slots": 3,
+"allowed_effects": [
+"consumption",
+"speed",
+"productivity",
+"pollution"
+],
+"crafting_categories": [
+"oil-processing"
+],
+"crafting_speed": 1,
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-input",
+"emissions_per_minute": {
+"pollution": 6
+}
+},
+"energy_usage": "420kW",
+"use_mirroring": true,
+"impact_category": "metal-large"
+},
+"chemical-plant": {
+"type": "assembling-machine",
+"name": "chemical-plant",
+"icon": "__base__/graphics/icons/chemical-plant.png",
+"minable": {
+"mining_time": 0.1,
+"result": "chemical-plant"
+},
+"fast_replaceable_group": "chemical-plant",
+"max_health": 300,
+"corpse": "chemical-plant-remnants",
+"dying_explosion": "chemical-plant-explosion",
+"drawing_box_vertical_extension": 0.4,
+"module_slots": 3,
+"allowed_effects": [
+"consumption",
+"speed",
+"productivity",
+"pollution",
+"quality"
+],
+"use_mirroring": true,
+"impact_category": "metal-large",
+"crafting_speed": 1,
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-input",
+"emissions_per_minute": {
+"pollution": 4
+}
+},
+"energy_usage": "210kW",
+"crafting_categories": [
+"chemistry"
+]
+},
+"centrifuge": {
+"type": "assembling-machine",
+"name": "centrifuge",
+"icon": "__base__/graphics/icons/centrifuge.png",
+"minable": {
+"mining_time": 0.1,
+"result": "centrifuge"
+},
+"fast_replaceable_group": "centrifuge",
+"max_health": 350,
+"corpse": "centrifuge-remnants",
+"dying_explosion": "centrifuge-explosion",
+"drawing_box_vertical_extension": 0.7,
+"impact_category": "metal-large",
+"crafting_speed": 1,
+"crafting_categories": [
+"centrifuging"
+],
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-input",
+"emissions_per_minute": {
+"pollution": 4
+}
+},
+"energy_usage": "350kW",
+"module_slots": 2,
+"allowed_effects": [
+"consumption",
+"speed",
+"productivity",
+"pollution",
+"quality"
+]
+}
+},
+"entity-ghost": {
+"entity-ghost": {
+"type": "entity-ghost",
+"name": "entity-ghost",
+"icon": "__core__/graphics/icons/mip/ghost-entity.png",
+"minable": {
+"mining_time": 0,
+"results": []
+}
+},
+"tree-proxy": {
+"type": "entity-ghost",
+"name": "tree-proxy",
+"icon": "__base__/graphics/icons/tree-01.png",
+"hidden": true
+},
+"tree-dying-proxy": {
+"type": "entity-ghost",
+"name": "tree-dying-proxy",
+"hidden": true
+},
+"tile-proxy": {
+"type": "entity-ghost",
+"name": "tile-proxy",
+"icon": "__base__/graphics/icons/landfill.png",
+"hidden": true
+}
+},
+"tile-ghost": {
+"tile-ghost": {
+"type": "tile-ghost",
+"name": "tile-ghost",
+"icon": "__core__/graphics/icons/mip/ghost-tile.png",
+"minable": {
+"mining_time": 0,
+"results": []
+},
+"selection_priority": 30
+}
+},
+"deconstructible-tile-proxy": {
+"deconstructible-tile-proxy": {
+"type": "deconstructible-tile-proxy",
+"name": "deconstructible-tile-proxy",
+"icon": "__core__/graphics/cancel.png",
+"hidden": true,
+"selection_priority": 30
+}
+},
+"item-request-proxy": {
+"item-request-proxy": {
+"type": "item-request-proxy",
+"name": "item-request-proxy",
+"icon": "__core__/graphics/icons/mip/item-request-slot.png",
+"use_target_entity_alert_icon_shift": true,
+"minable": {
+"mining_time": 0,
+"results": []
+}
+}
+},
+"wall": {
+"stone-wall": {
+"type": "wall",
+"name": "stone-wall",
+"icon": "__base__/graphics/icons/wall.png",
+"minable": {
+"mining_time": 0.2,
+"result": "stone-wall"
+},
+"fast_replaceable_group": "wall",
+"max_health": 350,
+"repair_speed_modifier": 2,
+"corpse": "wall-remnants",
+"dying_explosion": "wall-explosion",
+"impact_category": "stone",
+"visual_merge_group": 0
+}
+},
+"lab": {
+"lab": {
+"type": "lab",
+"name": "lab",
+"icon": "__base__/graphics/icons/lab.png",
+"minable": {
+"mining_time": 0.2,
+"result": "lab"
+},
+"fast_replaceable_group": "lab",
+"max_health": 150,
+"corpse": "lab-remnants",
+"dying_explosion": "lab-explosion",
+"impact_category": "glass",
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-input"
+},
+"energy_usage": "60kW",
+"researching_speed": 1,
+"inputs": [
+"automation-science-pack",
+"logistic-science-pack",
+"military-science-pack",
+"chemical-science-pack",
+"production-science-pack",
+"utility-science-pack",
+"space-science-pack"
+],
+"module_slots": 2
+}
+},
+"highlight-box": {
+"highlight-box": {
+"type": "highlight-box",
+"name": "highlight-box",
+"hidden": true
+}
+},
+"car": {
+"car": {
+"type": "car",
+"name": "car",
+"icon": "__base__/graphics/icons/car.png",
+"minable": {
+"mining_time": 0.4,
+"result": "car"
+},
+"max_health": 450,
+"is_military_target": true,
+"deliver_category": "vehicle",
+"corpse": "car-remnants",
+"dying_explosion": "car-explosion",
+"energy_per_hit_point": 1,
+"effectivity": 0.6,
+"energy_source": {
+"type": "burner",
+"fuel_categories": [
+"chemical"
+],
+"effectivity": 1,
+"fuel_inventory_size": 1,
+"smoke": [
+{
+"name": "car-smoke",
+"deviation": [
+0.25,
+0.25
+],
+"frequency": 200,
+"position": [
+0,
+1.5
+],
+"starting_frame": 0,
+"starting_frame_deviation": 60
+}
+]
+},
+"consumption": "150kW",
+"friction_force": 0.002,
+"render_layer": "object",
+"turret_rotation_speed": 0.005833333333333333,
+"stop_trigger_speed": 0.15,
+"impact_category": "metal",
+"impact_speed_to_volume_ratio": 4.0,
+"rotation_speed": 0.015,
+"rotation_snap_angle": 0.015,
+"weight": 700,
+"inventory_size": 80
+},
+"tank": {
+"type": "car",
+"name": "tank",
+"icon": "__base__/graphics/icons/tank.png",
+"minable": {
+"mining_time": 0.5,
+"result": "tank"
+},
+"max_health": 2000,
+"is_military_target": true,
+"deliver_category": "vehicle",
+"corpse": "tank-remnants",
+"dying_explosion": "tank-explosion",
+"immune_to_tree_impacts": true,
+"immune_to_rock_impacts": true,
+"immune_to_all_impacts": true,
+"energy_per_hit_point": 0.5,
+"allow_remote_driving": true,
+"equipment_grid": "medium-equipment-grid",
+"trash_inventory_size": 20,
+"drawing_box_vertical_extension": 0.5,
+"effectivity": 0.9,
+"energy_source": {
+"type": "burner",
+"fuel_categories": [
+"chemical"
+],
+"effectivity": 1,
+"fuel_inventory_size": 2,
+"smoke": [
+{
+"name": "tank-smoke",
+"deviation": [
+0.25,
+0.25
+],
+"frequency": 50,
+"position": [
+0,
+1.5
+],
+"starting_frame": 0,
+"starting_frame_deviation": 60
+}
+]
+},
+"consumption": "600kW",
+"terrain_friction_modifier": 0.2,
+"friction_force": 0.002,
+"turret_rotation_speed": 0.005833333333333333,
+"turret_return_timeout": 300,
+"impact_category": "metal-large",
+"impact_speed_to_volume_ratio": 5.0,
+"stop_trigger_speed": 0.1,
+"rotation_speed": 0.0035,
+"rotation_snap_angle": 0.01,
+"tank_driving": true,
+"weight": 20000,
+"inventory_size": 80
+}
+},
+"gate": {
+"gate": {
+"type": "gate",
+"name": "gate",
+"icon": "__base__/graphics/icons/gate.png",
+"fast_replaceable_group": "wall",
+"minable": {
+"mining_time": 0.1,
+"result": "gate"
+},
+"max_health": 350,
+"corpse": "gate-remnants",
+"dying_explosion": "gate-explosion",
+"opening_speed": 0.0666666,
+"activation_distance": 3,
+"timeout_to_close": 5,
+"fadeout_interval": 15,
+"impact_category": "stone"
+}
+},
+"solar-panel": {
+"solar-panel": {
+"type": "solar-panel",
+"name": "solar-panel",
+"icon": "__base__/graphics/icons/solar-panel.png",
+"minable": {
+"mining_time": 0.1,
+"result": "solar-panel"
+},
+"fast_replaceable_group": "solar-panel",
+"max_health": 200,
+"corpse": "solar-panel-remnants",
+"dying_explosion": "solar-panel-explosion",
+"energy_source": {
+"type": "electric",
+"usage_priority": "solar"
+},
+"impact_category": "glass",
+"production": "60kW"
+}
+},
+"accumulator": {
+"accumulator": {
+"type": "accumulator",
+"name": "accumulator",
+"icon": "__base__/graphics/icons/accumulator.png",
+"minable": {
+"mining_time": 0.1,
+"result": "accumulator"
+},
+"fast_replaceable_group": "accumulator",
+"max_health": 150,
+"corpse": "accumulator-remnants",
+"dying_explosion": "accumulator-explosion",
+"drawing_box_vertical_extension": 0.5,
+"energy_source": {
+"type": "electric",
+"buffer_capacity": "5MJ",
+"usage_priority": "tertiary",
+"input_flow_limit": "300kW",
+"output_flow_limit": "300kW"
+},
+"impact_category": "metal"
+}
+},
+"electric-energy-interface": {
+"hidden-electric-energy-interface": {
+"type": "electric-energy-interface",
+"name": "hidden-electric-energy-interface",
+"icon": "__base__/graphics/icons/solar-panel.png",
+"localised_name": [
+"item-name.solar-panel"
+],
+"hidden": true,
+"max_health": 150,
+"selectable_in_game": false,
+"energy_source": {
+"type": "electric",
+"buffer_capacity": "10GJ",
+"usage_priority": "tertiary",
+"input_flow_limit": "0kW",
+"output_flow_limit": "500GW"
+},
+"energy_production": "500GW",
+"energy_usage": "0kW",
+"order": "h-e-e-i"
+},
+"electric-energy-interface": {
+"type": "electric-energy-interface",
+"name": "electric-energy-interface",
+"hidden": true,
+"minable": {
+"mining_time": 0.1,
+"result": "electric-energy-interface"
+},
+"max_health": 150,
+"corpse": "medium-remnants",
+"subgroup": "other",
+"drawing_box_vertical_extension": 0.5,
+"gui_mode": "all",
+"allow_copy_paste": true,
+"energy_source": {
+"type": "electric",
+"buffer_capacity": "10GJ",
+"usage_priority": "dynamic"
+},
+"energy_production": "500GW",
+"energy_usage": "0kW",
+"impact_category": "metal"
+}
+},
+"land-mine": {
+"land-mine": {
+"type": "land-mine",
+"name": "land-mine",
+"icon": "__base__/graphics/icons/land-mine.png",
+"alert_when_damaged": false,
+"minable": {
+"mining_time": 0.5,
+"result": "land-mine"
+},
+"fast_replaceable_group": "land-mine",
+"max_health": 15,
+"corpse": "land-mine-remnants",
+"dying_explosion": "land-mine-explosion",
+"trigger_radius": 2.5,
+"ammo_category": "landmine"
+}
+},
+"logistic-container": {
+"passive-provider-chest": {
+"type": "logistic-container",
+"name": "passive-provider-chest",
+"icon": "__base__/graphics/icons/passive-provider-chest.png",
+"minable": {
+"mining_time": 0.1,
+"result": "passive-provider-chest"
+},
+"max_health": 350,
+"corpse": "passive-provider-chest-remnants",
+"dying_explosion": "passive-provider-chest-explosion",
+"fast_replaceable_group": "container",
+"inventory_size": 48,
+"logistic_mode": "passive-provider",
+"impact_category": "metal"
+},
+"active-provider-chest": {
+"type": "logistic-container",
+"name": "active-provider-chest",
+"icon": "__base__/graphics/icons/active-provider-chest.png",
+"minable": {
+"mining_time": 0.1,
+"result": "active-provider-chest"
+},
+"max_health": 350,
+"corpse": "active-provider-chest-remnants",
+"dying_explosion": "active-provider-chest-explosion",
+"fast_replaceable_group": "container",
+"inventory_size": 48,
+"logistic_mode": "active-provider",
+"impact_category": "metal"
+},
+"storage-chest": {
+"type": "logistic-container",
+"name": "storage-chest",
+"icon": "__base__/graphics/icons/storage-chest.png",
+"minable": {
+"mining_time": 0.1,
+"result": "storage-chest"
+},
+"max_health": 350,
+"max_logistic_slots": 1,
+"corpse": "storage-chest-remnants",
+"dying_explosion": "storage-chest-explosion",
+"fast_replaceable_group": "container",
+"inventory_size": 48,
+"logistic_mode": "storage",
+"impact_category": "metal"
+},
+"buffer-chest": {
+"type": "logistic-container",
+"name": "buffer-chest",
+"icon": "__base__/graphics/icons/buffer-chest.png",
+"minable": {
+"mining_time": 0.1,
+"result": "buffer-chest"
+},
+"max_health": 350,
+"corpse": "buffer-chest-remnants",
+"dying_explosion": "buffer-chest-explosion",
+"fast_replaceable_group": "container",
+"inventory_size": 48,
+"trash_inventory_size": 20,
+"logistic_mode": "buffer",
+"impact_category": "metal"
+},
+"requester-chest": {
+"type": "logistic-container",
+"name": "requester-chest",
+"icon": "__base__/graphics/icons/requester-chest.png",
+"minable": {
+"mining_time": 0.1,
+"result": "requester-chest"
+},
+"max_health": 350,
+"corpse": "requester-chest-remnants",
+"dying_explosion": "requester-chest-explosion",
+"fast_replaceable_group": "container",
+"inventory_size": 48,
+"trash_inventory_size": 20,
+"logistic_mode": "requester",
+"impact_category": "metal"
+}
+},
+"rocket-silo": {
+"rocket-silo": {
+"type": "rocket-silo",
+"name": "rocket-silo",
+"icon": "__base__/graphics/icons/rocket-silo.png",
+"fast_transfer_modules_into_module_slots_only": true,
+"crafting_categories": [
+"rocket-building"
+],
+"fast_replaceable_group": "rocket-silo",
+"rocket_parts_required": 100,
+"rocket_quick_relaunch_start_offset": -0.625,
+"rocket_rising_speed_modifier_per_quality_level": 0.15,
+"rocket_engine_starting_speed_modifier_per_quality_level": 0.45,
+"arms_speed_modifier_per_quality_level": 0.2,
+"crafting_speed": 1,
+"to_be_inserted_to_rocket_inventory_size": 1,
+"logistic_trash_inventory_size": 0,
+"module_slots": 4,
+"fixed_recipe": "rocket-part",
+"show_recipe_icon": false,
+"allowed_effects": [
+"consumption",
+"speed",
+"productivity",
+"pollution"
+],
+"minable": {
+"mining_time": 1,
+"result": "rocket-silo"
+},
+"max_health": 5000,
+"corpse": "rocket-silo-remnants",
+"dying_explosion": "rocket-silo-explosion",
+"impact_category": "metal-large",
+"energy_source": {
+"type": "electric",
+"usage_priority": "primary-input"
+},
+"energy_usage": "250kW",
+"lamp_energy_usage": "0kW",
+"active_energy_usage": "3990kW",
+"rocket_entity": "rocket-silo-rocket",
+"times_to_blink": 3,
+"silo_fade_out_start_distance": 8,
+"silo_fade_out_end_distance": 15,
+"alarm_sound": "__base__/sound/silo-alarm.ogg"
+}
+},
+"rocket-silo-rocket": {
+"rocket-silo-rocket": {
+"type": "rocket-silo-rocket",
+"name": "rocket-silo-rocket",
+"hidden": true,
+"dying_explosion": "massive-explosion",
+"shadow_slave_entity": "rocket-silo-rocket-shadow",
+"inventory_size": 0,
+"flying_acceleration": 0.01,
+"cargo_pod_entity": "cargo-pod",
+"rocket_flame_left_rotation": 0.0611,
+"rocket_flame_right_rotation": 0.952,
+"rocket_render_layer_switch_distance": 9.5,
+"full_render_layer_switch_distance": 11,
+"effects_fade_in_start_distance": 4.5,
+"effects_fade_in_end_distance": 7.5,
+"shadow_fade_out_start_ratio": 0.25,
+"shadow_fade_out_end_ratio": 0.75,
+"rocket_visible_distance_from_center": 2.75,
+"rocket_above_wires_slice_offset_from_center": -3,
+"rocket_air_object_slice_offset_from_center": -6
+}
+},
+"rocket-silo-rocket-shadow": {
+"rocket-silo-rocket-shadow": {
+"type": "rocket-silo-rocket-shadow",
+"name": "rocket-silo-rocket-shadow",
+"hidden": true
+},
+"cargo-pod-shadow": {
+"type": "rocket-silo-rocket-shadow",
+"name": "cargo-pod-shadow",
+"hidden": true
+}
+},
+"cargo-landing-pad": {
+"cargo-landing-pad": {
+"type": "cargo-landing-pad",
+"name": "cargo-landing-pad",
+"icon": "__base__/graphics/icons/cargo-landing-pad.png",
+"build_grid_size": 2,
+"max_health": 1000,
+"corpse": "cargo-landing-pad-remnants",
+"dying_explosion": "rocket-silo-explosion",
+"minable": {
+"mining_time": 1,
+"result": "cargo-landing-pad"
+},
+"inventory_size": 80,
+"radar_range": 4
+}
+},
+"roboport": {
+"roboport": {
+"type": "roboport",
+"name": "roboport",
+"icon": "__base__/graphics/icons/roboport.png",
+"fast_replaceable_group": "roboport",
+"minable": {
+"mining_time": 0.1,
+"result": "roboport"
+},
+"max_health": 500,
+"corpse": "roboport-remnants",
+"dying_explosion": "roboport-explosion",
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-input",
+"input_flow_limit": "5MW",
+"buffer_capacity": "100MJ"
+},
+"recharge_minimum": "40MJ",
+"energy_usage": "50kW",
+"charging_energy": "500kW",
+"logistics_radius": 25,
+"construction_radius": 55,
+"charge_approach_distance": 5,
+"robot_slots_count": 7,
+"material_slots_count": 7,
+"impact_category": "metal",
+"request_to_open_door_timeout": 15,
+"spawn_and_station_height": 0.3,
+"stationing_render_layer_swap_height": 0.87,
+"draw_logistic_radius_visualization": true,
+"draw_construction_radius_visualization": true
+}
+},
+"storage-tank": {
+"storage-tank": {
+"type": "storage-tank",
+"name": "storage-tank",
+"icon": "__base__/graphics/icons/storage-tank.png",
+"minable": {
+"mining_time": 0.5,
+"result": "storage-tank"
+},
+"max_health": 500,
+"corpse": "storage-tank-remnants",
+"dying_explosion": "storage-tank-explosion",
+"fast_replaceable_group": "storage-tank",
+"two_direction_only": true,
+"flow_length_in_ticks": 360,
+"impact_category": "metal-large"
+}
+},
+"pump": {
+"pump": {
+"type": "pump",
+"name": "pump",
+"icon": "__base__/graphics/icons/pump.png",
+"minable": {
+"mining_time": 0.2,
+"result": "pump"
+},
+"max_health": 180,
+"fast_replaceable_group": "pipe",
+"corpse": "pump-remnants",
+"dying_explosion": "pump-explosion",
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-input",
+"drain": "1kW"
+},
+"energy_usage": "29kW",
+"pumping_speed": 20,
+"impact_category": "metal",
+"fluid_wagon_tank_valve_max_distance": 2.22
+}
+},
+"valve": {
+"one-way-valve": {
+"type": "valve",
+"name": "one-way-valve",
+"icon": "__base__/graphics/entity/one-way-valve/one-way-valve-east.png",
+"hidden": true,
+"minable": {
+"mining_time": 0.1,
+"result": "one-way-valve"
+},
+"fast_replaceable_group": "pipe",
+"mode": "one-way",
+"flow_rate": 20,
+"max_health": 100,
+"corpse": "pipe-remnants",
+"dying_explosion": "pipe-explosion"
+},
+"overflow-valve": {
+"type": "valve",
+"name": "overflow-valve",
+"icon": "__base__/graphics/entity/overflow-valve/overflow-valve-east.png",
+"hidden": true,
+"minable": {
+"mining_time": 0.1,
+"result": "overflow-valve"
+},
+"fast_replaceable_group": "pipe",
+"mode": "overflow",
+"threshold": 0.8,
+"flow_rate": 20,
+"max_health": 100,
+"corpse": "pipe-remnants",
+"dying_explosion": "pipe-explosion"
+},
+"top-up-valve": {
+"type": "valve",
+"name": "top-up-valve",
+"icon": "__base__/graphics/entity/top-up-valve/top-up-valve-east.png",
+"hidden": true,
+"minable": {
+"mining_time": 0.1,
+"result": "top-up-valve"
+},
+"fast_replaceable_group": "pipe",
+"mode": "top-up",
+"threshold": 0.5,
+"flow_rate": 20,
+"max_health": 100,
+"corpse": "pipe-remnants",
+"dying_explosion": "pipe-explosion"
+}
+},
+"market": {
+"market": {
+"type": "market",
+"name": "market",
+"icon": "__base__/graphics/icons/market.png",
+"hidden": true,
+"allow_access_to_all_forces": true,
+"order": "d-a-a",
+"subgroup": "other",
+"max_health": 150,
+"corpse": "big-remnants"
+}
+},
+"beacon": {
+"beacon": {
+"type": "beacon",
+"name": "beacon",
+"icon": "__base__/graphics/icons/beacon.png",
+"minable": {
+"mining_time": 0.2,
+"result": "beacon"
+},
+"fast_replaceable_group": "beacon",
+"max_health": 200,
+"corpse": "beacon-remnants",
+"dying_explosion": "beacon-explosion",
+"drawing_box_vertical_extension": 0.7,
+"allowed_effects": [
+"consumption",
+"speed",
+"pollution"
+],
+"supply_area_distance": 3,
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-input"
+},
+"impact_category": "metal",
+"energy_usage": "480kW",
+"distribution_effectivity": 1.5,
+"distribution_effectivity_bonus_per_quality_level": 0.2,
+"beacon_counter": "same_type",
+"module_slots": 2
+}
+},
+"smoke-with-trigger": {
+"poison-cloud": {
+"name": "poison-cloud",
+"type": "smoke-with-trigger",
+"hidden": true,
+"show_when_smoke_off": true,
+"particle_count": 16,
+"particle_distance_scale_factor": 0.5,
+"spread_duration_variation": 20,
+"particle_duration_variation": 180,
+"render_layer": "object",
+"affected_by_wind": false,
+"cyclic": true,
+"duration": 1200,
+"fade_away_duration": 120,
+"spread_duration": 20,
+"action_cooldown": 30
+},
+"poison-cloud-visual-dummy": {
+"type": "smoke-with-trigger",
+"name": "poison-cloud-visual-dummy",
+"hidden": true,
+"show_when_smoke_off": true,
+"particle_count": 24,
+"particle_distance_scale_factor": 0.5,
+"particle_duration_variation": 180,
+"spread_duration_variation": 280,
+"render_layer": "object",
+"affected_by_wind": false,
+"cyclic": true,
+"duration": 72240,
+"fade_away_duration": 180
+}
+},
+"sticker": {
+"slowdown-sticker": {
+"type": "sticker",
+"name": "slowdown-sticker",
+"hidden": true,
+"duration_in_ticks": 1800,
+"target_movement_modifier": 0.25
+},
+"stun-sticker": {
+"type": "sticker",
+"name": "stun-sticker",
+"hidden": true,
+"duration_in_ticks": 180,
+"target_movement_modifier": 0
+},
+"shotgun-impact-sticker": {
+"type": "sticker",
+"name": "shotgun-impact-sticker",
+"hidden": true,
+"duration_in_ticks": 100,
+"target_movement_modifier_from": 0.5,
+"target_movement_modifier_to": 1
+},
+"electric-mini-stun": {
+"type": "sticker",
+"name": "electric-mini-stun",
+"hidden": true,
+"duration_in_ticks": 40,
+"target_movement_modifier": 0.2
+}
+},
+"reactor": {
+"nuclear-reactor": {
+"type": "reactor",
+"name": "nuclear-reactor",
+"icon": "__base__/graphics/icons/nuclear-reactor.png",
+"minable": {
+"mining_time": 0.5,
+"result": "nuclear-reactor"
+},
+"fast_replaceable_group": "reactor",
+"max_health": 500,
+"corpse": "nuclear-reactor-remnants",
+"dying_explosion": "nuclear-reactor-explosion",
+"consumption": "40MW",
+"neighbour_bonus": 1,
+"energy_source": {
+"type": "burner",
+"fuel_categories": [
+"nuclear"
+],
+"effectivity": 1,
+"fuel_inventory_size": 1,
+"burnt_inventory_size": 1,
+"light_flicker": {
+"color": [
+0,
+0,
+0
+],
+"minimum_intensity": 0.7,
+"maximum_intensity": 0.95
+}
+},
+"temperature_to_suppress_energy_icons": 800,
+"heat_buffer": {
+"max_temperature": 1000,
+"specific_heat": "10MJ",
+"max_transfer": "10GW",
+"minimum_glow_temperature": 350,
+"connections": [
+{
+"position": [
+-2,
+-2
+],
+"direction": {
+"__expr": "defines.direction.north"
+}
+},
+{
+"position": [
+0,
+-2
+],
+"direction": {
+"__expr": "defines.direction.north"
+}
+},
+{
+"position": [
+2,
+-2
+],
+"direction": {
+"__expr": "defines.direction.north"
+}
+},
+{
+"position": [
+2,
+-2
+],
+"direction": {
+"__expr": "defines.direction.east"
+}
+},
+{
+"position": [
+2,
+0
+],
+"direction": {
+"__expr": "defines.direction.east"
+}
+},
+{
+"position": [
+2,
+2
+],
+"direction": {
+"__expr": "defines.direction.east"
+}
+},
+{
+"position": [
+2,
+2
+],
+"direction": {
+"__expr": "defines.direction.south"
+}
+},
+{
+"position": [
+0,
+2
+],
+"direction": {
+"__expr": "defines.direction.south"
+}
+},
+{
+"position": [
+-2,
+2
+],
+"direction": {
+"__expr": "defines.direction.south"
+}
+},
+{
+"position": [
+-2,
+2
+],
+"direction": {
+"__expr": "defines.direction.west"
+}
+},
+{
+"position": [
+-2,
+0
+],
+"direction": {
+"__expr": "defines.direction.west"
+}
+},
+{
+"position": [
+-2,
+-2
+],
+"direction": {
+"__expr": "defines.direction.west"
+}
+}
+],
+"heat_picture": {
+"__expr": "apply_heat_pipe_glow"
+},
+"__list": [
+{
+"filename": "__base__/graphics/entity/nuclear-reactor/reactor-heated.png",
+"width": 216,
+"height": 256,
+"scale": 0.5,
+"shift": {
+"__expr": "util.by_pixel(3, -6.5)"
+}
+}
+]
+},
+"impact_category": "metal-large"
+}
+},
+"heat-pipe": {
+"heat-pipe": {
+"type": "heat-pipe",
+"name": "heat-pipe",
+"icon": "__base__/graphics/icons/heat-pipe.png",
+"minable": {
+"mining_time": 0.1,
+"result": "heat-pipe"
+},
+"fast_replaceable_group": "heat-pipe",
+"max_health": 200,
+"corpse": "heat-pipe-remnants",
+"dying_explosion": "heat-pipe-explosion",
+"random_corpse_variation": true,
+"impact_category": "metal",
+"heat_buffer": {
+"max_temperature": 1000,
+"specific_heat": "1MJ",
+"max_transfer": "1GW",
+"minimum_glow_temperature": 350,
+"connections": [
+{
+"position": [
+0,
+0
+],
+"direction": {
+"__expr": "defines.direction.north"
+}
+},
+{
+"position": [
+0,
+0
+],
+"direction": {
+"__expr": "defines.direction.east"
+}
+},
+{
+"position": [
+0,
+0
+],
+"direction": {
+"__expr": "defines.direction.south"
+}
+},
+{
+"position": [
+0,
+0
+],
+"direction": {
+"__expr": "defines.direction.west"
+}
+}
+]
+}
+}
+},
+"simple-entity-with-force": {
+"simple-entity-with-force": {
+"type": "simple-entity-with-force",
+"name": "simple-entity-with-force",
+"render_layer": "object",
+"icon": "__base__/graphics/icons/steel-chest.png",
+"hidden": true,
+"order": "s-e-w-f",
+"minable": {
+"mining_time": 0.1,
+"result": "simple-entity-with-force"
+},
+"max_health": 100,
+"corpse": "small-remnants"
+}
+},
+"simple-entity-with-owner": {
+"simple-entity-with-owner": {
+"type": "simple-entity-with-owner",
+"name": "simple-entity-with-owner",
+"render_layer": "object",
+"icon": "__base__/graphics/icons/wooden-chest.png",
+"hidden": true,
+"order": "s-e-w-o",
+"minable": {
+"mining_time": 0.1,
+"result": "simple-entity-with-owner"
+},
+"max_health": 100,
+"corpse": "small-remnants"
+}
+},
+"artillery-flare": {
+"artillery-flare": {
+"type": "artillery-flare",
+"name": "artillery-flare",
+"icon": "__base__/graphics/icons/artillery-targeting-remote.png",
+"hidden": true,
+"life_time": 3600,
+"initial_height": 0,
+"initial_vertical_speed": 0,
+"initial_frame_speed": 1,
+"shots_per_flare": 1,
+"early_death_ticks": 180
+}
+},
+"speech-bubble": {
+"compi-speech-bubble": {
+"type": "speech-bubble",
+"name": "compi-speech-bubble",
+"style": "compilatron_speech_bubble",
+"wrapper_flow_style": "compilatron_speech_bubble_wrapper",
+"fade_in_out_ticks": 30.0,
+"hidden": true
+}
+},
+"burner-generator": {
+"burner-generator": {
+"name": "burner-generator",
+"type": "burner-generator",
+"icon": "__base__/graphics/icons/steam-engine.png",
+"hidden": true,
+"max_health": 400,
+"dying_explosion": "medium-explosion",
+"corpse": "steam-engine-remnants",
+"max_power_output": "1MW",
+"minable": {
+"mining_time": 1,
+"result": "burner-generator"
+},
+"burner": {
+"type": "burner",
+"fuel_categories": [
+"chemical"
+],
+"effectivity": 0.5,
+"fuel_inventory_size": 1,
+"emissions_per_minute": {
+"pollution": 10
+},
+"smoke": [
+{
+"name": "smoke",
+"north_position": [
+0.9,
+0.0
+],
+"east_position": [
+-2.0,
+-2.0
+],
+"deviation": [
+0.1,
+0.1
+],
+"frequency": 9
+}
+]
+},
+"energy_source": {
+"type": "electric",
+"usage_priority": "secondary-output"
+}
+}
+},
+"heat-interface": {
+"heat-interface": {
+"type": "heat-interface",
+"name": "heat-interface",
+"icon": "__base__/graphics/icons/heat-interface.png",
+"hidden": true,
+"minable": {
+"mining_time": 0.1,
+"result": "heat-interface"
+},
+"max_health": 150,
+"corpse": "small-remnants",
+"gui_mode": "admins",
+"heat_buffer": {
+"max_temperature": 1000,
+"specific_heat": "10MJ",
+"max_transfer": "10GW",
+"default_temperature": 0,
+"min_working_temperature": 0,
+"connections": [
+{
+"position": [
+0,
+0
+],
+"direction": {
+"__expr": "defines.direction.north"
+}
+},
+{
+"position": [
+0,
+0
+],
+"direction": {
+"__expr": "defines.direction.east"
+}
+},
+{
+"position": [
+0,
+0
+],
+"direction": {
+"__expr": "defines.direction.south"
+}
+},
+{
+"position": [
+0,
+0
+],
+"direction": {
+"__expr": "defines.direction.west"
+}
+}
+]
+}
+}
+},
+"proxy-container": {
+"proxy-container": {
+"type": "proxy-container",
+"name": "proxy-container",
+"hidden": true,
+"minable": {
+"mining_time": 0.1,
+"result": "proxy-container"
+},
+"max_health": 100,
+"corpse": "wooden-chest-remnants",
+"dying_explosion": "wooden-chest-explosion",
+"fast_replaceable_group": "container",
+"impact_category": "wood"
+}
+},
+"cargo-pod": {
+"cargo-pod": {
+"type": "cargo-pod",
+"name": "cargo-pod",
+"icon": "__base__/graphics/icons/cargo-pod.png",
+"order": "d[cargo-pod]",
+"inventory_size": 10,
+"spawned_container": "cargo-pod-container",
+"shadow_slave_entity": "cargo-pod-shadow"
+}
+},
+"temporary-container": {
+"cargo-pod-container": {
+"type": "temporary-container",
+"name": "cargo-pod-container",
+"icon": "__base__/graphics/icons/landed-cargo-pod.png",
+"order": "e[cargo-pod-container]",
+"minable": {
+"mining_time": 0.5
+},
+"fast_replaceable_group": "container",
+"alert_when_damaged": false,
+"dying_explosion": "cargo-pod-container-explosion",
+"max_health": 250,
+"inventory_size": 20,
+"alert_after_time": 3600,
+"impact_category": "metal"
+}
+}
+}

@@ -1,0 +1,50 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>engine test</title></head>
+<body style="font:14px monospace;white-space:pre;background:#111;color:#ddd">
+<script src="../data.js"></script>
+<script src="../engine.js"></script>
+<script>
+const S = Engine.defaults();
+const out = [];
+const log = (...a) => out.push(a.map(x => typeof x === 'string' ? x : JSON.stringify(x)).join(' '));
+function chain(item, S2) {
+  const t = Engine.build(item, S2 || S);
+  const rows = [];
+  Engine.walk(t, (n, d) => rows.push('  '.repeat(d) + n.item + (n.leaf ? ' (raw) ' : ' [' + n.machine + '] ') + 'rate=' + n.kRate.toFixed(4) + (n.leaf ? '' : ' mach=' + n.kMach.toFixed(4))));
+  return rows.join('\n');
+}
+log('--- engine unit (AM2, steel furnace)');
+log(chain('engine-unit'));
+const t = Engine.build('engine-unit', S);
+log('direct ratio', Engine.niceRatio([t.kMach, ...t.children.map(c => c.kMach)]));
+log('--- electronic circuit'); log(chain('electronic-circuit'));
+log('--- advanced circuit'); log(chain('advanced-circuit'));
+log('--- chemical science'); log(chain('chemical-science-pack'));
+const tot = Engine.totals(Engine.build('chemical-science-pack', S), S);
+log('chem sci totals made', Object.fromEntries(Object.entries(tot.made).map(([k, v]) => [k, {rate: +v.kRate.toFixed(4), machines: Object.fromEntries(Object.entries(v.machines).map(([m, x]) => [m, +x.toFixed(4)]))}])));
+log('chem sci raw', Object.fromEntries(Object.entries(tot.raw).map(([k, v]) => [k, +v.toFixed(4)])), 'rawInfo', tot.rawInfo, 'kw', tot.kw.toFixed(1), 'burnerKw', tot.burnerKw.toFixed(1));
+log('--- oil block pure petroleum 390/s', Engine.oilBlock(390, 0, 0, S));
+log('--- oil block heavy only 20/s', Engine.oilBlock(0, 0, 20, S));
+log('--- oil block light 100/s + petroleum 100/s', Engine.oilBlock(100, 100, 0, S));
+log('--- steam card', Engine.steamCard(S));
+log('--- solar card', Engine.solarCard());
+log('--- nuclear 2x2', Engine.nuclearLayout(2, 2), '1x1', Engine.nuclearLayout(1, 1), '2x4', Engine.nuclearLayout(2, 4));
+log('--- mining card', Engine.miningCard(S));
+log('--- inserter for 1.5/s lvl0', Engine.inserterFor(1.5, 0), '7.5/s lvl7', Engine.inserterFor(7.5, 7), '30/s lvl7', Engine.inserterFor(30, 7));
+log('--- solid fuel chain'); log(chain('solid-fuel'));
+log('--- space science'); log(chain('space-science-pack'));
+log('--- utility science totals');
+const u = Engine.totals(Engine.build('utility-science-pack', S), S);
+log(Object.fromEntries(Object.entries(u.made).map(([k, v]) => [k, +Object.values(v.machines).reduce((a, b) => a + b, 0).toFixed(3)])));
+log('raw', Object.fromEntries(Object.entries(u.raw).map(([k, v]) => [k, +v.toFixed(3)])), 'oil', u.rawInfo.oil);
+log('--- AM1 with fluid recipe (processing unit)');
+const S1 = Object.assign(Engine.defaults(), {tier: 1});
+const pu = Engine.build('processing-unit', S1); log('machine', pu.machine, 'bump', pu.fluidBump);
+log('--- uranium fuel cell'); log(chain('uranium-fuel-cell'));
+log('--- kovarex via override'); log(chain('uranium-235'));
+log('--- steel'); log(chain('steel-plate'));
+log('--- rocket part'); log(chain('rocket-part'));
+document.body.textContent = out.join('\n');
+window.__out = out.join('\n');
+</script>
+</body></html>
