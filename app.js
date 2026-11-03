@@ -1163,9 +1163,11 @@
     const balance = (made, used, word, k, machine) => {
       if (!made && !used) return empty;
       const bal = made - used, isShort = bal < 0 && !near(bal, 0), v = Math.abs(bal), pct = made > 0 ? Math.min(100, used / made * 100) : 100;
-      if (!made) return { st: 'none', miss: 0, html: cell('none', 'not entered', 100, 'your factory uses it, but nothing making it is entered') };
+      // how many machines close a gap: on a short row the gap, on a row with nothing entered all that is used
+      const add = n => k > 0 && machine ? `<small>add ${fmt(Math.ceil(n * k - 1e-9))} × ${esc(nameOf(machine))}</small>` : '';
+      if (!made) return { st: 'none', miss: 0, html: cell('none', 'not entered' + add(used), 100, 'your factory uses it, but nothing making it is entered') };
       const tip = !used ? 'nothing uses it' : fmt(used / made * 100) + '% of what you make is used';
-      if (isShort) return { st: 'short', miss: v, html: cell('short', word(v) + ' short' + (k > 0 && machine ? `<small>add ${fmt(Math.ceil(v * k - 1e-9))} × ${esc(nameOf(machine))}</small>` : ''), pct, tip) };
+      if (isShort) return { st: 'short', miss: v, html: cell('short', word(v) + ' short' + add(v), pct, tip) };
       if (near(bal, 0)) return { st: 'balanced', miss: 0, html: cell('spare', 'fulfilled', pct, tip) };
       return { st: 'spare', miss: 0, html: cell('spare', `fulfilled<small>${word(v)} left over</small>`, pct, tip) };
     };
@@ -1223,7 +1225,7 @@
     const unitBal = (id, needN, run, noun) => {
       const hv = unitN(id);
       if (!(hv > 0) && !(needN > 1e-9)) return empty;
-      if (!(hv > 0)) return { st: 'none', html: cell('none', `not entered<small>needs ${fmt(needN)} ${noun}</small>`, 100) };
+      if (!(hv > 0)) return { st: 'none', html: cell('none', `not entered<small>needs ${fmt(needN)}: add ${fmt(Math.ceil(needN - 1e-9))} × ${esc(nameOf(UNITS[id].machine))}</small>`, 100) };
       // entered, with nothing for them to do: say why, instead of "fulfilled, needs 0, 0% busy"
       if (!(needN > 1e-9)) return { st: null, html: cell('none', `idle<small>${id === 'refinery' ? 'nothing in your factory uses what they make' : basic ? 'basic processing makes nothing to crack' : 'your factory needs no cracking'}</small>`, 0) };
       const dlt = hv - needN, pct = Math.min(100, needN / hv * 100);
