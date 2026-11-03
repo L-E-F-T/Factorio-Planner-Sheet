@@ -237,8 +237,9 @@
   const cardKept = (k, v) => (k === 'science' && ((v.time || 30) !== 30 || (v.bonus || 0) !== 0)) || (k === 'oil' && (v.basic || v.coal || (v.yield || 100) !== 100)) || (k === 'steam' && !!v.fuel && v.fuel !== 'coal');
   // your factory worked out (factoryModel), kept until the ledger or Defaults change: item pages read what it uses
   let modelMemo = null;
-  function persist() {
-    modelMemo = null;
+  function persist() { modelMemo = null; store.set('mem', memNow()); }
+  // your factory as it is saved: what persist writes (and the tutorial's Back puts back)
+  function memNow() {
     const chains = {}, cards = {}, units = {}, machines = {}, recipes = {};
     for (const [k, v] of Object.entries(chainMem)) if (saved(v)) chains[k] = Object.assign({ scale: v.scale, anchor: v.anchor, touched: true }, v.parts && v.parts.length > 1 ? { parts: v.parts.map(p => ({ recipe: p.recipe, machine: p.machine, scale: p.scale })) } : {});
     for (const [k, v] of Object.entries(cardMem)) if (cardKept(k, v)) cards[k] = { time: v.time, bonus: v.bonus, basic: v.basic, coal: v.coal, yield: v.yield, fuel: v.fuel };
@@ -246,7 +247,7 @@
     // a row emptied to 0 keeps its machine while you are here (type a new number and it is still on it), not after
     for (const [k, m] of Object.entries(machineOf)) if (m && saved(chainMem[k])) machines[k] = m;
     for (const [k, r] of Object.entries(recipeOf)) if (r && saved(chainMem[k])) recipes[k] = r;
-    store.set('mem', { chains, cards, units, machines, recipes, dismissed: [...facDismiss], refs: 2 });
+    return { chains, cards, units, machines, recipes, dismissed: [...facDismiss], refs: 2 };
   }
   // your factory as another tab of this page saved it, in place of this tab's copy (persist writes all of it, so an older
   // copy would go back over it); what this visit has open or picked on a page stays
@@ -438,7 +439,7 @@
         return;
       }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key === 'Escape') { e.preventDefault(); closePop(); back(); }
+      if (e.key === 'Escape') { e.preventDefault(); if (consAsk && curCard && curCard.id === 'factory') { consAsk = null; renderFactory(true); return; } closePop(); back(); }   // Esc says No to a − that asks
       else if (e.key.length === 1 && e.key !== ' ') { q.focus(); q.select(); }
     });
     d.addEventListener('click', e => {
@@ -1063,7 +1064,7 @@
     const amp = e.target.closest('[data-add-mpick]'); if (amp) { if (popEl && popEl.dataset.addPick) closePop(); else openAddPick(amp); return; }
     const ap = e.target.closest('[data-add-pick]'); if (ap) { addPick(ap.dataset.addPick); return; }
     if (e.target.closest('[data-add]')) { addItem(); return; }
-    const of = e.target.closest('[data-open-f]'); if (of) { const i = of.dataset.openF; if (facOpen.has(i)) facOpen.delete(i); else facOpen.add(i); renderFactory(true); return; }
+    const of = e.target.closest('[data-open-f]'); if (of) { const i = of.dataset.openF; if (facOpen.has(i)) facOpen.delete(i); else facOpen.add(i); consAsk = null; renderFactory(true); return; }
     // the ledger's short list: × dismisses, Bring back lists them again (rows, space-separated)
     const dz = e.target.closest('[data-dismiss-f]'); if (dz) { for (const d of dz.dataset.dismissF.split(' ')) if (d) facDismiss.add(d); persist(); renderFactory(true, true); return; }
     const uz = e.target.closest('[data-undismiss-f]'); if (uz) { for (const d of uz.dataset.undismissF.split(' ')) facDismiss.delete(d); persist(); renderFactory(true, facFilter !== 'short'); return; }   // under the short filter, their rows join the table
@@ -1071,7 +1072,10 @@
     const fl = e.target.closest('[data-fac-filter]'); if (fl) { facFilter = facFilter === fl.dataset.facFilter ? null : fl.dataset.facFilter; facFiltSeen.clear(); renderFactory(true); return; }
     // Remove on a row: out of your factory; Put back: as it was
     const rm = e.target.closest('[data-rm-f]'); if (rm) { facRemove(rm.dataset.rmF); return; }
-    const cr = e.target.closest('[data-cons-rm]'); if (cr) { consRemove(cr.dataset.consRm); return; }
+    // − before a line of an opened row asks first; Yes takes it out, No leaves it
+    const cr = e.target.closest('[data-cons-rm]'); if (cr) { consAsk = { key: cr.dataset.consRm, under: cr.dataset.under }; renderFactory(true); return; }
+    if (e.target.closest('[data-cons-yes]')) { const a = consAsk; consAsk = null; if (a) consRemove(a.key); else renderFactory(true); return; }
+    if (e.target.closest('[data-cons-no]')) { consAsk = null; renderFactory(true); return; }
     const pb = e.target.closest('[data-unrm-f]'); if (pb) { facPutBack(pb.dataset.unrmF); return; }
     const ff = e.target.closest('[data-focus-f]');
     if (ff) {   // a short item's name: to its own row (out of the filter, if the filter hides it), into its box when it has one
@@ -1203,6 +1207,7 @@
   let facTab = store.get('factab', 'all'); if (!FAC_TABS.some(t => t[0] === facTab)) facTab = 'all';
   const facOpen = new Set();   // rows opened to show what uses the item
   let facFilter = null;            // 'short', 'none' or 'ok': the table shows only what that count at the top counts (this visit)
+  let consAsk = null;              // { key, under }: the − of an opened row's line that asks before it takes the line out
   const facFiltSeen = new Set();   // the rows that filter has shown: they stay while you fill them in
   const facKeep = new Set();   // rows you emptied on the ledger this visit: they stay until you leave the page
   const facRemoved = {};       // rows you took out with Remove this visit, as they were: Put back restores them
@@ -1514,7 +1519,7 @@
     cur = null; curRes = null; curCard = { id: 'factory', st: {}, fields: [] }; setBg('factory');
     closePop();   // a picker belongs to the rows it was opened on
     // arriving on the page (a Your base change redraws in place and keeps them): no kept rows, Put back or filter yet
-    if (!fromInput && !keepPlace) { facKeep.clear(); for (const k of Object.keys(facRemoved)) delete facRemoved[k]; facFilter = null; facFiltSeen.clear(); refShown.clear(); nucShown.clear(); }
+    if (!fromInput && !keepPlace) { facKeep.clear(); for (const k of Object.keys(facRemoved)) delete facRemoved[k]; facFilter = null; facFiltSeen.clear(); refShown.clear(); nucShown.clear(); consAsk = null; }
     const { have, uses, runsOf, ids, power, steam, oil, sci } = factoryModel();
     const shared = {};   // rows the Oil tab shows too: coal, steam and water, when its machines take them
     const laneTab = new Set();   // tabs with an item row counted in your belt's unit, so their headers name it
@@ -1564,11 +1569,14 @@
     const consKey = u => u.proc ? 'proc|' + u.proc : u.layout ? 'lay|' + u.layout
       : UNITS[u.by] ? ((u.by === 'refinery' ? refAll() : u.by === 'nuclear' ? nucAll() : unitN(u.by)) > 0 ? 'unit|' + u.by : null)
       : saved(chainMem[u.by]) ? ['line', u.by, u.machine || '', u.recipe || ''].join('|') : null;
-    const flowRows = (makers, users, fluid, amt) => {
+    // under: the row they are opened under. A − asks first ("Take … out of your factory? Yes / No", under the line's name)
+    const flowRows = (makers, users, fluid, amt, under) => {
       const a = amt || (v => amountText(v, fluid)), cap = w => capOf(w, fluid || !!amt);   // an amount given its own unit (MW) says it itself
       const line = (u, mk) => { const go = u.go || '#i/' + u.by, nm = u.label || nameOf(u.by), k = consKey(u), what = esc(nm) + (u.machine ? ` (${fmt(u.machines)} × ${esc(mName(u.machine))})` : '');
-        const minus = k ? `<button class="exp minus" data-cons-rm="${esc(k)}" tabindex="-1" title="Take ${what} out of your factory" aria-label="Take ${what} out of your factory">−</button>` : '<span class="exp gap"></span>';
-        return `<div class="tr cons ${mk ? 'makes' : 'uses'}"><div class="td item" style="--d:0">${minus}<span class="cwho"><span class="side">${mk ? 'made by' : 'used by'}</span>${ic(iconOf(u.by), 'sm')}<span class="nmtxt"><a class="lnk" href="${go}" data-go="${go}" title="Open ${esc(nm)}">${esc(nm)}</a>${u.fuel ? ' <span class="sub">fuel</span>' : ''}</span></span></div><div class="td mach" data-label="machines">${u.machine ? `${fmt(u.machines)} × ${esc(mName(u.machine))}` : esc(u.what || 'rocket launches')}</div><div class="td amt"${mk ? ` data-label="${cap('supply')}"` : ''}>${mk ? a(u.rate) : ''}</div><div class="td amt"${mk ? '' : ` data-label="${cap('demand')}"`}>${mk ? '' : a(u.rate)}</div><div class="td amt"></div></div>`; };
+        const asking = !!k && !!consAsk && consAsk.key === k && consAsk.under === under;
+        const ask = asking ? `<span class="cask"><span class="lead">Take ${what} out of your factory?</span><button class="iconbtn sm" data-cons-yes tabindex="-1">Yes</button><button class="iconbtn sm" data-cons-no tabindex="-1">No</button></span>` : '';
+        const minus = k && !asking ? `<button class="exp minus" data-cons-rm="${esc(k)}" data-under="${esc(under)}" tabindex="-1" title="Take ${what} out of your factory" aria-label="Take ${what} out of your factory">−</button>` : '<span class="exp gap"></span>';
+        return `<div class="tr cons ${mk ? 'makes' : 'uses'}${asking ? ' asking' : ''}"><div class="td item" style="--d:0">${minus}<span class="cwho"><span class="side">${mk ? 'made by' : 'used by'}</span>${ic(iconOf(u.by), 'sm')}<span class="nmtxt"><a class="lnk" href="${go}" data-go="${go}" title="Open ${esc(nm)}">${esc(nm)}</a>${u.fuel ? ' <span class="sub">fuel</span>' : ''}</span></span>${ask}</div><div class="td mach" data-label="machines">${u.machine ? `${fmt(u.machines)} × ${esc(mName(u.machine))}` : esc(u.what || 'rocket launches')}</div><div class="td amt"${mk ? ` data-label="${cap('supply')}"` : ''}>${mk ? a(u.rate) : ''}</div><div class="td amt"${mk ? '' : ` data-label="${cap('demand')}"`}>${mk ? '' : a(u.rate)}</div><div class="td amt"></div></div>`; };
       return makers.map(u => line(u, true)).join('') + users.slice().sort((x, y) => y.rate - x.rate).map(u => line(u, false)).join('');
     };
     const showUnit = id => (id === 'refinery' ? refAll() : id === 'nuclear' ? nucAll() + nucShown.size : unitN(id)) > 0 || facKeep.has('unit:' + id) || STARTER_UNITS.includes(id);
@@ -1598,7 +1606,7 @@
       const b = balance(steam.made, steamUsed, v => fmt(v) + ' per second', 1 / B.steam_per_s, 'boiler');
       tally('power', b.st, 'steam', 'Steam', 'steam', fmt(b.miss) + ' per second', b.miss / (steamUsed || 1));
       const boilers = unitN('boiler') ? [{ by: 'boiler', label: 'Boilers', go: '#c/steam', rate: steam.made, machines: unitN('boiler'), machine: 'boiler' }] : [];
-      shared.steam = sumRow('steam', 'steam', 'Steam', '', unitN('boiler') ? `${fmt(unitN('boiler'))} × Boiler` : 'no boilers entered', steam.made, steamUsed, 'per second', b, steam.uses.length, flowRows(boilers, steam.uses, true));
+      shared.steam = sumRow('steam', 'steam', 'Steam', '', unitN('boiler') ? `${fmt(unitN('boiler'))} × Boiler` : 'no boilers entered', steam.made, steamUsed, 'per second', b, steam.uses.length, flowRows(boilers, steam.uses, true, undefined, 'steam'));
       head.power.push(shared.steam);
     }
     if (power.made || power.used) {
@@ -1608,7 +1616,7 @@
       const from = [unitN('steam-engine') ? `${fmt(unitN('steam-engine'))} × Steam engine` : '', unitN('solar-panel') ? `${fmt(unitN('solar-panel'))} × Solar panel` : '', nucAll() ? `${fmt(nucReactors())} × Nuclear reactor` : ''].filter(Boolean).join(' + ') || 'nothing entered';
       const mwMakers = [['steam-engine', 'Steam engines', E.kw], ['solar-panel', 'Solar panels', FD.power.solar.avg_kw]].filter(([id]) => unitN(id) > 0).map(([id, label, kw]) => ({ by: id, label, go: UNITS[id].go, rate: unitN(id) * kw / 1000, machines: unitN(id), machine: id }))
         .concat(NUC_LAYOUTS.filter(l => nucN(l) > 0).map((l, i, ls) => Object.assign({ by: 'nuclear', label: `Nuclear reactors (${l})`, go: '#c/nuclear', rate: nucN(l) * nucOf(l).mw, machines: nucN(l) * nucOf(l).reactors, machine: 'nuclear-reactor' }, ls.length > 1 ? { layout: l } : {})));
-      const list = flowRows(mwMakers, power.parts.map(u => Object.assign({}, u, { rate: u.mw })), false, v => `${fmt(v)} <span class="unit">MW</span>`);
+      const list = flowRows(mwMakers, power.parts.map(u => Object.assign({}, u, { rate: u.mw })), false, v => `${fmt(v)} <span class="unit">MW</span>`, 'power');
       head.power.push(sumRow('power', 'small-electric-pole', 'Electricity', '', from, power.made, power.used, 'MW', b, power.parts.length, list));
     }
 
@@ -1702,7 +1710,7 @@
       const list = by[k].slice();
       if (own > 1e-9) list.push(Object.assign({ by: 'refinery', label: 'Coal liquefaction', go: '#c/oil', rate: own, machines: N.rm.coal || 0, machine: 'oil-refinery' }, manyProc ? { proc: 'coal' } : {}));
       if (crackIn[k] > 1e-9) list.push({ by: k === 'h' ? 'heavy-oil-cracking' : 'light-oil-cracking', label: k === 'h' ? 'Heavy oil cracking' : 'Light oil cracking', go: '#c/oil', rate: crackIn[k], machines: k === 'h' ? N.a : N.b, machine: cp });
-      head.oil.push(sumRow(item, item, nameOf(item), '', N.r ? `${fmt(N.r)} × Oil refinery${crackers}` : 'no refineries entered', made, used, 'per second', b, list.length || makers.length > 1, flowRows(makers, list, true)));
+      head.oil.push(sumRow(item, item, nameOf(item), '', N.r ? `${fmt(N.r)} × Oil refinery${crackers}` : 'no refineries entered', made, used, 'per second', b, list.length || makers.length > 1, flowRows(makers, list, true, undefined, item)));
     }
 
     // every item row, in the tab of the machine that makes it; crude oil goes first on the Oil tab, above the refineries
@@ -1730,7 +1738,7 @@
       const recs = new Set((partsOf(i) || []).map(q => q.recipe));   // lines on different recipes are named by their recipe
       const makers = runsOf[i] ? runsOf[i].map(([t, r]) => ({ by: i, label: recs.size > 1 ? FD.recipes[t.recipe].name : nameOf(i), go: page || '#i/' + i, rate: r, machines: t.kMach * r, machine: t.machine, recipe: t.recipe }))
         : made ? (partsOf(i) || [{ machine: null, scale: made }]).filter(q => q.scale > 0).map(q => { const s = supply(i, 1, q.machine); return { by: i, label: nameOf(i), go: page || '#i/' + i, rate: q.scale, machines: s ? s.k * q.scale : 0, machine: s ? s.id : null, what: s ? '' : originText(i) || 'what you entered' }; }) : [];
-      const rowHtml = (`<div class="tr${made ? ' product' : ''}" data-fac="${i}"><div class="td item" style="--d:0">${expBtn(i, list.length || makers.length > 1, 'what makes and uses ' + nameOf(i))}${ic(i)}<span class="nmtxt">${link}${nick(i)}${i === 'crude-oil' ? yieldLine() : ''}${rmBtn(i, nameOf(i), made > 0)}</span></div>${mach}${makes}<div class="td amt" data-label="${capOf('demand', fluid)}">${used ? qty(used) : '<span class="sub">–</span>'}</div>${b.html}</div>` + (facOpen.has(i) ? flowRows(makers, list, fluid, fluid ? qty : undefined) : ''));
+      const rowHtml = (`<div class="tr${made ? ' product' : ''}" data-fac="${i}"><div class="td item" style="--d:0">${expBtn(i, list.length || makers.length > 1, 'what makes and uses ' + nameOf(i))}${ic(i)}<span class="nmtxt">${link}${nick(i)}${i === 'crude-oil' ? yieldLine() : ''}${rmBtn(i, nameOf(i), made > 0)}</span></div>${mach}${makes}<div class="td amt" data-label="${capOf('demand', fluid)}">${used ? qty(used) : '<span class="sub">–</span>'}</div>${b.html}</div>` + (facOpen.has(i) ? flowRows(makers, list, fluid, fluid ? qty : undefined, i) : ''));
       (i === 'crude-oil' ? oilFirst : body[tab]).push(rowHtml);
       if (i === 'coal' || i === 'water') shared[i] = rowHtml;
     }
@@ -2537,20 +2545,23 @@
   }
 
 
-  // ---------- tour: a guided walk through the pages, on a sample factory ----------
-  // Opt-in: the Tour button, or "tour" (help, guide, tutorial) in the search. It runs on a sample factory with fixed
-  // Defaults, in memory only: nothing is saved while it runs (store.off), other tabs' saves wait for it, and every step
-  // starts again from the clean sample, so trying things on a step cannot break the next one. On the way out your own
-  // factory and Defaults come back from storage (with anything another tab saved meanwhile), and what this visit had open
-  // or typed comes back as it was, on the page you started from. It moves between pages with history.replaceState, so
-  // it leaves nothing for Back to walk through.
-  const TOUR_WORDS = ['tour', 'help', 'guide', 'tutorial'];
-  const TOUR_HIT = { kind: 'tour', id: 'tour', name: 'Start the tour' };
+  // ---------- tutorial: a guided walk through the app, on a sample factory ----------
+  // Opt-in: the ? button, or "tutorial" (help, guide, tour) in the search. It runs on a sample factory with fixed
+  // Defaults, in memory only: nothing is saved while it runs (store.off), and other tabs' saves wait for it. It comes in
+  // parts (the basics, the cards, oil processing, the Power and Oil tabs, adding machines), all listed on its first card.
+  // A part starts from a clean sample; inside a part, what you did stays for the next step. A step that asks you to do
+  // something (click, pick or type) waits for you to do it: it has no Next until then, and one that takes you to another
+  // page or tab moves on by itself once you click. A step that only points something out has Next. Back is always there.
+  // On the way out your own factory and Defaults come back from storage (with anything another tab saved meanwhile), and
+  // what this visit had open or typed comes back as it was, on the page you started from. It moves between pages with
+  // history.replaceState, so it leaves nothing for Back to walk through.
+  const TOUR_WORDS = ['tutorial', 'help', 'guide', 'tour'];
+  const TOUR_HIT = { kind: 'tour', id: 'tour', name: 'Open the tutorial' };
   const TOUR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.5c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.9v.1"/></svg>';
   const TOUR_DEFAULTS = { tier: 2, furnace: 'steel-furnace', drill: 'electric-mining-drill', belt: 'transport-belt', rateUnit: 'lane', mp: 0, cap: 0 };
   // the sample's rows, by machine count: iron plate on two furnaces, electronic circuits used but not entered (missing),
   // coal short, the rest fulfilled; oil on advanced processing with cracking, plastic and pumpjacks at 150% yield
-  const TOUR_ROWS = [['iron-ore', 30], ['copper-ore', 16], ['coal', 6], ['iron-plate', [['steel-furnace', 16], ['stone-furnace', 12]]], ['copper-plate', 12],
+  const TOUR_ROWS = [['iron-ore', 30], ['copper-ore', 16], ['coal', 3], ['iron-plate', [['steel-furnace', 16], ['stone-furnace', 12]]], ['copper-plate', 12],
     ['iron-gear-wheel', 3], ['copper-cable', 4], ['inserter', 1], ['transport-belt', 1], ['automation-science-pack', 6], ['logistic-science-pack', 8], ['plastic-bar', 2], ['crude-oil', 6]];
   const TOUR_UNITS = { boiler: 10, 'steam-engine': 20, lab: 10, refinery: 4, 'heavy-oil-cracking': 1, 'light-oil-cracking': 4 };
   function tourSample() {
@@ -2566,12 +2577,12 @@
     }
     loadMem(m);
   }
-  // what this visit has open, picked or typed besides your factory: put aside while the tour runs (each step clears it)
+  // what this visit has open, picked or typed besides your factory: put aside while the tutorial runs
   function visitState() {
-    return { view: Object.assign({}, viewMem), chains: Object.fromEntries(Object.entries(chainMem).map(([k, v]) => [k, { overrides: v.overrides, open: v.open }])),
+    return { view: Object.assign({}, viewMem), chains: Object.fromEntries(Object.entries(chainMem).map(([k, v]) => [k, { overrides: Object.assign({}, v.overrides), open: (v.open || []).slice() }])),
       cards: Object.fromEntries(Object.entries(cardMem).map(([k, v]) => [k, { scale: v.scale, anchor: v.anchor, touched: v.touched, layout: v.layout, labs: v.labs, dem: v.dem, anchorN: v.anchorN }])),
       facOpen: [...facOpen], facKeep: [...facKeep], facFiltSeen: [...facFiltSeen], refShown: [...refShown], nucShown: [...nucShown], facRemoved: Object.assign({}, facRemoved),
-      facFilter, addSel, bpImport, bpDraft, facTab, baseOpen, q: q.value };
+      facFilter, addSel: addSel && Object.assign({}, addSel), bpImport, bpDraft, facTab, baseOpen, q: q.value };
   }
   function clearVisit() {
     closePop();
@@ -2580,92 +2591,119 @@
     for (const v of Object.values(cardMem)) Object.assign(v, { scale: null, anchor: null, touched: false, layout: CARD_DEF.layout, labs: CARD_DEF.labs, dem: null, anchorN: null });
     for (const s of [facOpen, facKeep, facFiltSeen, refShown, nucShown]) s.clear();
     for (const k of Object.keys(facRemoved)) delete facRemoved[k];
-    facFilter = null; addSel = null; bpImport = null; bpDraft = ''; baseOpen = false;
+    facFilter = null; addSel = null; bpImport = null; bpDraft = ''; baseOpen = false; consAsk = null;
     q.value = ''; hits = []; selIdx = 0; preview = null; strip.hidden = true; strip.innerHTML = '';
   }
   function putVisit(v) {
     clearVisit();
     Object.assign(viewMem, v.view);
-    for (const [k, c] of Object.entries(v.chains)) Object.assign(chainState(k), c);
+    for (const [k, c] of Object.entries(v.chains)) Object.assign(chainState(k), { overrides: Object.assign({}, c.overrides), open: c.open.slice() });   // copies: what happens next must not change the copy kept
     for (const [k, c] of Object.entries(v.cards)) Object.assign(cardState(k), c);
     for (const [s, l] of [[facOpen, v.facOpen], [facKeep, v.facKeep], [facFiltSeen, v.facFiltSeen], [refShown, v.refShown], [nucShown, v.nucShown]]) l.forEach(x => s.add(x));
     Object.assign(facRemoved, v.facRemoved);
-    ({ facFilter, addSel, bpImport, bpDraft, facTab, baseOpen } = v);
+    ({ facFilter, bpImport, bpDraft, facTab, baseOpen } = v); addSel = v.addSel && Object.assign({}, v.addSel);
   }
-  // what the steps act with: the app's own boxes and buttons, as you would use them
+  // what the steps look at: the app's own rows, boxes and buttons
   const $$ = s => [...doc.querySelectorAll(s)];
   const facRow = id => $(`#tree .tr[data-fac="${id}"]`);
-  const withCons = id => { const r = facRow(id), out = r ? [r] : []; let n = r && r.nextElementSibling; while (n && n.classList.contains('cons')) { out.push(n); n = n.nextElementSibling; } return out; };
-  const typeIn = (box, v) => { if (!box) return; box.value = v; box.dispatchEvent(new Event('input', { bubbles: true })); const a = doc.activeElement; if (a && a.blur && !(a.closest && a.closest('#tour'))) a.blur(); };
-  const scrollHigh = el => { if (el) (doc.defaultView || window).scrollBy(0, el.getBoundingClientRect().top - $('header').getBoundingClientRect().bottom - 12); };
   const afterLine = () => { const rows = $$('#main .tbl.two > .tr'), i = rows.findIndex(r => r.classList.contains('line')); return i < 0 ? [] : rows.slice(i + 1); };
-  // a step: the page it is on (and ledger tab), what it says, what it rings (target), what the tour does first (prep), and
-  // whether the ringed part can be used (try)
-  const TOUR_CORE = [
-    { page: '#', text: 'A quick tour, on a sample factory. Try anything along the way: nothing is saved, and your own factory comes back when it ends.' },
-    { page: '#', target: () => q, try: true, prep: () => { q.value = '5 gear'; runSearch(); },
-      text: 'Type what you want to make; the best match opens as you type. "5 gear" is gears from 5 assemblers; "2 lanes of stone" or "15/s" set an amount.' },
-    { page: '#', target: () => $('#settings'), try: true, prep: () => { if (matchMedia('(max-width:900px)').matches) { baseOpen = true; renderSettings(); } },
-      text: 'Defaults: what every page assumes, from assembler tier to belt. Amounts are in lanes of your belt (a yellow lane is 7.5 per second); fluids are per second, water and crude oil in pumps.' },
-    { page: '#i/electronic-circuit', target: () => $('#main h1'),
-      text: 'An item page: the recipe from the game. The line under it says what in your factory sizes the page: what that has spare after the rest of your factory.' },
-    { page: '#i/electronic-circuit', target: () => $('#tree .tr.product'), try: true, prep: () => typeIn($('#tree .tr.product input.num'), '4'),
-      text: 'The top row is what you make; under "needs" are its ingredients, down to the ore. Type into any box and the page follows ("2.4 build 3" means build 3); ↺ drops your change.' },
-    { page: '#i/electronic-circuit', target: () => [$('#tree .tr.product .mbtn.can'), popEl], try: true, prep: () => { const b = $('#tree .tr.product .mbtn.can'); scrollHigh(b); if (b) b.click(); },
-      text: 'Pick the tier, furnace or drill for a row. Like everything you change on a page, it lasts for this visit.' },
-    { page: '#i/electronic-circuit', target: () => $('#tree .tr[data-path="electronic-circuit>iron-plate"]'), try: true,
-      text: 'The sample factory makes iron plate in stone and steel furnaces, so this page does too. + adds a line on another machine, × takes one off, ▸ opens a row deeper.' },
-    { page: '#i/electronic-circuit', target: () => $('#main h1 .iconbtn.sm'), try: true,
-      text: 'A page is a what-if. Add to factory keeps it: it writes the top row into your ledger, in whole machines.' },
-    { page: '#c/factory', target: () => $('#main .factabs'), try: true,
-      text: 'Factory, at the top, opens the ledger: the machines a factory really has, here the sample. With Defaults, it is all that is saved. A red count on a tab means something there is short.' },
-    { page: '#c/factory', target: () => facRow('coal'),
-      text: 'Each row: its machines, what they make (Supply), what the rest of the factory uses (Demand), and the verdict: short in red with what to add, missing in grey, fulfilled in green.' },
-    { page: '#c/factory', target: () => facRow('coal') && facRow('coal').querySelector('input.num'), try: true,
-      prep: () => { const used = (factoryModel().uses.coal || []).reduce((a, u) => a + u.rate, 0), r = facRow('coal'); typeIn(r && r.querySelector('input.num'), String(Math.ceil(used * itemMachine('coal').k - 1e-9))); },
-      text: 'Type how many you have, and the ledger recounts as you type.' },
-    { page: '#c/factory', target: () => $('#main .fac-sum'), try: true,
-      text: 'Press a count to see only those rows. The short list puts the biggest gap first; a name jumps to its row.' },
-    { page: '#c/factory', target: () => $('#main .fac-sum'), prep: () => { const x = $('#main .fac-sum .chip2.dz .x'); if (x) x.click(); },
-      text: '× dismisses a shortage you are fine with. Only this list changes, never the row; Bring back puts it back.' },
-    { page: '#c/factory', target: () => withCons('coal'), try: true, prep: () => { facOpen.add('coal'); renderFactory(true); },
-      text: '▸ shows what makes a row and what uses it, so you can see where a shortage comes from. − takes that line out of your factory.' },
-    { page: '#c/factory', target: () => $('#tourbtn'),
-      text: 'That is the tour. Your own factory is saved in this browser only, per address, and open tabs stay in step. This button runs the tour again.' },
-  ];
-  // more, from the last step; each chapter ends back on it
-  const TOUR_CHAPTERS = {
-    cards: { name: 'Cards', steps: [
-      { page: '#c/steam', target: () => [0, 1, 2, 3].map(i => $(`#main .tbl.two .tr[data-path="f${i}"]`)), try: true, prep: () => typeIn($('#main input.num[data-path="f0"]'), '30'),
-        text: 'A card links machines that work together. Type boilers, steam engines, pumps or MW and the rest follows. Steam, Solar, Nuclear and Labs can add to your factory too.' },
-      { page: '#c/nuclear', target: () => [$('#main .settings'), ...[0, 1, 2].map(i => $(`#main .tbl.two .tr[data-path="f${i}"]`))], try: true,
-        text: 'Pick a reactor layout. A count the card works out shows the whole number to build big, and the exact count small.' },
-      { page: '#c/science', target: () => $('#main .tbl.two .tr.product'), try: true,
-        text: 'Labs: the research time and lab speed set how fast they use packs. Type labs, or the assemblers on a pack, and the rest follows.' },
-      { page: '#c/reference', target: () => $('#main .panel'),
-        text: 'Belts, inserters, fuel, power draw, poles and wagons, straight from the game\'s files.' },
+  const facTabTo = t => { if (facTab !== t || facFilter) { facTab = t; facFilter = null; facFiltSeen.clear(); renderFactory(true); } };
+  const coalInView = () => { if (!facRow('coal')) facTabTo('all'); };
+  const topBtn = () => $('#main h1 .iconbtn.sm');   // a page's Add to factory, Update in factory or In your factory
+  const onFactory = () => !!$('#main h1 .iconbtn.sm.infac');
+  const btnName = () => { const b = topBtn(); return b ? b.textContent.replace(/^\+\s*/, '').trim() : 'Add to factory'; };
+  const ledgerKey = () => Object.keys(chainMem).filter(k => saved(chainMem[k])).sort().join() + JSON.stringify(facUnits);
+  // where a step is: at() says whether it is showing, page is where to go when it is not (a step without one is shown
+  // wherever you are)
+  const HOME = { at: () => !location.hash || location.hash === '#', page: '#' };
+  const ITEM = { at: () => !!cur && !preview, page: () => '#i/' + (tour.item || 'electronic-circuit') };
+  const FACTORY = { at: () => location.hash === '#c/factory', page: '#c/factory' };
+  const CARD = id => ({ at: () => location.hash === '#c/' + id, page: '#c/' + id });
+  // A step: where it is, what it says (text, or a function for text that depends on the page), what it rings (target)
+  // and what it opens each time it is shown (show). A step you act on has done(mark): true once you have done it (mark is
+  // what mark() gave when the step was shown); auto: it moves on as soon as you have (a click); otherwise Next appears
+  // (after typing). nav: it takes you to another page or tab, and is skipped when you are there already; opener: a part's
+  // first step, not counted. focus: the box to type in. try: what a step that only points can be used.
+  const toStep = (sel, done, text, more) => Object.assign({ nav: true, auto: true, target: () => $(sel), done, text }, more);
+  const TOUR_PARTS = {
+    basics: { name: 'Basics', steps: [
+      toStep('#home', HOME.at, 'Click Home.', { opener: true }),
+      Object.assign({}, HOME, { target: () => $('#settings'), try: true, show: () => { if (matchMedia('(max-width:900px)').matches && !baseOpen) { baseOpen = true; renderSettings(); } },
+        text: 'Defaults sets the tier of assemblers, furnaces, drills and belts.' }),
+      Object.assign({}, HOME, { target: () => [q, strip], auto: true, focus: () => q, show: () => { if (baseOpen) { baseOpen = false; renderSettings(); } },
+        done: () => !!cur && !preview && /^#i\//.test(location.hash), text: 'Type what you want to make, then press Enter.' }),
+      Object.assign({}, ITEM, { target: () => $('#main h1'), text: 'This is the page for the item you typed. Its recipe is under the name.' }),
+      Object.assign({}, ITEM, { target: () => $('#tree .tr.product'), focus: () => $('#tree .tr.product input.num'), done: () => !!(cur && viewMem[cur.id]),
+        text: 'Type how many machines you want. The ingredients below change to match.' }),
+      Object.assign({}, ITEM, { target: () => $('#tree .tr.product .mbtn.can'), auto: true, done: () => !!(cur && cur.st.overrides['l:' + cur.tree.path]),
+        text: 'Click the machine and pick a different one.' }),
+      Object.assign({}, ITEM, { target: () => $('#tree .tr[data-path$=">iron-plate"]') || $('#tree .tr[data-path*=">"]'), try: true,
+        text: 'Pages use the same machines as your factory. + adds another kind of machine, × removes one and ▸ shows what a row needs.' }),
+      Object.assign({}, ITEM, { target: topBtn, auto: true, done: onFactory,
+        text: () => onFactory() ? 'This item is in your factory now.' : `Changes on a page aren't saved. Click ${btnName()} to put the top row in your factory.` }),
     ] },
-    oil: { name: 'Oil processing', steps: [
-      { page: '#c/oil', target: () => [$('#main .settings'), $('#main .tbl.two .tr.product')], try: true, prep: () => typeIn($('#main input.num[data-oil="R"]'), '10'),
-        text: 'Pick the processing, then type refineries, cracking, pumpjacks or an oil: the rest follows, each machine with how many your factory has.' },
-      { page: '#c/oil', target: afterLine, try: true,
-        text: 'Each oil, against what your factory uses. Add to factory puts the whole refineries, the cracking and the pumpjacks into your ledger.' },
+    factory: { name: 'Your factory', steps: [
+      toStep('#fac', FACTORY.at, 'Click Factory.', { opener: true }),
+      Object.assign({}, FACTORY, { target: () => $('#main .factabs'), try: true,
+        text: 'This is a sample factory. Yours is saved in this browser and comes back when the tutorial ends. The tabs sort the machines by kind.' }),
+      Object.assign({}, FACTORY, { target: () => facRow('coal'), show: coalInView,
+        text: 'Supply is what you make and Demand is what you use. Red is short, green is fulfilled, and grey means nothing makes it yet. Red rows say how many machines to add.' }),
+      Object.assign({}, FACTORY, { target: () => $('#main .fac-sum'), show: coalInView, auto: true, done: () => !!facFilter,
+        text: 'Click short, missing or fulfilled to see only those rows.' }),
+      Object.assign({}, FACTORY, { target: () => facRow('coal'), show: coalInView, auto: true, done: () => facOpen.has('coal'),
+        text: 'Click ▸ on Coal to see what makes it and what uses it.' }),
+      Object.assign({}, FACTORY, { target: () => facRow('coal') && facRow('coal').querySelector('input.num'), show: coalInView, focus: () => facRow('coal') && facRow('coal').querySelector('input.num'),
+        mark: () => (chainMem.coal || {}).scale, done: m => (chainMem.coal || {}).scale !== m, text: 'Type how many machines you have.' }),
+      Object.assign({}, FACTORY, { target: () => [$('#tree .tr.add'), $('#tree .tr.add-hits')], show: () => { if (facFilter) facTabTo(facTab); }, auto: true, mark: ledgerKey, done: m => ledgerKey() !== m,
+        text: 'Click here, pick what to add, type how many and click Add.' }),
+      Object.assign({}, FACTORY, { target: () => $('#main .bp'), show: addClose,
+        text: 'You can also paste a blueprint here and click Import.' }),
     ] },
-    tabs: { name: 'Power and oil tabs', steps: [
-      { page: '#c/factory', tab: 'power', target: () => facRow('unit:boiler'), try: true,
-        text: 'Power: boilers burn the fuel you pick on their row. The Steam and Electricity rows below add up what makes them and what uses them.' },
-      { page: '#c/factory', tab: 'oil', target: () => facRow('unit:refinery'), try: true,
-        text: 'Oil & chemicals: refineries, a line per processing, with how many your factory needs and how busy they are. Above them crude oil at your pumpjacks\' yield; below, the cracking and each oil, with what backs up.' },
+    power: { name: 'Power', steps: [
+      toStep('#home', HOME.at, 'Click Home.', { opener: true }),
+      Object.assign(toStep('#main .card[data-go="#c/steam"]', CARD('steam').at, 'The cards at the top cover power, mining, oil, science and more. Click Steam power.'), HOME),
+      Object.assign({}, CARD('steam'), { target: () => [0, 1, 2, 3].map(i => $(`#main .tbl.two .tr[data-path="f${i}"]`)), focus: () => $('#main input.num[data-path="f0"]'), done: () => !!cardState('steam').touched,
+        text: 'Type a number in any box. The others change to match.' }),
+      Object.assign({}, CARD('steam'), { target: topBtn, auto: true, done: onFactory,
+        text: () => onFactory() ? 'These boilers are in your factory now.' : `Click ${btnName()} to put these boilers and steam engines in your factory.` }),
+      Object.assign(toStep('#main h1 .iconbtn.sm.infac', FACTORY.at, 'Click In your factory to open your factory.'), CARD('steam')),
+      Object.assign(toStep('#main [data-fac-tab="power"]', () => FACTORY.at() && facTab === 'power', 'Click Power.'), FACTORY),
+      Object.assign({}, FACTORY, { target: () => facRow('unit:boiler'), show: () => facTabTo('power'), auto: true, mark: () => boilerFuel(), done: m => boilerFuel() !== m,
+        text: 'Pick the fuel your boilers burn.' }),
+      Object.assign({}, FACTORY, { target: () => [facRow('steam'), facRow('power')], show: () => facTabTo('power'), try: true,
+        text: 'Steam and Electricity add up what your machines make and use.' }),
     ] },
-    add: { name: 'Adding rows and blueprints', steps: [
-      { page: '#c/factory', tab: 'assembling', target: () => [$('#tree .tr.add'), $('#tree .tr.add-hits')], try: true, prep: () => addQuery(''),
-        text: 'The dashed row adds anything this tab holds: click it for the list, or type to narrow it; pick one, type how many, then Add.' },
-      { page: '#c/factory', tab: 'assembling', target: () => $('#main .bp'),
-        text: 'Paste a blueprint or blueprint book string and press Import: it counts the machines in it, and asks what its furnaces and drills make.' },
+    oil: { name: 'Oil', steps: [
+      toStep('#home', HOME.at, 'Click Home.', { opener: true }),
+      Object.assign(toStep('#main .card[data-go="#c/oil"]', CARD('oil').at, 'Click Oil processing.'), HOME),
+      Object.assign({}, CARD('oil'), { target: () => $('#main .settings'), auto: true, mark: () => oilProcOf(cardState('oil')), done: m => oilProcOf(cardState('oil')) !== m,
+        text: 'Pick basic, advanced or coal liquefaction.' }),
+      Object.assign({}, CARD('oil'), { target: () => $('#main .tbl.two .tr.product'), focus: () => $('#main input.num[data-oil="R"]'), done: () => !!cardState('oil').dem,
+        text: 'Type how many refineries you want. The rest changes to match.' }),
+      Object.assign({}, CARD('oil'), { target: afterLine, try: true,
+        text: 'This is the oil they make. What your factory uses is under each name.' }),
+      Object.assign({}, CARD('oil'), { target: topBtn, auto: true, done: onFactory,
+        text: () => onFactory() ? 'These refineries are in your factory now.' : `Click ${btnName()} to put them in your factory.` }),
+      Object.assign(toStep('#main h1 .iconbtn.sm.infac', FACTORY.at, 'Click In your factory to open your factory.'), CARD('oil')),
+      Object.assign(toStep('#main [data-fac-tab="oil"]', () => FACTORY.at() && facTab === 'oil', 'Click Oil & chemicals.'), FACTORY),
+      Object.assign({}, FACTORY, { target: () => facRow('crude-oil'), show: () => facTabTo('oil'), focus: () => $('#main input.yld'), mark: () => cardState('oil').yield, done: m => cardState('oil').yield !== m,
+        text: 'Type your oil field\'s yield in the % yield box.' }),
+      Object.assign({}, FACTORY, { target: () => facRow('unit:refinery'), show: () => facTabTo('oil'), try: true,
+        text: 'Refineries show how many your factory needs and how busy they are.' }),
     ] },
   };
+  const TOUR_INTRO = { intro: true, text: 'Hello! This is the Factorio Ratios tutorial.' };
+  const TOUR_END = { end: true, target: () => $('#tourbtn'), text: 'That\'s it for this part. Done brings back your own factory. The ? button opens the tutorial again.' };
   let tour = null, tourEl = null, tourRaf = 0, tourObs = null;
-  const tourTargets = step => step.target ? [].concat(step.target()).filter(el => el && el.isConnected) : [];
+  const TOUR_EVENTS = ['focusin', 'focusout', 'input', 'change', 'keyup', 'click'];
+  const tourList = () => tour.part ? TOUR_PARTS[tour.part].steps : [];
+  const tourStep = () => !tour.part ? TOUR_INTRO : tour.i >= tourList().length ? TOUR_END : tourList()[tour.i];
+  // what a step rings, with a picker you opened inside the ring (it opens outside it)
+  const tourTargets = step => { const els = step.target ? [].concat(step.target()).filter(el => el && el.isConnected) : []; if (els.length && popEl && popEl.isConnected) els.push(popEl); return els; };
+  const tourText = step => typeof step.text === 'function' ? step.text() : step.text;
+  // Next is there on a step that only points, and on one you act on once you have done it (or when what it rings is
+  // not on the page, so you are never stuck)
+  const tourCanNext = step => !step.done || step.done(tour.mark) || !tourTargets(step).length;
   // what a step rings, as one rectangle on screen (a row above 700 px has no box of its own: its cells have)
   function tourRect(els) {
     let r = null;
@@ -2676,51 +2714,100 @@
   const tourSheet = () => matchMedia('(max-width:700px)').matches;   // on narrow screens the card is a sheet at the bottom
   function tourStart(fromSearch) {
     if (tour) return;
-    if (fromSearch) { q.value = ''; hits = []; preview = null; strip.hidden = true; strip.innerHTML = ''; }   // the search that started it is not kept
+    if (fromSearch) { q.value = ''; hits = []; preview = null; strip.hidden = true; strip.innerHTML = ''; }   // the search that opened it is not kept
     if (!fine()) q.blur();
     closePop();
     const w = doc.defaultView || window;
-    tour = { i: 0, list: TOUR_CORE, chapter: null, from: { hash: location.hash, y: w.scrollY, visit: visitState() } };
+    tour = { part: null, i: 0, item: null, busy: false, wasDone: false, mark: null, snaps: {}, done: new Set(), from: { hash: location.hash, y: w.scrollY, visit: visitState() } };
     store.off = true;
     tourEl = doc.createElement('div'); tourEl.id = 'tour';
     tourEl.innerHTML = '<div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="ring none"></div>'
-      + '<div class="tcard" role="dialog" aria-label="Tour"><div class="tstep"><span class="tpos"></span><button class="tx" data-tour="end" title="End the tour (Esc)" aria-label="End the tour">×</button></div><p class="ttext" aria-live="polite"></p><div class="tnav"></div></div>';
+      + '<div class="tcard" role="dialog" aria-label="Tutorial"><div class="tstep"><span class="tpos"></span><button class="tx" data-tour="end" title="Close the tutorial (Esc)" aria-label="Close the tutorial">×</button></div><p class="ttext" aria-live="polite"></p><div class="tnav"></div></div>';
     doc.body.appendChild(tourEl); doc.body.classList.add('touring');   // room below the page, so what a step rings can come up above the sheet
     tourEl.addEventListener('click', tourClick);
     w.addEventListener('keydown', tourKey, true);
     w.addEventListener('scroll', tourSoon, true);
     w.addEventListener('resize', tourSoon);
-    doc.addEventListener('focusin', tourSoon); doc.addEventListener('focusout', tourSoon);
+    for (const ev of TOUR_EVENTS) doc.addEventListener(ev, tourSoon);   // anything you do can be what a step waits for
     tourObs = new MutationObserver(tourSoon);
     tourObs.observe($('#main'), { childList: true, subtree: true }); tourObs.observe($('header'), { childList: true, subtree: true }); tourObs.observe(doc.body, { childList: true });
-    tourGo(0);
+    tourShowCard();
   }
-  function tourGo(i, list, chapter) {
-    if (list) { tour.list = list; tour.chapter = chapter || null; }
-    tour.i = i;
-    const step = tour.list[i], w = doc.defaultView || window;
-    clearVisit(); tourSample(); facTab = step.tab || 'all';
-    const url = step.page === '#' ? location.pathname + location.search : step.page;
-    if (location.hash !== (step.page === '#' ? '' : step.page)) history.replaceState(null, '', url);
+  // a part from its start, on a clean sample, from wherever you are
+  function tourPart(key) {
+    clearVisit(); tourSample(); facTab = 'all'; tour.item = null; tour.snaps = {};
     renderSettings(); render();
-    if (step.prep) step.prep();
-    tourCard(step);
-    // bring what it rings between the header and the sheet (what is in the header is always in sight)
+    tour.part = key; tourEnter(0, 1);
+  }
+  // everything a step started from: the sample as it was then, what was open, Defaults, the page. Back puts it back, so
+  // a step you go back to is as you first saw it.
+  function tourSnap() { const { machineOf: m, recipeOf: r, ...base } = S; return { mem: JSON.parse(JSON.stringify(memNow())), visit: visitState(), S: base, hash: location.hash, item: tour.item }; }
+  function tourRestore(sn) {
+    clearVisit(); loadMem(sn.mem); putVisit(sn.visit); Object.assign(S, sn.S); tour.item = sn.item;
+    history.replaceState(null, '', sn.hash || location.pathname + location.search);
+    keepPlace = true; try { renderSettings(); render(); } finally { keepPlace = false; }   // as it was: the ledger keeps its filter and opened rows
+  }
+  // step i of the part. Forward (dir 1) a step that takes you somewhere you are already is skipped; back (-1) goes to
+  // the last step you saw before this one, as it was then, or past a part's first step to the first card.
+  function tourEnter(i, dir) {
+    const list = tourList();
+    if (dir < 0) {
+      while (i >= 0 && !tour.snaps[i]) i--;
+      if (i < 0) { tour.part = null; tour.i = 0; tourShowCard(); return; }
+      tour.i = i; tour.busy = true;
+      try { tourRestore(tour.snaps[i]); tourArrive(tourStep()); } finally { tour.busy = false; }
+      tourShowCard(); return;
+    }
+    while (i < list.length && list[i].nav && list[i].done()) i++;
+    tour.i = i;
+    const step = tourStep();
+    tour.busy = true;
+    try {
+      closePop();
+      if (step.page && !step.at()) {   // you are not where it is (you went elsewhere): go there
+        const want = typeof step.page === 'function' ? step.page() : step.page;
+        history.replaceState(null, '', want === '#' ? location.pathname + location.search : want); render();
+      }
+      if (cur && !preview) tour.item = cur.id;
+      if (step.end) tour.done.add(tour.part); else tour.snaps[i] = tourSnap();
+      tourArrive(step);
+    } finally { tour.busy = false; }
+    tourShowCard();
+  }
+  // a step being shown: what it opens, and where what it asks for stands now
+  function tourArrive(step) {
+    if (step.show) step.show();
+    tour.mark = step.mark ? step.mark() : null;
+    tour.wasDone = !!(step.done && step.done(tour.mark));
+  }
+  // the card for the step you are on, what it rings brought into sight, and the focus where you act (a box to type in,
+  // with a mouse) or on the card
+  function tourShowCard() {
+    const step = tourStep(), w = doc.defaultView || window;
+    tourCard(step); tourMini();   // the sheet at the size it will have, before it is measured
     const els = tourTargets(step), r = tourRect(els);
-    if (r && !els.every(el => el.closest('header'))) {
+    if (r && !els.every(el => el.closest('header'))) {   // between the header and the sheet (what is in the header is always in sight)
       const top = $('header').getBoundingClientRect().bottom + 10, bottom = w.innerHeight - (tourSheet() ? tourEl.querySelector('.tcard').offsetHeight : 0) - 10;
       if (r.top < top || r.bottom > bottom) w.scrollBy(0, r.bottom - r.top > bottom - top || r.top < top ? r.top - top : r.bottom - bottom);
     }
-    tourDraw();
-    const go = tourEl.querySelector('.tnav .cta'); if (go) go.focus({ preventScroll: true });
+    tour.busy = true; try { tourDraw(); } finally { tour.busy = false; }
+    const box = step.focus && fine() ? step.focus() : null;
+    if (box) { box.focus({ preventScroll: true }); if (box.select) box.select(); }
+    else { const b = tourEl.querySelector('.tnav .cta:not([hidden])') || tourEl.querySelector('.tnav button:not([hidden])') || tourEl.querySelector('.tx'); if (b) b.focus({ preventScroll: true }); }
   }
   function tourCard(step) {
-    const n = tour.list.length, last = !tour.chapter && tour.i === n - 1, c = tourEl.querySelector('.tcard');
-    c.querySelector('.tpos').textContent = `${tour.chapter ? TOUR_CHAPTERS[tour.chapter].name : 'Tour'} · ${tour.i + 1} / ${n}`;
-    c.querySelector('.ttext').textContent = step.text;
-    c.querySelector('.tnav').innerHTML = (last ? `<div class="chaps"><span class="lead">More:</span>${Object.entries(TOUR_CHAPTERS).map(([k, ch]) => `<button class="iconbtn sm" data-tour-ch="${k}">${esc(ch.name)}</button>`).join('')}</div>` : '')
-      + `<button class="iconbtn sm" data-tour="back"${tour.i === 0 && !tour.chapter ? ' disabled' : ''}>Back</button><button class="iconbtn sm cta" data-tour="${last ? 'end' : 'next'}">${last ? 'Done' : 'Next'}</button>`;
+    const c = tourEl.querySelector('.tcard'), list = tourList(), counted = list.filter(s => !s.opener);
+    // a part's button, with a ✓ once you have been through it
+    const parts = keys => keys.map(k => `<button class="iconbtn sm" data-tour-part="${k}">${esc(TOUR_PARTS[k].name)}${tour.done.has(k) ? ' ✓' : ''}</button>`).join('');
+    c.querySelector('.tpos').textContent = step.intro || step.end ? 'Tutorial' : step.opener ? TOUR_PARTS[tour.part].name : `${TOUR_PARTS[tour.part].name} · ${counted.indexOf(step) + 1} / ${counted.length}`;
+    c.querySelector('.ttext').textContent = tourText(step);
+    const keys = Object.keys(TOUR_PARTS), next = step.end && keys.find(k => k !== tour.part && !tour.done.has(k));   // the next part you have not done
+    c.querySelector('.tnav').innerHTML = step.intro ? `<div class="chaps"><span class="lead">Or skip to:</span>${parts(keys.slice(1))}</div><button class="iconbtn sm cta" data-tour="next">Start</button>`
+      : step.end ? `<div class="chaps"><span class="lead">Parts:</span>${parts(keys)}</div><button class="iconbtn sm" data-tour="back">Back</button><button class="iconbtn sm${next ? '' : ' cta'}" data-tour="end">Done</button>${next ? `<button class="iconbtn sm cta" data-tour-part="${next}">Next: ${esc(TOUR_PARTS[next].name)}</button>` : ''}`
+      : `<button class="iconbtn sm" data-tour="back">Back</button><button class="iconbtn sm cta" data-tour="next"${tourCanNext(step) ? '' : ' hidden'}>Next</button>`;
   }
+  // while a phone's keyboard is up for a box on the page, the sheet folds to its buttons
+  const tourMini = () => { const a = doc.activeElement; tourEl.querySelector('.tcard').classList.toggle('mini', !fine() && !!a && !!a.matches && a.matches('input,textarea') && !a.closest('#tour')); };
   // redraw on the next frame (or shortly, where frames are held back)
   const tourSoon = () => {
     if (!tour || tourRaf) return;
@@ -2728,21 +2815,25 @@
     tourRaf = requestAnimationFrame(draw); setTimeout(draw, 80);
   };
   // the dimmed page with a ring around what the step is about; clear blockers around the ring take the clicks meant for
-  // the rest of the page (and one over the ring, unless the step lets you try it); the card goes beside the ring, never
-  // over it, or is the sheet at the bottom of a narrow screen
+  // the rest of the page (and one over the ring, unless you are meant to use it); the card goes beside the ring, never
+  // over it, or is the sheet at the bottom of a narrow screen. Once you have done what a step asks, it moves on (a click)
+  // or shows Next (after typing).
   function tourDraw() {
     if (!tour) return;
-    const step = tour.list[tour.i], r0 = tourRect(tourTargets(step)), w = doc.defaultView || window, vw = doc.documentElement.clientWidth, vh = w.innerHeight;
+    const step = tourStep();
+    if (!tour.busy && step.auto && !tour.wasDone && step.done(tour.mark)) { tourEnter(tour.i + 1, 1); return; }
+    const tx = tourText(step), te = tourEl.querySelector('.ttext'); if (te.textContent !== tx) te.textContent = tx;
+    const nx = tourEl.querySelector('.tnav [data-tour="next"]'); if (nx && !step.intro) nx.hidden = !tourCanNext(step);
+    const r0 = tourRect(tourTargets(step)), w = doc.defaultView || window, vw = doc.documentElement.clientWidth, vh = w.innerHeight;
     const [t, b, l, rt, lid] = tourEl.querySelectorAll('.tb'), ring = tourEl.querySelector('.ring'), card = tourEl.querySelector('.tcard');
     const box = (el, x, y, bw, bh) => Object.assign(el.style, { left: x + 'px', top: y + 'px', width: Math.max(0, bw) + 'px', height: Math.max(0, bh) + 'px' });
-    const a = doc.activeElement;   // a phone's keyboard is up: the sheet folds to its buttons
-    card.classList.toggle('mini', !fine() && !!a && !!a.matches && a.matches('input,textarea') && !a.closest('#tour'));
+    tourMini();
     if (!r0) { ring.className = 'ring none'; ring.removeAttribute('style'); box(t, 0, 0, vw, vh); for (const x of [b, l, rt, lid]) box(x, 0, 0, 0, 0); }
     else {
       const p = 6, r = { left: Math.max(0, r0.left - p), top: Math.max(0, r0.top - p), right: Math.min(vw, r0.right + p), bottom: Math.min(vh, r0.bottom + p) };
       ring.className = 'ring'; box(ring, r.left, r.top, r.right - r.left, r.bottom - r.top);
       box(t, 0, 0, vw, r.top); box(b, 0, r.bottom, vw, vh - r.bottom); box(l, 0, r.top, r.left, r.bottom - r.top); box(rt, r.right, r.top, vw - r.right, r.bottom - r.top);
-      if (step.try) box(lid, 0, 0, 0, 0); else box(lid, r.left, r.top, r.right - r.left, r.bottom - r.top);
+      if (step.try || step.done) box(lid, 0, 0, 0, 0); else box(lid, r.left, r.top, r.right - r.left, r.bottom - r.top);
     }
     if (tourSheet()) { card.style.left = card.style.top = ''; return; }
     const cw = card.offsetWidth, ch = card.offsetHeight, m = 12, g = 6 + m;
@@ -2757,18 +2848,26 @@
     card.style.left = x + 'px'; card.style.top = y + 'px';
   }
   function tourClick(e) {
-    if (e.target.closest('.tcard')) e.stopPropagation();   // the card's clicks are the tour's: they do not close a picker a step opened
-    const bt = e.target.closest('button'); if (!bt || bt.disabled) return;
-    if (bt.dataset.tourCh) { tourGo(0, TOUR_CHAPTERS[bt.dataset.tourCh].steps, bt.dataset.tourCh); return; }
+    if (e.target.closest('.tcard')) e.stopPropagation();   // the card's clicks are the tutorial's: they do not close a picker you opened
+    const bt = e.target.closest('button'); if (!bt || bt.disabled || bt.hidden) return;
+    if (bt.dataset.tourPart) { tourPart(bt.dataset.tourPart); return; }
     const a = bt.dataset.tour;
     if (a === 'end') tourEnd(); else if (a === 'next') tourNext(); else if (a === 'back') tourBack();
   }
-  const tourLast = () => tourGo(TOUR_CORE.length - 1, TOUR_CORE, null);
-  function tourNext() { if (tour.i < tour.list.length - 1) tourGo(tour.i + 1); else if (tour.chapter) tourLast(); else tourEnd(); }
-  function tourBack() { if (tour.i > 0) tourGo(tour.i - 1); else if (tour.chapter) tourLast(); }
+  function tourNext() {
+    const step = tourStep();
+    if (step.intro) { tourPart('basics'); return; }
+    if (step.end) { tourEnd(); return; }
+    if (tourCanNext(step)) tourEnter(tour.i + 1, 1);   // a step you act on waits for you
+  }
+  function tourBack() {
+    const step = tourStep();
+    if (step.intro) return;
+    tourEnter((step.end ? tourList().length : tour.i) - 1, -1);
+  }
   // ahead of the app's own keys: Esc first does what it does where you are (puts a changed box back, clears the search box,
-  // closes the add list or a picker) and with nothing left to undo ends the tour; → and Enter go on, ← goes back; letters
-  // do not jump into the search box
+  // closes the add list or a picker) and with nothing left to undo closes the tutorial; → and Enter go on where Next is
+  // there, ← goes back; letters do not jump into the search box
   function tourKey(e) {
     if (!tour) return;
     const t = e.target, inCard = !!(t && t.closest && t.closest('#tour')), typing = !!(t && t.matches && t.matches('input,select,textarea'));
@@ -2777,6 +2876,7 @@
       if (t === q && q.value) return;
       if (typing && t.matches('input.num') && t.dataset.orig !== undefined && t.value !== t.dataset.orig) return;
       if (t && t.id === 'addq' && $('#addhits .chip2')) return;
+      if (consAsk && curCard && curCard.id === 'factory') return;   // a − that asks says No
       e.preventDefault(); e.stopPropagation(); tourEnd(); return;
     }
     if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -2791,7 +2891,7 @@
     if (tourRaf) cancelAnimationFrame(tourRaf); tourRaf = 0;
     tourObs.disconnect(); tourObs = null;
     w.removeEventListener('keydown', tourKey, true); w.removeEventListener('scroll', tourSoon, true); w.removeEventListener('resize', tourSoon);
-    doc.removeEventListener('focusin', tourSoon); doc.removeEventListener('focusout', tourSoon);
+    for (const ev of TOUR_EVENTS) doc.removeEventListener(ev, tourSoon);
     tourEl.remove(); tourEl = null; doc.body.classList.remove('touring');
     // your own factory and Defaults as they are saved now, then what this visit had, on the page you were on
     store.off = false;

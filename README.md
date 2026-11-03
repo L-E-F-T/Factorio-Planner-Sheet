@@ -90,11 +90,14 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
 * Click an ingredient's name to make it the product, carrying its amount down the chain. ▸ opens one more level.
 * **Home** (top left, on every page) goes back to the full list; **Factory** beside it opens the Your factory
   ledger; **←** goes back one step.
-* **Tour** (beside Factory; on a phone at the right end of that row; or search "tour" or "help") walks through
-  every page on a sample factory in 15 steps, with more on the cards, oil processing, the Power and Oil tabs
-  and adding rows from its last step. Try anything along the way: nothing is saved while it runs, and your
-  own factory, Defaults and the page you were on come back when it ends (Done, ×, or Esc once there is
-  nothing else for Esc to undo). → or Enter goes on, ← goes back.
+* **?** (the small button at the end of the top row; or search "tutorial" or "help") opens a tutorial on a
+  sample factory, in four parts: Basics, Your factory, Power and Oil. Its first card lists them, so you can
+  skip to one, and the end of each part offers the next. A step that asks you to click, pick or type waits
+  until you do it (a click moves it on, typing brings up Next), so every page change is one you make; a
+  step that only points something out has Next. Back puts the step before it back as it was. Nothing is
+  saved while it runs, and your own factory, Defaults and the page you were on come back when it ends
+  (Done, ×, or Esc once there is nothing else for Esc to undo). → or Enter goes on where there is a Next,
+  ← goes back.
 * **Raw resources** (stone, iron ore, copper ore, coal, wood, water) have a page of their own. The first row
   is the supply: drills on one side, amount on the other. Every item below it is sized as if all of that
   supply went to it, with its other ingredients under it, so changing any box moves the whole page. Links
@@ -134,8 +137,9 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     machines to add, the same as a short row. **▸** opens a row: what makes it ("made by", with the
     amount under Supply) and what uses it ("used by", biggest first, with the amount under Demand),
     each with its machines, so you can see where a shortage comes from. The **−** before a line takes it out
-    of your factory: just those machines when the item has other lines (as its × would), else the item
-    itself, with Put back on its row (as Remove would); boilers, engines, refineries and the like the same way.
+    of your factory once you say Yes to "Take … out of your factory?" (No or Esc leaves it): just those
+    machines when the item has other lines (as its × would), else the item itself, with Put back on its row
+    (as Remove would); boilers, engines, refineries and the like the same way.
   * A row can have a line per machine and recipe: gears in assembler 1 and 2, iron plate in stone and steel
     furnaces, iron ore under burner and electric drills. Each line has its own count, picker and ×, and the row
     adds them up; switching a line to a machine another line uses joins the two. A row with machines entered
