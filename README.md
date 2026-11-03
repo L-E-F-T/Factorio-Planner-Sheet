@@ -91,13 +91,14 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
 * **Home** (top left, on every page) goes back to the full list; **Factory** beside it opens the Your factory
   ledger; **←** goes back one step.
 * **?** (the small button at the end of the top row; or search "tutorial" or "help") opens a tutorial on a
-  sample factory, in four parts: Basics, Your factory, Power and Oil. Its first card lists them, so you can
-  skip to one, and the end of each part offers the next. A step that asks you to click, pick or type waits
-  until you do it (a click moves it on, typing brings up Next), so every page change is one you make; a
-  step that only points something out has Next. Back puts the step before it back as it was. Nothing is
-  saved while it runs, and your own factory, Defaults and the page you were on come back when it ends
-  (Done, ×, or Esc once there is nothing else for Esc to undo). → or Enter goes on where there is a Next,
-  ← goes back.
+  sample factory, in four parts: Basics, Your factory (tabs, shortages and where they come from, adding
+  rows, importing a blueprint), Power (steam, solar and nuclear) and Oil. Its first and last cards list all
+  four, with a ✓ on the ones you have done (remembered in this browser); Start begins with the first you
+  have not done. A step that asks you to click, pick or type waits until you do it (a click moves it on,
+  typing brings up Next), so every page change is one you make; a step that only points something out has
+  Next. Back puts the step before it back as it was. Nothing of your factory or Defaults is saved while it
+  runs, and they come back, with the page you were on, when it ends (Done, ×, or Esc once there is nothing
+  else for Esc to undo). → or Enter goes on where there is a Next, ← goes back.
 * **Raw resources** (stone, iron ore, copper ore, coal, wood, water) have a page of their own. The first row
   is the supply: drills on one side, amount on the other. Every item below it is sized as if all of that
   supply went to it, with its other ingredients under it, so changing any box moves the whole page. Links

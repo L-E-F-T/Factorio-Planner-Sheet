@@ -5,9 +5,9 @@
   const $ = s => doc.querySelector(s);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const store = {
-    off: false,   // while the tour runs nothing is saved
+    off: false,   // while the tutorial runs nothing is saved but which of its parts you have done
     get(k, d) { try { const v = localStorage.getItem('fr:' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
-    set(k, v) { if (store.off) return; try { localStorage.setItem('fr:' + k, JSON.stringify(v)); } catch (e) { } },
+    set(k, v) { if (store.off && k !== 'tutorial') return; try { localStorage.setItem('fr:' + k, JSON.stringify(v)); } catch (e) { } },
   };
   const fine = () => matchMedia('(pointer:fine)').matches;
 
@@ -2632,75 +2632,96 @@
   // (after typing). nav: it takes you to another page or tab, and is skipped when you are there already; opener: a part's
   // first step, not counted. focus: the box to type in. try: what a step that only points can be used.
   const toStep = (sel, done, text, more) => Object.assign({ nav: true, auto: true, target: () => $(sel), done, text }, more);
+  // a small blueprint for the Your factory part: 8 steel furnaces and 6 electric drills, which a blueprint cannot say the
+  // use of
+  const TOUR_BP = '0eNqV0tuKgzAQBuB3mWsVNaeNr7GXSynqzi6BJC0xlhbx3ZtaWApbNbkJZJL5hvxkgk6PeHbKemgmUB4NNC+1DHTboQ61T4PaK/sbSmi98goHaL6m5+Z2tKPp0EFTZWBbg6Fh8Ig6/xmdbXsMXefTELpO9jHnuly8hXWes39GHWuQdYPEGmzdoLGGWDdYrCHXDR6d6UaoIhrZSPUjGtmIVf4hqLH3TvW5UTZ8rfzbKa3fYMVTYwV751VlKkh3wCoVFDtgnfzkckckySLZEWmyyF/FQwYXdMNyzHgtqZSMloJzQeb5DnkPdOI=';
+  const ironTwo = () => { const r = $('#tree .tr[data-path$=">iron-plate"]'); return !!r && r.querySelectorAll('.part').length > 1; };
+  const shortBtn = () => $('#main [data-fac-filter="short"]');
   const TOUR_PARTS = {
     basics: { name: 'Basics', steps: [
-      toStep('#home', HOME.at, 'Click Home.', { opener: true }),
+      toStep('#home', HOME.at, 'Click Home to go to the home page.', { opener: true }),
       Object.assign({}, HOME, { target: () => $('#settings'), try: true, show: () => { if (matchMedia('(max-width:900px)').matches && !baseOpen) { baseOpen = true; renderSettings(); } },
-        text: 'Defaults sets the tier of assemblers, furnaces, drills and belts.' }),
+        text: 'Defaults sets the tier of the assemblers, furnaces, drills and belts that every page uses. Set them to what you have built in your game.' }),
       Object.assign({}, HOME, { target: () => [q, strip], auto: true, focus: () => q, show: () => { if (baseOpen) { baseOpen = false; renderSettings(); } },
-        done: () => !!cur && !preview && /^#i\//.test(location.hash), text: 'Type what you want to make, then press Enter.' }),
-      Object.assign({}, ITEM, { target: () => $('#main h1'), text: 'This is the page for the item you typed. Its recipe is under the name.' }),
+        done: () => !!cur && !preview && /^#i\//.test(location.hash), text: 'Type the name of something you want to make, like green circuit, then press Enter to open its page.' }),
+      Object.assign({}, ITEM, { target: () => $('#main h1'), text: 'This is the page for the item you searched for. Under its name is the recipe from the game.' }),
       Object.assign({}, ITEM, { target: () => $('#tree .tr.product'), focus: () => $('#tree .tr.product input.num'), done: () => !!(cur && viewMem[cur.id]),
-        text: 'Type how many machines you want. The ingredients below change to match.' }),
+        text: 'The top row is the item itself. Type how many machines you want making it, and every ingredient below changes to match.' }),
       Object.assign({}, ITEM, { target: () => $('#tree .tr.product .mbtn.can'), auto: true, done: () => !!(cur && cur.st.overrides['l:' + cur.tree.path]),
-        text: 'Click the machine and pick a different one.' }),
+        text: 'Click the machine and pick a different one, like a faster assembler. The counts change to match.' }),
       Object.assign({}, ITEM, { target: () => $('#tree .tr[data-path$=">iron-plate"]') || $('#tree .tr[data-path*=">"]'), try: true,
-        text: 'Pages use the same machines as your factory. + adds another kind of machine, × removes one and ▸ shows what a row needs.' }),
+        text: () => `Pages use the same machines as your factory${ironTwo() ? ', so iron plate is made in both stone and steel furnaces here' : ''}. + adds another kind of machine, × removes one, and ▸ shows what a row needs.` }),
       Object.assign({}, ITEM, { target: topBtn, auto: true, done: onFactory,
-        text: () => onFactory() ? 'This item is in your factory now.' : `Changes on a page aren't saved. Click ${btnName()} to put the top row in your factory.` }),
+        text: () => onFactory() ? 'This item is in your factory now.' : `Changes on an item page aren't saved. Click ${btnName()} to put the top row's machines in your factory.` }),
     ] },
     factory: { name: 'Your factory', steps: [
-      toStep('#fac', FACTORY.at, 'Click Factory.', { opener: true }),
-      Object.assign({}, FACTORY, { target: () => $('#main .factabs'), try: true,
-        text: 'This is a sample factory. Yours is saved in this browser and comes back when the tutorial ends. The tabs sort the machines by kind.' }),
+      toStep('#fac', FACTORY.at, 'Click Factory to open your factory.', { opener: true }),
+      Object.assign({}, FACTORY, { target: () => $('#main .factabs'), auto: true, done: () => facTab === 'mining',
+        text: 'This is a sample factory. Your own is saved in this browser and comes back when the tutorial ends. The tabs sort the rows by the kind of machine that makes them. Click Mining & smelting.' }),
       Object.assign({}, FACTORY, { target: () => facRow('coal'), show: coalInView,
-        text: 'Supply is what you make and Demand is what you use. Red is short, green is fulfilled, and grey means nothing makes it yet. Red rows say how many machines to add.' }),
-      Object.assign({}, FACTORY, { target: () => $('#main .fac-sum'), show: coalInView, auto: true, done: () => !!facFilter,
-        text: 'Click short, missing or fulfilled to see only those rows.' }),
+        text: 'Each row compares Supply, what your machines make, with Demand, what the rest of your factory uses. Red means short and says how many machines to add, green means fulfilled, and grey means nothing makes it yet.' }),
+      Object.assign({}, FACTORY, { target: () => $('#main .fac-sum'), show: coalInView, auto: true, done: () => facFilter === 'short',
+        text: () => `These count the rows that are short, missing or fulfilled. Click ${shortBtn() ? shortBtn().textContent.trim() : 'short'} to see only what is short.` }),
       Object.assign({}, FACTORY, { target: () => facRow('coal'), show: coalInView, auto: true, done: () => facOpen.has('coal'),
-        text: 'Click ▸ on Coal to see what makes it and what uses it.' }),
-      Object.assign({}, FACTORY, { target: () => facRow('coal') && facRow('coal').querySelector('input.num'), show: coalInView, focus: () => facRow('coal') && facRow('coal').querySelector('input.num'),
-        mark: () => (chainMem.coal || {}).scale, done: m => (chainMem.coal || {}).scale !== m, text: 'Type how many machines you have.' }),
-      Object.assign({}, FACTORY, { target: () => [$('#tree .tr.add'), $('#tree .tr.add-hits')], show: () => { if (facFilter) facTabTo(facTab); }, auto: true, mark: () => addsMade, done: m => addsMade > m,
-        text: 'Click here, pick what to add, type how many and click Add.' }),
-      Object.assign({}, FACTORY, { target: () => $('#main .bp'), show: addClose,
-        text: 'You can also paste a blueprint here and click Import.' }),
+        text: 'Coal is short. Click ▸ on Coal to see what makes it and what uses it.' }),
+      Object.assign({}, FACTORY, { target: () => withCons('coal'), show: coalInView, try: true,
+        text: () => { const top = $('#tree .tr.cons.uses .nmtxt .lnk'); return `The made by lines add up to Supply and the used by lines add up to Demand, biggest first, so you can see where a shortage comes from.${top ? ` Here ${top.textContent.trim()} use${/s$/.test(top.textContent.trim()) ? '' : 's'} the most.` : ''}`; } }),
+      Object.assign({}, FACTORY, { target: () => { const r = facRow('coal'); return r ? [r.querySelector('input.num'), r.querySelector('.td.amt.bal')] : []; }, show: coalInView, focus: () => facRow('coal') && facRow('coal').querySelector('input.num'),
+        mark: () => (chainMem.coal || {}).scale, done: m => (chainMem.coal || {}).scale !== m, text: 'Type how many drills you have on coal. The bar on the right fills up as Supply catches up with Demand.' }),
+      Object.assign({}, FACTORY, { target: () => [$('#tree .tr.add'), $('#tree .tr.add-hits')], show: () => { if (facFilter) facTabTo(facTab); }, auto: true, done: () => !!addSel,
+        text: 'To add an item, click this box and pick one from the list.' }),
+      Object.assign({}, FACTORY, { target: () => [$('#tree .tr.add'), $('#tree .tr.add-hits')], auto: true, mark: () => addsMade, done: m => addsMade > m,
+        text: 'Type how many you have. If the machine has a ▾, click it to pick the one that makes it. Then click Add to put it in your factory.' }),
+      Object.assign({}, FACTORY, { target: () => $('#main .bp'), show: () => { addClose(); if (!bpImport && !bpDraft) { bpDraft = TOUR_BP; renderFactory(true); } }, auto: true, done: () => !!bpImport && bpImport.tab === facTab && !bpImport.error,
+        text: 'You can also paste a blueprint string here to add its machines. This one has 8 steel furnaces and 6 electric drills. Click Import.' }),
+      Object.assign({}, FACTORY, { target: () => $('#main .bp-panel'), auto: true, done: () => !bpImport || !!bpImport.done,
+        text: 'A blueprint doesn\'t say what each furnace smelts or what each drill mines, so you split them between the items here. It starts with how your factory splits them now. Then click Add.' }),
     ] },
     power: { name: 'Power', steps: [
-      toStep('#home', HOME.at, 'Click Home.', { opener: true }),
-      Object.assign(toStep('#main .card[data-go="#c/steam"]', CARD('steam').at, 'The cards at the top cover power, mining, oil, science and more. Click Steam power.'), HOME),
+      toStep('#home', HOME.at, 'Click Home to go to the home page.', { opener: true }),
+      Object.assign(toStep('#main .card[data-go="#c/steam"]', CARD('steam').at, 'The cards at the top work out power, mining, oil and science. Click Steam power.'), HOME),
       Object.assign({}, CARD('steam'), { target: () => [0, 1, 2, 3].map(i => $(`#main .tbl.two .tr[data-path="f${i}"]`)), focus: () => $('#main input.num[data-path="f0"]'), done: () => !!cardState('steam').touched,
-        text: 'Type a number in any box. The others change to match.' }),
+        text: 'Type a number in any box, like how many boilers you have, and the rest change to match.' }),
       Object.assign({}, CARD('steam'), { target: topBtn, auto: true, done: onFactory,
         text: () => onFactory() ? 'These boilers are in your factory now.' : `Click ${btnName()} to put these boilers and steam engines in your factory.` }),
-      Object.assign(toStep('#main h1 .iconbtn.sm.infac', FACTORY.at, 'Click In your factory to open your factory.'), CARD('steam')),
+      Object.assign(toStep('#home', HOME.at, 'Click Home to go back to the cards.'), CARD('steam')),
+      Object.assign(toStep('#main .card[data-go="#c/solar"]', CARD('solar').at, 'Click Solar power.'), HOME),
+      Object.assign({}, CARD('solar'), { target: topBtn, auto: true, done: onFactory,
+        text: () => onFactory() ? 'These solar panels are in your factory now.' : `Solar panels need accumulators to keep the power on at night, and this card counts both. Click ${btnName()} to put these solar panels in your factory.` }),
+      Object.assign(toStep('#home', HOME.at, 'Click Home again.'), CARD('solar')),
+      Object.assign(toStep('#main .card[data-go="#c/nuclear"]', CARD('nuclear').at, 'Click Nuclear power.'), HOME),
+      Object.assign({}, CARD('nuclear'), { target: () => $('#main .settings'), auto: true, mark: () => cardState('nuclear').layout, done: m => cardState('nuclear').layout !== m,
+        text: 'Pick how your reactors are laid out. Reactors next to each other make more heat, so the layout changes how much power you get.' }),
+      Object.assign({}, CARD('nuclear'), { target: topBtn, auto: true, done: onFactory,
+        text: () => onFactory() ? 'These reactors are in your factory now.' : `Click ${btnName()} to put these reactors in your factory.` }),
+      Object.assign(toStep('#main h1 .iconbtn.sm.infac', FACTORY.at, 'Click In your factory to open your factory.'), CARD('nuclear')),
       Object.assign(toStep('#main [data-fac-tab="power"]', () => FACTORY.at() && facTab === 'power', 'Click Power.'), FACTORY),
       Object.assign({}, FACTORY, { target: () => facRow('unit:boiler'), show: () => facTabTo('power'), auto: true, mark: () => boilerFuel(), done: m => boilerFuel() !== m,
-        text: 'Pick the fuel your boilers burn.' }),
+        text: 'Pick the fuel your boilers burn. What they burn is counted on that fuel\'s row.' }),
       Object.assign({}, FACTORY, { target: () => [facRow('steam'), facRow('power')], show: () => facTabTo('power'), try: true,
-        text: 'Steam and Electricity add up what your machines make and use.' }),
+        text: 'Steam and Electricity add up what your boilers, engines, solar panels and reactors make, against what your machines use.' }),
     ] },
     oil: { name: 'Oil', steps: [
-      toStep('#home', HOME.at, 'Click Home.', { opener: true }),
+      toStep('#home', HOME.at, 'Click Home to go to the home page.', { opener: true }),
       Object.assign(toStep('#main .card[data-go="#c/oil"]', CARD('oil').at, 'Click Oil processing.'), HOME),
       Object.assign({}, CARD('oil'), { target: () => $('#main .settings'), auto: true, mark: () => oilProcOf(cardState('oil')), done: m => oilProcOf(cardState('oil')) !== m,
-        text: 'Pick basic, advanced or coal liquefaction.' }),
+        text: 'Pick how your refineries process oil: basic, advanced, or coal liquefaction.' }),
       Object.assign({}, CARD('oil'), { target: () => $('#main .tbl.two .tr.product'), focus: () => $('#main input.num[data-oil="R"]'), done: () => !!cardState('oil').dem,
-        text: 'Type how many refineries you want. The rest changes to match.' }),
+        text: 'Type how many refineries you want. The cracking, the pumpjacks and the oil they make change to match.' }),
       Object.assign({}, CARD('oil'), { target: afterLine, try: true,
-        text: 'This is the oil they make. What your factory uses is under each name.' }),
+        text: 'This is the oil they make. Under each name is how much of it your factory uses.' }),
       Object.assign({}, CARD('oil'), { target: topBtn, auto: true, done: onFactory,
-        text: () => onFactory() ? 'These refineries are in your factory now.' : `Click ${btnName()} to put them in your factory.` }),
+        text: () => onFactory() ? 'These refineries are in your factory now.' : `Click ${btnName()} to put these refineries, the cracking and the pumpjacks in your factory.` }),
       Object.assign(toStep('#main h1 .iconbtn.sm.infac', FACTORY.at, 'Click In your factory to open your factory.'), CARD('oil')),
       Object.assign(toStep('#main [data-fac-tab="oil"]', () => FACTORY.at() && facTab === 'oil', 'Click Oil & chemicals.'), FACTORY),
       Object.assign({}, FACTORY, { target: () => facRow('crude-oil'), show: () => facTabTo('oil'), focus: () => $('#main input.yld'), mark: () => cardState('oil').yield, done: m => { const y = $('#main input.yld'); return cardState('oil').yield !== m || (!!y && parseFloat(y.value) > 0 && parseFloat(y.value) !== m); },
-        text: 'Type your oil field\'s yield in the % yield box.' }),
+        text: 'Type your oil field\'s yield in the % yield box. The game shows it when you hover over the oil.' }),
       Object.assign({}, FACTORY, { target: () => facRow('unit:refinery'), show: () => facTabTo('oil'), try: true,
-        text: 'Refineries show how many your factory needs and how busy they are.' }),
+        text: 'This row shows how many refineries your factory needs and how busy they are. If an oil has nowhere to go, it backs up and stops them.' }),
     ] },
   };
-  const TOUR_INTRO = { intro: true, text: 'Hello! This is the Factorio Ratios tutorial.' };
-  const TOUR_END = { end: true, target: () => $('#tourbtn'), text: 'That\'s it for this part. Done brings back your own factory. The ? button opens the tutorial again.' };
+  const TOUR_INTRO = { intro: true, text: () => `Hello! This is the Factorio Ratios tutorial. ${!tour.done.size ? 'Press Start to begin with the basics, or pick a part.' : tour.done.size < Object.keys(TOUR_PARTS).length ? 'Press Start for the next part, or pick one.' : 'You have done every part. Press Start to go through them again, or pick one.'}` };
+  const TOUR_END = { end: true, target: () => $('#tourbtn'), text: 'That\'s it for this part. Done brings back your own factory, and the ? button opens the tutorial again.' };
   let tour = null, tourEl = null, tourRaf = 0, tourObs = null;
   const TOUR_EVENTS = ['focusin', 'focusout', 'input', 'change', 'keyup', 'click'];
   const tourList = () => tour.part ? TOUR_PARTS[tour.part].steps : [];
@@ -2725,7 +2746,7 @@
     if (!fine()) q.blur();
     closePop();
     const w = doc.defaultView || window;
-    tour = { part: null, i: 0, item: null, busy: false, wasDone: false, mark: null, snaps: {}, done: new Set(), from: { hash: location.hash, y: w.scrollY, visit: visitState() } };
+    tour = { part: null, i: 0, item: null, busy: false, wasDone: false, mark: null, snaps: {}, done: new Set(store.get('tutorial', [])), from: { hash: location.hash, y: w.scrollY, visit: visitState() } };
     store.off = true;
     tourEl = doc.createElement('div'); tourEl.id = 'tour';
     tourEl.innerHTML = '<div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="ring none"></div>'
@@ -2777,7 +2798,7 @@
         preview = null; history.replaceState(null, '', want === '#' ? location.pathname + location.search : want); render();
       }
       if (cur && !preview && !tour.item) tour.item = cur.id;   // the item you typed, kept for the rest of the part
-      if (step.end) tour.done.add(tour.part); else tour.snaps[i] = tourSnap();
+      if (step.end) { tour.done.add(tour.part); store.set('tutorial', [...tour.done]); } else tour.snaps[i] = tourSnap();   // the parts you have done are remembered in this browser
       tourArrive(step);
     } finally { tour.busy = false; }
     tourShowCard();
@@ -2810,7 +2831,7 @@
     c.querySelector('.tpos').textContent = step.intro || step.end ? 'Tutorial' : step.opener ? TOUR_PARTS[tour.part].name : `${TOUR_PARTS[tour.part].name} · ${counted.indexOf(step) + 1} / ${counted.length}`;
     c.querySelector('.ttext').textContent = tourText(step);
     const keys = Object.keys(TOUR_PARTS), next = step.end && tourNextPart();
-    c.querySelector('.tnav').innerHTML = step.intro ? `<div class="chaps"><span class="lead">Or skip to:</span>${parts(keys.slice(1))}</div><button class="iconbtn sm cta" data-tour="next">Start</button>`
+    c.querySelector('.tnav').innerHTML = step.intro ? `<div class="chaps"><span class="lead">Parts:</span>${parts(keys)}</div><button class="iconbtn sm cta" data-tour="next">Start</button>`
       : step.end ? `<div class="chaps"><span class="lead">Parts:</span>${parts(keys)}</div><button class="iconbtn sm" data-tour="back">Back</button><button class="iconbtn sm${next ? '' : ' cta'}" data-tour="end">Done</button>${next ? `<button class="iconbtn sm cta" data-tour-part="${next}">Next: ${esc(TOUR_PARTS[next].name)}</button>` : ''}`
       : `<button class="iconbtn sm" data-tour="back">Back</button><button class="iconbtn sm cta" data-tour="next"${tourCanNext(step) ? '' : ' hidden'}>Next</button>`;
   }
@@ -2873,7 +2894,7 @@
   }
   function tourNext() {
     const step = tourStep();
-    if (step.intro) { tourPart('basics'); return; }
+    if (step.intro) { tourPart(tourNextPart() || 'basics'); return; }   // the first part you have not done
     if (step.end) { const nx = tourNextPart(); if (nx) tourPart(nx); else tourEnd(); return; }
     if (tourCanNext(step)) tourEnter(tour.i + 1, 1);   // a step you act on waits for you
   }
