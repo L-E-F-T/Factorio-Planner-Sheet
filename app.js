@@ -1275,17 +1275,18 @@
       if (k && counts[tab][k] !== undefined) counts[tab][k]++;
       if (st === 'short') shorts.push(x);
     };
-    // the left-over cell: short (red, with how many machines close the gap), not entered (grey), fulfilled (green)
-    const cellOf = (cls, txt, pct, tip, label) => `<div class="td amt bal" data-label="${label || 'left over'}"><span class="${cls}">${txt}</span><span class="meter${cls === 'spare' ? '' : ' ' + cls}"${tip ? ` title="${esc(tip)}"` : ''}><i style="width:${pct}%"></i></span></div>`;
+    // the left-over cell: short (red, with how many machines close the gap), not entered (grey), fulfilled (green). Its bar
+    // fills as what you have covers what is needed, and is full once it is enough (no bar: nothing is needed)
+    const cellOf = (cls, txt, pct, tip, label = 'left over') => `<div class="td amt bal"${label ? ` data-label="${label}"` : ''}><span class="${cls}">${txt}</span>${pct === null ? '' : `<span class="meter${cls === 'spare' ? '' : ' ' + cls}"${tip ? ` title="${esc(tip)}"` : ''}><i style="width:${pct}%"></i></span>`}</div>`;
     const cell = cellOf;
     const empty = { st: null, miss: 0, html: `<div class="td amt bal" data-label="left over"><span class="sub">–</span></div>` };
     const balance = (made, used, word, k, machine) => {
       if (!made && !used) return empty;
-      const bal = made - used, isShort = bal < 0 && !near(bal, 0), v = Math.abs(bal), pct = made > 0 ? Math.min(100, used / made * 100) : 100;
+      const bal = made - used, isShort = bal < 0 && !near(bal, 0), v = Math.abs(bal), pct = used > 0 ? Math.min(100, made / used * 100) : 100;
       // how many machines close a gap: on a short row the gap, on a row with nothing entered all that is used
       const add = n => k > 0 && machine ? `<small>add ${fmt(Math.ceil(n * k - 1e-9))} × ${esc(nameOf(machine))}</small>` : '';
-      if (!made) return { st: 'none', miss: 0, html: cell('none', 'not entered' + add(used), 100, 'your factory uses it, but nothing making it is entered') };
-      const tip = !used ? 'nothing uses it' : fmt(used / made * 100) + '% of what you make is used';
+      if (!made) return { st: 'none', miss: 0, html: cell('none', 'not entered' + add(used), 0, 'nothing making it is entered') };
+      const tip = !used ? 'nothing uses it' : `${fmt(made / used * 100)}% of what your factory uses`;
       if (isShort) return { st: 'short', miss: v, html: cell('short', word(v) + ' short' + add(v), pct, tip) };
       if (near(bal, 0)) return { st: 'balanced', miss: 0, html: cell('spare', 'fulfilled', pct, tip) };
       return { st: 'spare', miss: 0, html: cell('spare', `fulfilled<small>${word(v)} left over</small>`, pct, tip) };
@@ -1357,20 +1358,20 @@
     const unitNeed = (id, needN, run) => {
       const hv = unitN(id), add = n => `add ${fmt(Math.ceil(n - 1e-9))} × ${esc(nameOf(UNITS[id].machine))}`, cell = (cls, txt, pct) => cellOf(cls, txt, pct, '', 'your factory needs');
       if (!(hv > 0) && !(needN > 1e-9)) return empty;
-      if (!(needN > 1e-9)) return { st: null, html: cell('none', `idle<small>${id === 'refinery' ? 'nothing in your factory uses what they make' : basic ? 'basic processing makes nothing to crack' : 'your factory needs no cracking'}</small>`, 0) };
-      if (!(hv > 0)) return { st: null, html: cell('none', `not entered<small>needs ${fmt(needN)}: ${add(needN)}</small>`, 100) };
-      if (hv < needN - 1e-6) return { st: null, html: cell('none', `needs ${fmt(needN)}<small>${add(needN - hv)}</small>`, 100) };
-      return { st: null, html: cell('none', `needs ${fmt(needN)} of your ${fmt(hv)}<small>${fmt(run / hv * 100)}% busy</small>`, Math.min(100, needN / hv * 100)) };
+      if (!(needN > 1e-9)) return { st: null, html: cell('none', `idle<small>${id === 'refinery' ? 'nothing in your factory uses what they make' : basic ? 'basic processing makes nothing to crack' : 'your factory needs no cracking'}</small>`, null) };
+      if (!(hv > 0)) return { st: null, html: cell('none', `not entered<small>needs ${fmt(needN)}: ${add(needN)}</small>`, 0) };
+      if (hv < needN - 1e-6) return { st: null, html: cell('none', `needs ${fmt(needN)}<small>${add(needN - hv)}</small>`, hv / needN * 100) };
+      return { st: null, html: cell('none', `needs ${fmt(needN)} of your ${fmt(hv)}<small>${fmt(run / hv * 100)}% busy</small>`, 100) };
     };
     // what your factory needs of refineries, in grey: on the processing you have most of (mode), on top of the others
     const refNeed = () => {
       const hv = N.rm[mode] || 0, needN = need.R, on = manyProc ? ` on ${OIL_PROC_NAME[mode]}` : '';
       const cell = (cls, txt, pct) => cellOf(cls, txt, pct, '', 'your factory needs'), add = x => `add ${fmt(Math.ceil(x - 1e-9))} × Oil refinery${on}`;
       if (!(N.r > 0) && !(needN > 1e-9)) return empty;
-      if (!(needN > 1e-9)) return { st: null, html: cell('none', `idle<small>${anyOil ? 'your other refineries make enough' : 'nothing in your factory uses what they make'}</small>`, 0) };
-      if (!(N.r > 0)) return { st: null, html: cell('none', `not entered<small>needs ${fmt(needN)}: ${add(needN)}</small>`, 100) };
-      if (hv < needN - 1e-6) return { st: null, html: cell('none', `needs ${fmt(needN)}${on}<small>${add(needN - hv)}</small>`, 100) };
-      return { st: null, html: cell('none', `needs ${fmt(needN)} of your ${fmt(hv)}${on}<small>${fmt((sol.rm[mode] || 0) / hv * 100)}% busy</small>`, Math.min(100, needN / hv * 100)) };
+      if (!(needN > 1e-9)) return { st: null, html: cell('none', `idle<small>${anyOil ? 'your other refineries make enough' : 'nothing in your factory uses what they make'}</small>`, null) };
+      if (!(N.r > 0)) return { st: null, html: cell('none', `not entered<small>needs ${fmt(needN)}: ${add(needN)}</small>`, 0) };
+      if (hv < needN - 1e-6) return { st: null, html: cell('none', `needs ${fmt(needN)}${on}<small>${add(needN - hv)}</small>`, hv / needN * 100) };
+      return { st: null, html: cell('none', `needs ${fmt(needN)} of your ${fmt(hv)}${on}<small>${fmt((sol.rm[mode] || 0) / hv * 100)}% busy</small>`, 100) };
     };
     // the refinery row: a line per processing you run, each with its count and a picker for the processing (with none
     // entered, a line for the one your factory would add first); "+ another processing" adds a line
@@ -1411,10 +1412,10 @@
       if (!((N.r > 0 && (!basic || k === 'p')) || D[k] > 0)) continue;
       const item = OIL_ITEM[k], own = refSum(oilIn, item);   // coal liquefaction takes some of its own heavy oil
       const made = refSum(oilOut, item) + crackOut[k], used = D[k] + crackIn[k] + own;
-      const miss = basic && k !== 'p' ? D[k] : shortOf(k), pct = made > 0 ? Math.min(100, used / made * 100) : 100;
+      const miss = basic && k !== 'p' ? D[k] : shortOf(k), pct = D[k] > 0 ? Math.max(0, 100 - miss / D[k] * 100) : 100;   // the share of your factory's use delivered
       let b;
       if (miss > 0 && (N.r > 0 || (basic && k !== 'p'))) b = { st: 'short', miss, html: cell('short', `${fmt(miss)} per second short${why(k) ? `<small>${why(k)}</small>` : ''}`, pct) };
-      else if (D[k] > 0 && !N.r) b = { st: 'none', miss: 0, html: cell('none', `not entered<small>add ${fmt(Math.ceil(need.R - 1e-9))} × Oil refinery</small>`, 100) };
+      else if (D[k] > 0 && !N.r) b = { st: 'none', miss: 0, html: cell('none', `not entered<small>add ${fmt(Math.ceil(need.R - 1e-9))} × Oil refinery</small>`, 0) };
       else if (anyShort && !(D[k] > 0) && (stuck.includes(k) || backed.includes(k))) b = { st: null, html: cell('none', 'backs up<small>nothing uses it</small>', 100) };
       else { const lo = made - used, tip = used ? '' : 'nothing uses it'; b = lo > 1e-6 * Math.max(1, made) ? { st: 'spare', html: cell('spare', `fulfilled<small>${fmt(lo)} per second left over</small>`, pct, tip) } : { st: 'balanced', html: cell('spare', 'fulfilled', pct, tip) }; }
       tally('oil', b.st, item, nameOf(item), item, fmt(miss) + ' per second', D[k] ? miss / D[k] : 1);
