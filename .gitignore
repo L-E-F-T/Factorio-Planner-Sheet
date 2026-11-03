@@ -1,0 +1,8 @@
+# Claude Code's per-project settings and preview config
+.claude/
+# Python caches from the data tools
+__pycache__/
+*.pyc
+# Windows folder files
+Thumbs.db
+desktop.ini
