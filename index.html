@@ -16,6 +16,15 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.35 var(--sans);-webkit-text-size-adjust:100%}
+/* each kind of page sits on an in-game view (bg/), darkened so the numbers stay easy to read */
+body{background:transparent}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(rgba(22,21,22,.8),rgba(22,21,22,.8)),var(--bgimg,none) center/cover no-repeat}
+body[data-bg="home"]{--bgimg:url(bg/home.webp)}
+body[data-bg="factory"]{--bgimg:url(bg/factory.webp)}
+body[data-bg="item"]{--bgimg:url(bg/item.webp)}
+body[data-bg="oil"]{--bgimg:url(bg/oil.webp)}
+body[data-bg="power"]{--bgimg:url(bg/power.webp)}
+body[data-bg="cards"]{--bgimg:url(bg/cards.webp)}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer}
 a{color:var(--accent2)}
@@ -151,6 +160,7 @@ input.num.bad{border-color:var(--bad)}
 /* the factory ledger: Item | machines | makes | uses | left over, with a meter under the balance */
 .tbl.fac{grid-template-columns:minmax(150px,.9fr) minmax(260px,1.4fr) repeat(3,minmax(104px,.5fr))}
 .tbl.fac .mbtn .mname{white-space:normal;line-height:1.15}
+.tbl.fac .td.amt{flex-wrap:wrap;column-gap:5px;align-content:center}   /* a unit goes under its number when they do not fit side by side */
 .tr.cons .td{background:#2b2a2b;min-height:40px;font-size:13px;color:var(--muted)}
 .tr.cons .td.amt{font-size:15px}
 .td.amt.bal{flex-direction:column;align-items:flex-end;justify-content:center;gap:4px;font:14px var(--sans)}

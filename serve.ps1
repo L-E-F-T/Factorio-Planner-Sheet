@@ -6,7 +6,7 @@ param([int]$Port = 8765, [string]$Root = $PSScriptRoot, [switch]$Public, [switch
 
 $Root = (Resolve-Path $Root).Path
 $types = @{ '.html'='text/html; charset=utf-8'; '.js'='application/javascript; charset=utf-8'; '.css'='text/css; charset=utf-8';
-            '.png'='image/png'; '.json'='application/json'; '.svg'='image/svg+xml'; '.ico'='image/x-icon'; '.webmanifest'='application/manifest+json'; '.txt'='text/plain'; '.md'='text/plain; charset=utf-8' }
+            '.png'='image/png'; '.webp'='image/webp'; '.json'='application/json'; '.svg'='image/svg+xml'; '.ico'='image/x-icon'; '.webmanifest'='application/manifest+json'; '.txt'='text/plain'; '.md'='text/plain; charset=utf-8' }
 
 # Who already has this port registered with Windows' HTTP service (http.sys)? Returns @{Pid; Image; CommandLine; Started} or $null.
 function Get-PortOwner([int]$Port) {

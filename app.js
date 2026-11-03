@@ -259,6 +259,7 @@
   let curRes = null;    // current raw-resource view
 
   let keepPlace = false;   // set while a "Your base" change redraws the page: stay where you are, leave the focus alone
+  const setBg = k => { doc.body.dataset.bg = k; };   // the page's background: an in-game view for each kind of page
   function render() {
     if (baseOpen && !keepPlace) { baseOpen = false; renderSettings(); }   // an opened "Your base" folds again on another page
     const w = doc.defaultView || window, y = keepPlace ? w.scrollY : 0;
@@ -419,7 +420,7 @@
     return chips.length ? `<h2>Used in</h2><div class="chips">${chips.join('')}</div>` : '';
   }
   function renderHome() {
-    doc.title = 'Factorio Ratios';
+    doc.title = 'Factorio Ratios'; setBg('home');
     const chip = id => FD.items[id] ? `<button class="chip2${remembered('i', id) ? ' mem' : ''}" data-go="#i/${id}" tabindex="-1"${remembered('i', id) ? ' title="In your factory"' : ''}>${ic(id, 'sm')}${esc(nameOf(id))}</button>` : '';
     $('#main').innerHTML = `
       <div class="cards">${Object.entries(CARDS).filter(([id]) => id !== 'factory').map(([id, c]) => `<button class="card${remembered('c', id) ? ' mem' : ''}" data-go="#c/${id}" tabindex="-1"${remembered('c', id) ? ' title="In your factory"' : ''}>${ic(c.icon, 'lg')}<span><span class="t">${esc(c.title)}</span><br><span class="d">${esc(c.desc)}</span></span></button>`).join('')}</div>
@@ -457,6 +458,7 @@
   const header = (first) => `<div class="th">${first}</div><div class="th">Machines</div><div class="th amth">Amount<span class="u">${esc(unitShort())}</span></div>`;
 
   function renderItem(id, spec) {
+    setBg('item');
     const st = preview ? cloneState(chainState(id)) : chainState(id);   // a preview must not change what is remembered
     const tree = Engine.build(id, S, st.overrides);
     const nodes = {}; Engine.walk(tree, n => { nodes[n.path] = n; });
@@ -578,7 +580,7 @@
   // ---------- raw-resource view: what one drill gives, then everything made straight from it ----------
   const originText = item => item === 'wood' ? 'from trees' : /oil|petroleum/.test(item) ? 'from refineries' : item.startsWith('uranium-2') ? 'from centrifuges' : '';
   function renderResource(id, spec) {
-    cur = null; curCard = null;
+    cur = null; curCard = null; setBg('item');
     const fluid = isFluid(id);
     const st = preview ? cloneState(chainState(id)) : chainState(id);   // scale = units of the resource per second: its saved number
     const sup = supply(id, 1);                        // {id, k}: machines per 1 unit/s, or null for wood
@@ -1327,7 +1329,7 @@
   }
 
   function renderFactory(fromInput, topOnly) {
-    cur = null; curRes = null; curCard = { id: 'factory', st: {}, fields: [] };
+    cur = null; curRes = null; curCard = { id: 'factory', st: {}, fields: [] }; setBg('factory');
     closePop();   // a picker belongs to the rows it was opened on
     // arriving on the page (a Your base change redraws in place and keeps them): no kept rows, Put back or filter yet
     if (!fromInput && !keepPlace) { facKeep.clear(); for (const k of Object.keys(facRemoved)) delete facRemoved[k]; facFilter = null; facFiltSeen.clear(); refShown.clear(); nucShown.clear(); }
@@ -1517,7 +1519,9 @@
       const tab = tabOf(i), fluid = isFluid(i), made = have[i] || 0, list = uses[i] || [], used = list.reduce((a, u) => a + u.rate, 0);
       if (!fluid) laneTab.add(tab);
       const im = itemMachine(i);
-      const qty = v => PUMP_OF[i] ? pumpsText(i, v) : amountText(v, fluid), word = v => PUMP_OF[i] ? pumpsText(i, v) : amtWord(v, fluid);   // water and crude oil in pumps
+      // a cell's amount: water and crude oil in pumps, other fluids per second (the number big, its unit small), items bare
+      const qty = v => { if (!fluid) return amountText(v, fluid); const n = fmt(PUMP_OF[i] ? v / pumpRate(i) : v); return `${n} <span class="unit">${PUMP_OF[i] ? PUMP_OF[i] + (n === '1' ? '' : 's') : 'per second'}</span>`; };
+      const word = v => PUMP_OF[i] ? pumpsText(i, v) : amtWord(v, fluid);
       let mach, makes = `<div class="td amt" data-label="${capOf('outputting', fluid)}">${made ? qty(made) : '<span class="sub">–</span>'}</div>`;
       if (im) mach = facBox(i, im.k, made ? im.k * made : null, im);
       else {   // nothing makes it by the machine: type the amount
@@ -1532,7 +1536,7 @@
       const recs = new Set((partsOf(i) || []).map(q => q.recipe));   // lines on different recipes are named by their recipe
       const makers = runsOf[i] ? runsOf[i].map(([t, r]) => ({ by: i, label: recs.size > 1 ? FD.recipes[t.recipe].name : nameOf(i), go: page || '#i/' + i, rate: r, machines: t.kMach * r, machine: t.machine }))
         : made ? (partsOf(i) || [{ machine: null, scale: made }]).filter(q => q.scale > 0).map(q => { const s = supply(i, 1, q.machine); return { by: i, label: nameOf(i), go: page || '#i/' + i, rate: q.scale, machines: s ? s.k * q.scale : 0, machine: s ? s.id : null, what: s ? '' : originText(i) || 'what you entered' }; }) : [];
-      const rowHtml = (`<div class="tr${made ? ' product' : ''}" data-fac="${i}"><div class="td item" style="--d:0">${expBtn(i, list.length || makers.length > 1, 'what makes and uses ' + nameOf(i))}${ic(i)}<span class="nmtxt">${link}${nick(i)}${i === 'crude-oil' ? yieldLine() : ''}${rmBtn(i, nameOf(i), made > 0)}</span></div>${mach}${makes}<div class="td amt" data-label="${capOf('inputting', fluid)}">${used ? qty(used) : '<span class="sub">–</span>'}</div>${b.html}</div>` + (facOpen.has(i) ? flowRows(makers, list, fluid, PUMP_OF[i] ? qty : undefined) : ''));
+      const rowHtml = (`<div class="tr${made ? ' product' : ''}" data-fac="${i}"><div class="td item" style="--d:0">${expBtn(i, list.length || makers.length > 1, 'what makes and uses ' + nameOf(i))}${ic(i)}<span class="nmtxt">${link}${nick(i)}${i === 'crude-oil' ? yieldLine() : ''}${rmBtn(i, nameOf(i), made > 0)}</span></div>${mach}${makes}<div class="td amt" data-label="${capOf('inputting', fluid)}">${used ? qty(used) : '<span class="sub">–</span>'}</div>${b.html}</div>` + (facOpen.has(i) ? flowRows(makers, list, fluid, fluid ? qty : undefined) : ''));
       (i === 'crude-oil' ? oilFirst : body[tab]).push(rowHtml);
       if (i === 'coal' || i === 'water') shared[i] = rowHtml;
     }
@@ -1571,7 +1575,7 @@
       + (cnt.ok || facFilter === 'ok' ? filt('ok', cnt.ok, '', 'fulfilled') : '');
     const sum = entered || facFilter ? `<div class="summary fac-sum">${counted}${shortHere.length ? `<span class="chiprow"><span class="lead">Short:</span>${shortHere.map(chip).join('')}</span>` : ''}${bringBack}</div>` : '';
     const badge = t => { const n = t === 'all' ? FAC_ORDER.reduce((a, x) => a + counts[x].short, 0) : counts[t].short; return n ? `<span class="n" title="${n} short">${n}</span>` : ''; };
-    const tabBar = `<div class="factabs" role="tablist">${FAC_TABS.map(([t, label, icon]) => `<button tabindex="-1" role="tab" data-fac-tab="${t}" class="${t === facTab ? 'on' : ''}">${icon ? icb(icon, 'xs') : ''}<span>${esc(label)}</span>${badge(t)}</button>`).join('')}</div>`;
+    const tabBar = `<div class="factabs" role="tablist">${FAC_TABS.map(([t, label, icon]) => `<button tabindex="-1" role="tab" data-fac-tab="${t}" class="${t === facTab ? 'on' : ''}">${icon ? ic(icon, 'xs') : ''}<span>${esc(label)}</span>${badge(t)}</button>`).join('')}</div>`;   // a tab's icon is its kind of machine, no tier
     const thU = tabs.some(t => laneTab.has(t)) ? `<span class="u">${esc(unitShort())}</span>` : '';   // Power counts no items, only steam and MW
     const th = `<div class="th"></div><div class="th">Machines</div><div class="th amth">Outputting${thU}</div><div class="th amth">Inputting${thU}</div><div class="th amth"></div>`;
     // dismissing only changes the top: redraw the tabs and the summary, and leave everything below them as it is
@@ -1582,7 +1586,7 @@
     const filtEmpty = facFilter === 'short' ? 'Nothing is short' + (wavedHere.length ? ' apart from what you dismissed.' : '.')
       : facFilter === 'ok' ? 'Nothing is fulfilled yet.' : 'Nothing is missing.';
     $('#main').innerHTML = `
-      <h1>${ic('assembling-machine-2', 'lg')}<span class="ttl">Your factory</span></h1>
+      <h1><span class="ttl">Your factory</span></h1>
       ${tabBar}${sum}
       <div class="tbl fac" id="tree">${th}${groups.map(g => g.join('')).join(line)}${groups.length ? line : ''}${facFilter ? (groups.length ? '' : `<div class="tr full"><div class="td"><span class="sub">${filtEmpty}</span></div></div>`) : addRowHtml()}</div>
       ${facFilter ? '' : bpHtml()}
@@ -1937,7 +1941,7 @@
     return { p: (refN(oilModeOf(mode)) || refAll() || 20) / oilPlan({ p: 1, l: 0, h: 0 }, mode).R, l: 0, h: 0 };
   }
   function renderOil(spec) {
-    cur = null; curRes = null;
+    cur = null; curRes = null; setBg('oil');
     const st = cardState('oil'), mode = oilProcOf(st), basic = mode === 'basic', M = factoryModel(), F = M.oil, fac = F.D, hasFac = fac.p + fac.l + fac.h > 0;
     const base = oilBase(mode, fac);
     let dem = st.dem || base, anchor = st.dem ? st.anchor : null, view = null;
@@ -2225,6 +2229,7 @@
     if (spec && spec.layout && id === 'nuclear') { st.layout = spec.layout; st.touched = true; if (!preview) saveCard(id, st); }
     const def = cardFields(id, st);
     const fields = def.fields;
+    setBg(['steam', 'solar', 'nuclear'].includes(id) ? 'power' : 'cards');
     if (spec && spec.n !== null && fields.length) {
       const qs = words((spec.wantQ !== null && spec.haveQ) ? spec.haveQ : spec.haveQ || '');
       let best = -1, bestSc = 0;
@@ -2293,7 +2298,7 @@
   }
 
   function renderReference() {
-    curCard = { id: 'reference', st: {}, fields: [] };
+    curCard = { id: 'reference', st: {}, fields: [] }; setBg('cards');
     const caps = FD.tech.inserter_capacity;
     const hand = lvl => { let reg = 1, bulk = FD.tech.bulk_base; for (const c of caps) if (c.level <= lvl) { reg += c.reg; bulk += c.bulk; } return { reg, bulk }; };
     const ins = Object.entries(FD.inserters).map(([id, i]) => `<tr><td>${ic(id, 'sm')} ${esc(i.name)}</td><td class="n">${fmt(i.swings_per_s, 2)}</td><td class="n">${i.bulk ? fmt(i.swings_per_s * hand(S.cap).bulk, 1) : fmt(i.swings_per_s * hand(S.cap).reg, 2)}</td></tr>`).join('');
