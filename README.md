@@ -5,6 +5,9 @@ Every number comes from the game's own prototype files, not from a wiki table.
 
 ## Run it
 
+* **Online:** <https://l-e-f-t.github.io/Factorio-Planner-Sheet/> always has the latest version, on any PC
+  or phone, with nothing to install. Your factory is saved in that browser, separately from a copy you
+  run yourself.
 * **Double-click `index.html`.** That is all. It works straight from the file, offline, in any browser.
 * **Beside the game:** a chromeless window fits well next to Factorio:
   `chrome --app=file:///C:/path/to/factorioSheet/index.html --window-size=460,800`.
