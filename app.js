@@ -831,7 +831,7 @@
     }
     const ot = e.target.closest('[data-oil-tofactory]');
     if (ot) {   // the Oil page's refineries and cracking, in whole machines, into the ledger
-      const st = cardState('oil'), F = factoryModel().oil.D, base = F.p + F.l + F.h > 0 ? { p: F.p, l: F.l, h: F.h } : { p: st.basic ? 180 : 390, l: 0, h: 0 };
+      const st = cardState('oil'), F = factoryModel().oil.D, base = oilBase(!!st.basic, F);
       Object.assign(facUnits, oilWant(oilPlan(st.dem || base, !!st.basic), !!st.basic)); persist();
       const keep = { dem: st.dem, anchor: st.anchor }; clearViews(); Object.assign(st, keep); renderOil(); return;
     }
@@ -1506,10 +1506,15 @@
   }
 
   // ---------- oil processing: what the oil products your factory uses take ----------
+  // what the Oil processing page opens at: what your factory uses, else your refineries at full speed, else 20 refineries
+  function oilBase(basic, D) {
+    if (D.p + D.l + D.h > 0) return { p: D.p, l: D.l, h: D.h };
+    return { p: (unitN('refinery') || 20) / oilPlan({ p: 1, l: 0, h: 0 }, basic).R, l: 0, h: 0 };
+  }
   function renderOil(spec) {
     cur = null; curRes = null;
     const st = cardState('oil'), basic = !!st.basic, F = factoryModel().oil, fac = F.D, hasFac = fac.p + fac.l + fac.h > 0;
-    const base = hasFac ? { p: fac.p, l: fac.l, h: fac.h } : { p: basic ? 180 : 390, l: 0, h: 0 };   // else 20 refineries
+    const base = oilBase(basic, fac);
     let dem = st.dem || base, anchor = st.dem ? st.anchor : null, view = null;
     if (spec && spec.n !== null && spec.n > 0) {   // "10 refineries", "40 petroleum gas", "20 heavy oil"
       const qs = (spec.haveQ || '').toLowerCase(), n = spec.n, k = /light/.test(qs) ? 'l' : /heavy/.test(qs) ? 'h' : /petrol|gas/.test(qs) ? 'p' : null;
@@ -1538,7 +1543,7 @@
     if (basic && (fac.l > 0 || fac.h > 0)) notes.push(`<div class="note">Basic processing makes only petroleum gas. Your factory also uses ${[fac.l > 0 ? fmt(fac.l) + ' light oil' : '', fac.h > 0 ? fmt(fac.h) + ' heavy oil' : ''].filter(Boolean).join(' and ')} per second, which needs advanced processing.</div>`);
     const intro = basic ? 'Basic processing: one refinery turns 20 crude oil into 9 petroleum gas per second.'
       : 'Advanced processing: one refinery turns 20 crude oil and 10 water into 5 heavy oil, 9 light oil and 11 petroleum gas per second. Cracking turns heavy oil into light oil and light oil into petroleum gas, so the refineries make only what is used.';
-    const sized = changed ? '' : hasFac ? 'Sized to what your factory uses.' : 'Nothing in your factory uses oil yet: this is 20 refineries.';
+    const sized = changed ? '' : hasFac ? 'Sized to what your factory uses.' : unitN('refinery') > 0 ? `Nothing in your factory uses oil yet: this is your ${fmt(unitN('refinery'))} refineries at full speed.` : 'Nothing in your factory uses oil yet: this is 20 refineries.';
     const modeSeg = `<div class="settings" style="margin:0 0 10px"><span class="lead">Processing:</span><span class="seg">${[['basic', 'Basic'], ['advanced', 'Advanced']].map(([v, l]) => `<button tabindex="-1" data-oil-mode="${v}" class="${(v === 'basic') === basic ? 'on' : ''}" title="${v === 'basic' ? 'petroleum gas only' : 'heavy oil, light oil and petroleum gas, with cracking'}">${icb('oil-refinery', 'xs')}<span>${l}</span></button>`).join('')}</span></div>`;
     const want = oilWant(plan, basic);
     const inFac = unitN('refinery') > 0 && Object.entries(want).every(([u, n]) => unitN(u) === n);
@@ -1554,7 +1559,7 @@
   // a box on the Oil processing page: a product sets that product; any machine or flow box scales all three together
   function onOilInput(inp) {
     const key = inp.dataset.oil, text = inp.value, t = text.trim(), st = cardState('oil'), F = factoryModel().oil.D;
-    const base = F.p + F.l + F.h > 0 ? { p: F.p, l: F.l, h: F.h } : { p: st.basic ? 180 : 390, l: 0, h: 0 };
+    const base = oilBase(!!st.basic, F);
     const dem = Object.assign({}, st.dem || base), v = t === '' ? 0 : parseFloat(t);
     if (!(v >= 0) || !isFinite(v)) { inp.classList.add('bad'); return; }
     if ('plh'.includes(key) && key.length === 1) dem[key] = v;
