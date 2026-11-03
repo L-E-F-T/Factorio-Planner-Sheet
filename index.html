@@ -33,7 +33,6 @@ header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px so
 #q::placeholder{color:var(--faint)}
 .iconbtn{height:46px;min-width:46px;padding:0 10px;border-radius:var(--r);border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:20px;line-height:1;flex:none}
 .iconbtn:hover{background:var(--panel2)}
-.iconbtn.star.on{color:var(--accent)}
 .iconbtn.home{display:inline-flex;align-items:center;gap:7px;padding:0 13px 0 10px;font-size:15px;font-weight:600}
 /* the small ↺ beside a value moved off its default; hidden until then */
 .undo{width:24px;height:24px;border:0;border-radius:50%;background:transparent;color:var(--faint);font-size:16px;line-height:1;padding:0;flex:none}
@@ -107,6 +106,10 @@ h3{font-size:13px;color:var(--faint);margin:12px 0 4px;font-weight:600}
 .exp{width:28px;height:40px;border:0;background:transparent;color:var(--faint);font-size:28px;line-height:1;padding:0;flex:none}
 .exp:hover{color:var(--fg)}
 .exp.none{visibility:hidden;width:6px}
+/* Remove, under the name of a ledger row you entered; Put back while you are still on the page */
+.rm{display:block;margin:2px 0 0 -6px;height:22px;padding:0 6px;border:0;border-radius:var(--r);background:transparent;color:var(--faint);font:12px var(--sans);cursor:pointer}
+.rm:hover{background:#2a292a;color:var(--fg)}
+.rm.back{color:var(--accent2)}
 input.num{width:96px;height:44px;text-align:right;font:22px var(--mono);font-variant-numeric:tabular-nums;background:#141314;border:2px solid var(--line);border-radius:var(--r);color:var(--fg);padding:0 8px;outline:none;flex:none}
 input.num:focus{border-color:var(--accent2);background:#1c1a16}
 input.num.bad{border-color:var(--bad)}
@@ -260,9 +263,9 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   .settings .seg{flex-wrap:wrap;max-width:100%}
   main{padding:10px 8px 40px}
   footer{font-size:13px}
-  /* a page title keeps the width beside its icon and the star; "Add to factory" goes on the line under it */
+  /* a page title keeps the width beside its icon; "Add to factory" goes on the line under it */
   h1{font-size:19px;flex-wrap:wrap}
-  h1 .ttl{flex:1 1 calc(100% - 120px)}
+  h1 .ttl{flex:1 1 calc(100% - 70px)}
   h1 .iconbtn.sm{order:1;margin-left:auto}
   h1 > img.ic.lg{align-self:flex-start}
   /* tables: one card per row, each value with its caption above it; a chain's deeper rows step in */
@@ -345,6 +348,7 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   .td .sub select,.mbtn select,.settings select{min-height:36px}
   .hit{padding:6px}
   .exp:not(.none){width:38px;height:44px}
+  .rm{height:34px;padding:0 8px;margin-left:-8px}
   .td.item .lnk{position:relative}
   .td.item .lnk::after{content:"";position:absolute;inset:-9px -4px}
   footer .keys{display:none}

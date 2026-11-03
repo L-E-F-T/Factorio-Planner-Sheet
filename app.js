@@ -179,9 +179,10 @@
   }
 
   // ---------- state ----------
-  // Remembered between visits (in this browser): the "Your base" strip, pins, and what you set on each page:
-  // numbers, machine choices, opened rows. "Clear all" on the Your factory page forgets all of it; ↺ on a page forgets that page.
-  // Your factory (the ledger) is the only thing saved, besides "Your base" and pins:
+  // Remembered between visits (in this browser): the "Your base" strip and what you set on each page:
+  // numbers, machine choices, opened rows. "Clear all" on the Your factory page's Everything tab forgets all of it (on another
+  // tab, "Clear this tab" forgets only that tab's rows); ↺ on a page forgets that page.
+  // Your factory (the ledger) is the only thing saved, besides "Your base":
   //   chainMem[item]   how much of an item your machines make (scale, units per second; touched = in the factory)
   //   facUnits[id]     machines that make no single item: boilers, steam engines, solar panels, labs, refineries, cracking
   //   machineOf[item]  the machine an item is made in, in your factory (pinned when entered, changed with the row's picker)
@@ -231,10 +232,9 @@
   const clearViews = () => { for (const k of Object.keys(viewMem)) delete viewMem[k]; if (cardMem.oil) { cardMem.oil.dem = null; cardMem.oil.anchor = null; } };
   function forgetAll() { for (const m of [chainMem, cardMem, facUnits, machineOf, recipeOf]) for (const k of Object.keys(m)) delete m[k]; facDismiss.clear(); clearViews(); persist(); }
   const anyKept = () => Object.values(chainMem).some(saved) || Object.values(facUnits).some(n => n > 0) || Object.keys(machineOf).length > 0 || Object.keys(recipeOf).length > 0 || Object.entries(cardMem).some(([k, v]) => cardKept(k, v));
-  const favs = store.get('favs', []);
   function touch() { }
-  // clear what older versions of this page saved
-  try { Object.keys(localStorage).filter(k => /^fr:(chain:|card:|recents$|last$|seenTip$)/.test(k)).forEach(k => localStorage.removeItem(k)); } catch (e) { }
+  // clear what older versions of this page saved (favs: the home screen's pins, taken out)
+  try { Object.keys(localStorage).filter(k => /^fr:(chain:|card:|recents$|last$|seenTip$|favs$)/.test(k)).forEach(k => localStorage.removeItem(k)); } catch (e) { }
 
   // ---------- router ----------
   let skipRender = false;
@@ -404,9 +404,7 @@
       const icon = k === 'c' ? CARDS[id].icon : id;
       return `<button class="chip2${remembered(k, id) ? ' mem' : ''}" data-go="#${k}/${id}" tabindex="-1"${remembered(k, id) ? ' title="In your factory"' : ''}>${ic(icon, 'sm')}${esc(name)}</button>`;
     };
-    const pinned = favs.filter(f => (f.startsWith('c/') && CARDS[f.slice(2)]) || (f.startsWith('i/') && FD.items[f.slice(2)]));
     $('#main').innerHTML = `
-      ${pinned.length ? `<h2>Pinned</h2><div class="chips">${pinned.map(chip).join('')}</div>` : ''}
       <div class="cards">${Object.entries(CARDS).filter(([id]) => id !== 'factory').map(([id, c]) => `<button class="card${remembered('c', id) ? ' mem' : ''}" data-go="#c/${id}" tabindex="-1"${remembered('c', id) ? ' title="In your factory"' : ''}>${ic(c.icon, 'lg')}<span><span class="t">${esc(c.title)}</span><br><span class="d">${esc(c.desc)}</span></span></button>`).join('')}</div>
       <h3>Raw resources</h3><div class="chips">${RESOURCES.map(id => chip('i/' + id)).join('')}</div>
       ${GROUPS.map(([g, title]) => { const ids = makeable.filter(id => (FD.items[id].group || 'other') === g); return ids.length ? `<h3>${esc(title)}</h3><div class="chips">${ids.map(id => chip('i/' + id)).join('')}</div>` : ''; }).join('')}
@@ -475,7 +473,6 @@
     const fs = { open: st.open, anchor, touched: mode === 'view' };   // the ↺ drops a what-if; the ledger owns saved numbers
     const sized = mode === 'driven' ? `<div class="sub">Sized to your factory: limited by ${esc(savedText(d.item, d.rate, true))}.</div>` : '';
     const rec = FD.recipes[tree.recipe];
-    const fav = favs.includes('i/' + id);
     const perCraft = rec.out.find(o => o[0] === id)[1];
     const recipeLine = rec.cat === 'launch'
       ? `Made by launching a rocket: <span class="nw">100 ${ic('rocket-part', 'xs')} rocket parts</span> + <span class="nw">1 ${ic('satellite', 'xs')} satellite</span> → 1,000 packs.`
@@ -492,7 +489,7 @@
     const focusPath = mode === 'driven' ? tree.path : anchor.path;   // Enter lands on the top row, even when a component sizes the page
     $('#main').innerHTML = `
       <h1>${ic(id, 'lg')}<span class="ttl">${esc(nameOf(id))}${nick(id)}<div class="sub">${recipeLine}</div>${sized}</span>
-        ${facBtn(st, R, mode)}<button class="iconbtn star ${fav ? 'on' : ''}" data-fav="i/${id}" title="Pin to the home screen" tabindex="-1">★</button></h1>
+        ${facBtn(st, R, mode)}</h1>
       ${note}${bump}
       <div class="tbl" id="tree">${header('Item')}${rowHtml(tree, 0, R, fs, focusPath)}${labsRow}<div class="tr sep"><div class="td">needs</div></div>${tree.children.map(c => subtree(c, 1, R, fs, focusPath)).join('')}</div>
       <div class="summary" id="summary"><span class="lead">Whole chain:</span>${summaryHtml(tot, R)}</div>
@@ -596,13 +593,12 @@
     // one step further: what those items go into
     const further = products.map(p => { const list = [...(usedIn[p] || [])].filter(o => o !== id).sort(fullOrder); return list.length ? `<h3>${ic(p, 'xs')} ${esc(nameOf(p))} is used in</h3><div class="chips">${list.map(useChip).join('')}</div>` : ''; }).join('');
     curRes = { id, st, blocks, scale: Rs, base, mode, view };
-    const fav = favs.includes('i/' + id);
     const nm = nameOf(id).toLowerCase();
     const intro = (sup ? `${fluid ? 'Pumped' : 'Mined'}, not crafted. One ${esc(nameOf(sup.id).toLowerCase())} gives ${fmt(1 / sup.k)} ${esc(nm)} per second${!fluid && S.mp ? ' with +' + S.mp + '% mining productivity' : ''}.` : `From trees, not crafted: no machine makes ${esc(nm)}.`) +
       (products.length ? ` Each item below is made with all of the ${esc(nm)} in the first row.` : '');
     $('#main').innerHTML = `
       <h1>${ic(id, 'lg')}<span class="ttl">${esc(nameOf(id))}<div class="sub">${intro}</div></span>
-        ${facBtn(st, Rs, mode)}<button class="iconbtn star ${fav ? 'on' : ''}" data-fav="i/${id}" title="Pin to the home screen" tabindex="-1">★</button></h1>
+        ${facBtn(st, Rs, mode)}</h1>
       <div class="tbl" id="tree">${header('Item')}${topRow}${blockHtml}</div>
       ${further ? `<h2>Made from those</h2>${further}` : ''}`;
     doc.title = `${nameOf(id)}${mode !== 'default' ? ' · ' + savedText(id, Rs) : ''} – Factorio Ratios`;
@@ -808,14 +804,15 @@
     const ex = e.target.closest('[data-q]'); if (ex) { q.value = ex.dataset.q; runSearch(); if (preview) commitPreview(fine()); return; }
     if (preview && !e.target.closest('[data-go]')) commitPreview(false);
     const g = e.target.closest('[data-go]'); if (g) { q.value = ''; strip.hidden = true; preview = null; go(g.dataset.go); return; }
-    const fav = e.target.closest('[data-fav]');
-    if (fav) { const k = fav.dataset.fav; const i = favs.indexOf(k); if (i >= 0) favs.splice(i, 1); else favs.unshift(k); store.set('favs', favs); fav.classList.toggle('on', i < 0); return; }
     const un = e.target.closest('[data-undo]'); if (un) { undo(un.dataset.undo); return; }
-    // "Clear all" on the ledger: ask first, then forget every page
+    // "Clear all" on the ledger's Everything tab, "Clear this tab" on the others: ask first, then forget it
     const fg = e.target.closest('[data-forget]');
     if (fg) {
-      if (fg.dataset.forget === 'ask') fg.outerHTML = `<span class="lead">Clear everything you entered, on every page?</span><button class="iconbtn sm" data-forget="yes" tabindex="-1">Yes, clear all</button><button class="iconbtn sm" data-forget="no" tabindex="-1">Keep it</button>`;
-      else { if (fg.dataset.forget === 'yes') { forgetAll(); bpImport = null; } render(); }
+      const tabName = (FAC_TABS.find(t => t[0] === facTab) || [])[1];
+      if (fg.dataset.forget === 'ask') fg.outerHTML = facTab === 'all'
+        ? `<span class="lead">Clear everything you entered, on every page?</span><button class="iconbtn sm" data-forget="yes" tabindex="-1">Yes, clear all</button><button class="iconbtn sm" data-forget="no" tabindex="-1">Keep it</button>`
+        : `<span class="lead">Clear everything you entered on the ${esc(tabName)} tab?</span><button class="iconbtn sm" data-forget="yes" tabindex="-1">Yes, clear this tab</button><button class="iconbtn sm" data-forget="no" tabindex="-1">Keep it</button>`;
+      else { if (fg.dataset.forget === 'yes') { forgetTab(facTab); bpImport = null; } render(); }
       return;
     }
     const tf = e.target.closest('[data-tofactory]');
@@ -852,8 +849,11 @@
     // the ledger's short list: × or Dismiss all dismisses (rows, space-separated), Bring back lists them again
     const dz = e.target.closest('[data-dismiss-f]'); if (dz) { for (const d of dz.dataset.dismissF.split(' ')) if (d) facDismiss.add(d); persist(); renderFactory(true, true); return; }
     const uz = e.target.closest('[data-undismiss-f]'); if (uz) { for (const d of uz.dataset.undismissF.split(' ')) facDismiss.delete(d); persist(); renderFactory(true, true); return; }
-    // "used but not entered": show only those rows, or every row again
+    // a count at the top (short, used but not entered, fulfilled): show only those rows, or every row again
     const fl = e.target.closest('[data-fac-filter]'); if (fl) { facFilter = facFilter === fl.dataset.facFilter ? null : fl.dataset.facFilter; facFiltSeen.clear(); renderFactory(true); return; }
+    // Remove on a row: out of your factory; Put back: as it was
+    const rm = e.target.closest('[data-rm-f]'); if (rm) { facRemove(rm.dataset.rmF); return; }
+    const pb = e.target.closest('[data-unrm-f]'); if (pb) { facPutBack(pb.dataset.unrmF); return; }
     const ff = e.target.closest('[data-focus-f]');
     if (ff) {   // a short item's name: to its own row (out of the filter, if the filter hides it), into its box when it has one
       const find = () => $(`#main #tree [data-fac="${ff.dataset.focusF}"]`);
@@ -962,9 +962,10 @@
   const ADD_HINT = { all: 'Add anything: pick or type a name', mining: 'Add drills or furnaces', assembling: 'Add an assembled item', oil: 'Add refineries, cracking or chemicals', power: 'Add boilers, steam engines, solar', science: 'Add labs or a science pack' };
   let facTab = store.get('factab', 'all'); if (!FAC_TABS.some(t => t[0] === facTab)) facTab = 'all';
   const facOpen = new Set();   // rows opened to show what uses the item
-  let facFilter = null;            // 'none': the table shows only what your factory uses but you have not entered (this visit)
+  let facFilter = null;            // 'short', 'none' or 'ok': the table shows only what that count at the top counts (this visit)
   const facFiltSeen = new Set();   // the rows that filter has shown: they stay while you fill them in
   const facKeep = new Set();   // rows you emptied on the ledger this visit: they stay until you leave the page
+  const facRemoved = {};       // rows you took out with Remove this visit, as they were: Put back restores them
   // the rows every ledger starts with, at 0, in their tabs: drills on the four ores, the smelting, the first
   // intermediates, steam power, labs and the first two science packs
   const STARTER = ['iron-ore', 'copper-ore', 'coal', 'stone', 'iron-plate', 'copper-plate', 'steel-plate', 'stone-brick', 'iron-gear-wheel', 'copper-cable', 'electronic-circuit', 'automation-science-pack', 'logistic-science-pack'];
@@ -972,6 +973,15 @@
   const LAB_KW = 60;
   const OIL_PRODUCTS = ['petroleum-gas', 'light-oil', 'heavy-oil'];
   const OIL_KEYS = { 'petroleum-gas': 'p', 'light-oil': 'l', 'heavy-oil': 'h' }, OIL_ITEM = { p: 'petroleum-gas', l: 'light-oil', h: 'heavy-oil' };
+  // what one machine running a recipe flat out takes of an input per second, from the game's recipe and machine speed
+  const oilIn = (rid, item, machine) => { const r = FD.recipes[rid], x = r && r.in.find(([i]) => i === item); return x ? x[1] / r.time * ((FD.machines[machine] || {}).speed || 1) : 0; };
+  // the same recipe in words, per second: "20 crude oil and 10 water", "5 heavy oil, 9 light oil and 11 petroleum gas"
+  function oilRates(rid, machine) {
+    const r = FD.recipes[rid], sp = (FD.machines[machine] || {}).speed || 1;
+    const words = side => (r ? r[side].slice() : []).sort((a, b) => (a[0] === 'water') - (b[0] === 'water')).map(([i, a]) => `${fmt(a / r.time * sp)} ${nameOf(i).toLowerCase()}`);
+    const and = l => l.length > 1 ? l.slice(0, -1).join(', ') + ' and ' + l[l.length - 1] : l.join('');
+    return { ins: and(words('in')), outs: and(words('out')) };
+  }
   // machines that make no single item of their own: counted on rows of their own
   const UNITS = {
     boiler: { tab: 'power', name: 'Boilers', icon: 'boiler', go: '#c/steam', keys: ['boiler', 'boilers', 'steam'] },
@@ -1048,8 +1058,11 @@
     const N = { r: unitN('refinery'), a: unitN('heavy-oil-cracking'), b: unitN('light-oil-cracking') };
     const crudeFree = have['crude-oil'] > 0 ? Math.max(0, have['crude-oil'] - (uses['crude-oil'] || []).reduce((a, u) => a + u.rate, 0)) : null;
     const sol = oilSolve(D, N, basic, crudeFree);
-    if (need.crude > 0) push('crude-oil', unitUse('refinery', need.crude, { machines: need.R, needed: true }));
-    if (need.water > 0) push('water', unitUse('refinery', need.water, { machines: need.R, needed: true, label: 'Oil refineries and cracking' }));
+    // your refineries and cracking plants take crude oil and water running flat out, like every other machine you entered
+    const proc = basic ? 'basic-oil-processing' : 'advanced-oil-processing';
+    if (N.r) { push('crude-oil', unitUse('refinery', N.r * oilIn(proc, 'crude-oil', 'oil-refinery'))); const w = N.r * oilIn(proc, 'water', 'oil-refinery'); if (w > 0) push('water', unitUse('refinery', w)); }
+    if (!basic && N.a) push('water', unitUse('heavy-oil-cracking', N.a * oilIn('heavy-oil-cracking', 'water', 'chemical-plant')));
+    if (!basic && N.b) push('water', unitUse('light-oil-cracking', N.b * oilIn('light-oil-cracking', 'water', 'chemical-plant')));
     // electricity: steam engines and solar panels against what every electric machine draws
     const power = { made: unitN('steam-engine') * E.kw / 1000 + unitN('solar-panel') * FD.power.solar.avg_kw / 1000, used: 0, parts: [] };
     const draw = (machine, count, by, label, go) => {
@@ -1131,7 +1144,7 @@
 
   function renderFactory(fromInput, topOnly) {
     cur = null; curRes = null; curCard = { id: 'factory', st: {}, fields: [] };
-    if (!fromInput) facKeep.clear();
+    if (!fromInput) { facKeep.clear(); for (const k of Object.keys(facRemoved)) delete facRemoved[k]; }
     if (!fromInput && !keepPlace) { facFilter = null; facFiltSeen.clear(); }
     const { have, uses, ids, power, steam, oil, sci } = factoryModel();
     const unitOf = fluid => fluid ? 'per second' : unitShort();
@@ -1163,11 +1176,17 @@
     };
     const expBtn = (key, has, what) => has ? `<button class="exp" data-open-f="${key}" tabindex="-1" title="${facOpen.has(key) ? 'Hide' : 'Show'} ${esc(what)}">${facOpen.has(key) ? '▾' : '▸'}</button>` : '<span class="exp none"></span>';
     const iconOf = by => UNITS[by] ? UNITS[by].icon : by;
-    const consRows = (list, fluid) => list.map(u => { const go = u.go || '#i/' + u.by, nm = u.label || nameOf(u.by); return `<div class="tr cons"><div class="td item" style="--d:1"><span class="exp none"></span>${ic(iconOf(u.by), 'sm')}<span class="nmtxt"><a class="lnk" href="${go}" data-go="${go}" title="Open ${esc(nm)}">${esc(nm)}</a>${u.fuel ? ' <span class="sub">fuel for its machines</span>' : u.needed ? ' <span class="sub">what your oil needs</span>' : ''}</span></div><div class="td mach" data-label="machines">${u.machine ? `${fmt(u.machines)} × ${esc(nameOf(u.machine))}` : 'rocket launches'}</div><div class="td amt"></div><div class="td amt" data-label="uses, ${esc(unitOf(fluid))}">${amountText(u.rate, fluid)}</div><div class="td amt"></div></div>`; }).join('');
+    // Remove, under the name of a row you entered: out of your factory. The row stays while you are on the page, with Put
+    // back, which brings it back as it was; entering it again any other way drops Put back.
+    const inFac = k => k.startsWith('unit:') ? unitN(k.slice(5)) > 0 : saved(chainMem[k]);
+    for (const k of Object.keys(facRemoved)) if (inFac(k)) delete facRemoved[k];
+    const rmBtn = (key, name, on) => on ? `<button class="rm" data-rm-f="${esc(key)}" tabindex="-1" title="Take ${esc(name)} out of your factory">Remove</button>`
+      : facRemoved[key] ? `<button class="rm back" data-unrm-f="${esc(key)}" tabindex="-1" title="Put ${esc(name)} back in your factory${facRemoved[key].txt ? ': ' + esc(facRemoved[key].txt) : ''}">Put back</button>` : '';
+    const consRows = (list, fluid) => list.map(u => { const go = u.go || '#i/' + u.by, nm = u.label || nameOf(u.by); return `<div class="tr cons"><div class="td item" style="--d:1"><span class="exp none"></span>${ic(iconOf(u.by), 'sm')}<span class="nmtxt"><a class="lnk" href="${go}" data-go="${go}" title="Open ${esc(nm)}">${esc(nm)}</a>${u.fuel ? ' <span class="sub">fuel for its machines</span>' : ''}</span></div><div class="td mach" data-label="machines">${u.machine ? `${fmt(u.machines)} × ${esc(nameOf(u.machine))}` : 'rocket launches'}</div><div class="td amt"></div><div class="td amt" data-label="uses, ${esc(unitOf(fluid))}">${amountText(u.rate, fluid)}</div><div class="td amt"></div></div>`; }).join('');
     const showUnit = id => unitN(id) > 0 || facKeep.has('unit:' + id) || STARTER_UNITS.includes(id);
     const unitRow = (id, sub, bal) => {
       const u = UNITS[id], cnt = unitN(id), mid = u.machine || id;
-      return `<div class="tr${cnt ? ' product' : ''}" data-fac="unit:${id}"><div class="td item" style="--d:0"><span class="exp none"></span>${ic(u.icon)}<span class="nmtxt"><a class="lnk" href="${u.go}" data-go="${u.go}" title="Open ${esc(u.name)}">${esc(u.name)}</a><div class="sub">${sub}</div></span></div><div class="td mach" data-label="how many"><input class="num" inputmode="decimal" data-path="unit:${id}" data-k="1" data-kind="mach" value="${cnt ? fmtIn(cnt) : ''}" placeholder="0" aria-label="${esc(u.name)}"><span class="mbtn">${ic(mid)}<span class="mname">${esc(nameOf(mid))}</span></span></div><div class="td amt"></div><div class="td amt"></div>${bal ? bal.html : '<div class="td amt"></div>'}</div>`;
+      return `<div class="tr${cnt ? ' product' : ''}" data-fac="unit:${id}"><div class="td item" style="--d:0"><span class="exp none"></span>${ic(u.icon)}<span class="nmtxt"><a class="lnk" href="${u.go}" data-go="${u.go}" title="Open ${esc(u.name)}">${esc(u.name)}</a><div class="sub">${sub}</div>${rmBtn('unit:' + id, u.name, cnt > 0)}</span></div><div class="td mach" data-label="how many"><input class="num" inputmode="decimal" data-path="unit:${id}" data-k="1" data-kind="mach" value="${cnt ? fmtIn(cnt) : ''}" placeholder="0" aria-label="${esc(u.name)}"><span class="mbtn">${ic(mid)}<span class="mname">${esc(nameOf(mid))}</span></span></div><div class="td amt"></div><div class="td amt"></div>${bal ? bal.html : '<div class="td amt"></div>'}</div>`;
     };
     // a row that adds up other rows (steam, electricity, an oil product): no box of its own
     const sumRow = (key, icon, name, sub, from, made, used, unitTxt, bal, n, listHtml) => `<div class="tr${made ? ' product' : ''}" data-fac="${key}"><div class="td item" style="--d:0">${expBtn(key, n, 'what uses it')}${ic(icon)}<span class="nmtxt"><b>${esc(name)}</b><div class="sub">${sub}</div></span></div><div class="td mach" data-label="made by"><span class="sub">${from}</span></div><div class="td amt" data-label="makes">${made ? fmt(made) + ` <span class="unit">${unitTxt}</span>` : '<span class="sub">–</span>'}</div><div class="td amt" data-label="your factory uses">${used ? fmt(used) + ` <span class="unit">${unitTxt}</span>` : '<span class="sub">–</span>'}</div>${bal.html}</div>` + (facOpen.has(key) ? listHtml : '');
@@ -1198,11 +1217,12 @@
 
     // oil: refineries and cracking you have against what your factory's oil products need, then what they really deliver
     const { D, need, sol, basic, by } = oil;
+    const proc = basic ? 'basic-oil-processing' : 'advanced-oil-processing', procRates = oilRates(proc, 'oil-refinery');
     const anyOil = D.p + D.l + D.h > 0;
     const oilMode = `<span class="seg mini">${[['basic', 'Basic'], ['advanced', 'Advanced']].map(([v, l]) => `<button tabindex="-1" data-oil-mode="${v}" class="${(v === 'basic') === basic ? 'on' : ''}" title="${v === 'basic' ? 'Basic oil processing: petroleum gas only' : 'Advanced oil processing: heavy oil, light oil and petroleum gas'}">${l}</button>`).join('')}</span>`;
     // why the refineries cannot do what is asked of them, when that is not simply too few refineries
     const productsShort = ['p', 'l', 'h'].some(k => D[k] > 0 && D[k] - sol.d[k] > 1e-6 * Math.max(1, D[k]));
-    const crudeLimit = have['crude-oil'] > 0 && 20 * sol.r >= have['crude-oil'] - (uses['crude-oil'] || []).filter(u => !u.needed).reduce((a, u) => a + u.rate, 0) - 1e-6;
+    const crudeLimit = have['crude-oil'] > 0 && 20 * sol.r >= have['crude-oil'] - (uses['crude-oil'] || []).filter(u => u.by !== 'refinery').reduce((a, u) => a + u.rate, 0) - 1e-6;
     const crackShort = !basic && (unitN('heavy-oil-cracking') < need.Hc - 1e-6 || unitN('light-oil-cracking') < need.Lc - 1e-6);
     const heldBack = !productsShort ? '' : crudeLimit ? ': crude oil runs out' : crackShort ? ': heavy and light oil back up, more cracking needed' : '';
     const unitBal = (id, needN, run, noun) => {
@@ -1218,9 +1238,10 @@
     if (anyOil || showUnit('refinery')) {
       const b = unitBal('refinery', need.R, sol.r, 'refineries');
       tally('oil', b.st, 'unit:refinery', 'Oil refineries', 'oil-refinery', b.miss ? fmt(b.miss) + ' refineries' : '', 1);
-      head.oil.push(unitRow('refinery', `${oilMode} ${basic ? 'petroleum gas only' : 'heavy oil, light oil and petroleum gas'}`, b));
+      head.oil.push(unitRow('refinery', `${oilMode} each takes ${procRates.ins} and makes ${procRates.outs} per second`, b));
     }
-    for (const [id, needN, run, what] of [['heavy-oil-cracking', need.Hc, sol.a, 'chemical plants turning 20 heavy oil into 15 light oil per second each'], ['light-oil-cracking', need.Lc, sol.b, 'chemical plants turning 15 light oil into 10 petroleum gas per second each']]) {
+    const crackText = rid => { const t = oilRates(rid, 'chemical-plant'); return `chemical plants, each turning ${t.ins} into ${t.outs} per second`; };
+    for (const [id, needN, run, what] of [['heavy-oil-cracking', need.Hc, sol.a, crackText('heavy-oil-cracking')], ['light-oil-cracking', need.Lc, sol.b, crackText('light-oil-cracking')]]) {
       if (!((!basic && needN > 1e-9) || showUnit(id))) continue;
       const b = unitBal(id, basic ? 0 : needN, run, 'plants');
       tally('oil', b.st, 'unit:' + id, UNITS[id].name, UNITS[id].icon, b.miss ? fmt(b.miss) + ' plants' : '', 1);
@@ -1243,7 +1264,9 @@
       head.oil.push(`<div class="tr full"><div class="td"><div class="note">${left.map(k => fmt(need.spare[k]) + ' ' + nameOf(OIL_ITEM[k]).toLowerCase()).join(' and ')} per second left over, even with everything cracked. With nothing using ${it}, ${many ? 'they back' : 'it backs'} up and ${many ? 'hold' : 'holds'} the refineries back; solid fuel is the usual way to use ${it} up.</div></div></div>`);
     }
 
-    // every item row, in the tab of the machine that makes it
+    // every item row, in the tab of the machine that makes it; crude oil goes first on the Oil tab, above the refineries
+    // that take it
+    const oilFirst = [];
     for (const i of ids) {
       const tab = tabOf(i), fluid = isFluid(i), made = have[i] || 0, list = uses[i] || [], used = list.reduce((a, u) => a + u.rate, 0);
       const im = itemMachine(i);
@@ -1257,14 +1280,17 @@
       tally(tab, b.st, i, nameOf(i), i, amtWord(b.miss, fluid), used ? b.miss / used : 1);
       const page = isResource(i) || (FD.items[i] && Engine.byProduct[i] && !Engine.LEAVES.has(i)) ? '#i/' + i : CARD_FEED[i] ? '#c/' + CARD_FEED[i].card : null;
       const link = page ? `<a class="lnk" href="${page}" data-go="${page}" title="Open ${esc(nameOf(i))}">${esc(nameOf(i))}</a>` : `<b>${esc(nameOf(i))}</b>`;
-      body[tab].push(`<div class="tr${made ? ' product' : ''}" data-fac="${i}"><div class="td item" style="--d:0">${expBtn(i, list.length, 'what uses ' + nameOf(i))}${ic(i)}<span class="nmtxt">${link}${nick(i)}</span></div>${mach}${makes}<div class="td amt" data-label="your factory uses, ${esc(unitOf(fluid))}">${used ? amountText(used, fluid) : '<span class="sub">–</span>'}</div>${b.html}</div>` + (facOpen.has(i) ? consRows(list, fluid) : ''));
+      (i === 'crude-oil' ? oilFirst : body[tab]).push(`<div class="tr${made ? ' product' : ''}" data-fac="${i}"><div class="td item" style="--d:0">${expBtn(i, list.length, 'what uses ' + nameOf(i))}${ic(i)}<span class="nmtxt">${link}${nick(i)}${rmBtn(i, nameOf(i), made > 0)}</span></div>${mach}${makes}<div class="td amt" data-label="your factory uses, ${esc(unitOf(fluid))}">${used ? amountText(used, fluid) : '<span class="sub">–</span>'}</div>${b.html}</div>` + (facOpen.has(i) ? consRows(list, fluid) : ''));
     }
 
+    head.oil.unshift(...oilFirst);
     // the page: tabs (red counts where something is short), the summary for this tab, its rows, its add row
     const line = `<div class="tr line"><div class="td"><span class="rule"></span></div></div>`;
     const tabs = facTab === 'all' ? FAC_ORDER : [facTab];
-    // the "used but not entered" filter: only those rows, plus any you have filled in since turning it on
-    if (facFilter === 'none') for (const [k, st] of Object.entries(rowSt)) if (st === 'none') facFiltSeen.add(k);
+    // a count's filter: only the rows that count counts (a dismissed shortage is not counted), plus any it has shown since
+    // you turned it on, so a row you fix stays until you turn it off
+    const FILT = { short: (k, st) => st === 'short' && !facDismiss.has(k), none: (k, st) => st === 'none', ok: (k, st) => st === 'balanced' || st === 'spare' };
+    if (FILT[facFilter]) for (const [k, st] of Object.entries(rowSt)) if (FILT[facFilter](k, st)) facFiltSeen.add(k);
     const keyOf = h => (/data-fac="([^"]*)"/.exec(h) || [])[1];
     const groups = tabs.map(t => head[t].concat(body[t]).filter(h => !facFilter || facFiltSeen.has(keyOf(h)))).filter(g => g.length);
     const cnt = tabs.reduce((a, t) => ({ short: a.short + counts[t].short, none: a.none + counts[t].none, ok: a.ok + counts[t].ok }), { short: 0, none: 0, ok: 0 });
@@ -1278,9 +1304,11 @@
     const chip = s => `<span class="chip2 short dz"><button class="go" data-focus-f="${esc(s.did)}" tabindex="-1" title="Go to ${esc(s.label)}">${ic(s.icon, 'sm')}${esc(s.label)}${s.txt ? `<span class="sub">${s.txt}</span>` : ''}</button><button class="x" data-dismiss-f="${esc(s.did)}" tabindex="-1" title="Dismiss: you are fine being short on ${esc(s.label)}" aria-label="Dismiss ${esc(s.label)}">×</button></span>`;
     const dismissAll = shortHere.length ? `<button class="iconbtn sm" data-dismiss-f="${dids(shortHere)}" tabindex="-1" title="Dismiss every shortage listed${onTab}">Dismiss all</button>` : '';
     const bringBack = wavedHere.length ? `<button class="iconbtn sm" data-undismiss-f="${dids(wavedHere)}" tabindex="-1" title="List the shortages you dismissed${onTab} again">Bring back ${wavedHere.length} dismissed</button>` : '';
-    const counted = `<span class="s${cnt.short ? ' short' : ''}"><b>${cnt.short}</b> short</span>`
-      + (cnt.none || facFilter === 'none' ? `<button class="s none${facFilter === 'none' ? ' on' : ''}" data-fac-filter="none" tabindex="-1" aria-pressed="${facFilter === 'none'}" title="${facFilter === 'none' ? 'Show every row again' : 'Show only what your factory uses with nothing entered making it (so it cannot tell whether you have enough)'}"><b>${cnt.none}</b> used but not entered</button>` : '')
-      + (cnt.ok ? `<span class="s" title="Made at least as fast as your factory uses them"><b>${cnt.ok}</b> fulfilled</span>` : '');
+    // each count is also a filter (a count of 0 is not, unless it is on); short is always shown
+    const filt = (f, n, cls, label, tip) => `<button class="s${cls}${facFilter === f ? ' on' : ''}" data-fac-filter="${f}" tabindex="-1" aria-pressed="${facFilter === f}" title="${facFilter === f ? 'Show every row again' : tip}"><b>${n}</b> ${label}</button>`;
+    const counted = (cnt.short || facFilter === 'short' ? filt('short', cnt.short, cnt.short ? ' short' : '', 'short', 'Show only what is short') : `<span class="s"><b>0</b> short</span>`)
+      + (cnt.none || facFilter === 'none' ? filt('none', cnt.none, ' none', 'used but not entered', 'Show only what your factory uses with nothing entered making it (so it cannot tell whether you have enough)') : '')
+      + (cnt.ok || facFilter === 'ok' ? filt('ok', cnt.ok, '', 'fulfilled', 'Show only what is made at least as fast as your factory uses it') : '');
     const sum = entered ? `<div class="summary fac-sum">${counted}${shortHere.length ? `<span class="chiprow"><span class="lead">Short:</span>${shortHere.map(chip).join('')}</span>` : ''}${dismissAll}${bringBack}</div>` : '';
     const badge = t => { const n = t === 'all' ? FAC_ORDER.reduce((a, x) => a + counts[x].short, 0) : counts[t].short; return n ? `<span class="n" title="${n} short">${n}</span>` : ''; };
     const tabBar = `<div class="factabs" role="tablist">${FAC_TABS.map(([t, label, icon]) => `<button tabindex="-1" role="tab" data-fac-tab="${t}" class="${t === facTab ? 'on' : ''}">${icon ? icb(icon, 'xs') : ''}<span>${esc(label)}</span>${badge(t)}</button>`).join('')}</div>`;
@@ -1292,14 +1320,15 @@
       const s = $('#main .fac-sum'), tb = $('#main .factabs');
       if (s && tb && sum) { const cr = s.querySelector('.chiprow'), x = cr ? cr.scrollLeft : 0; s.outerHTML = sum; tb.outerHTML = tabBar; const cr2 = $('#main .fac-sum .chiprow'); if (cr2) cr2.scrollLeft = x; return; }
     }
-    const fav = favs.includes('c/factory');
+    const filtEmpty = facFilter === 'short' ? (facTab === 'all' ? 'Nothing is short' : 'Nothing on this tab is short') + (wavedHere.length ? ', apart from what you dismissed.' : '.')
+      : facFilter === 'ok' ? (facTab === 'all' ? 'Nothing is fulfilled yet.' : 'Nothing on this tab is fulfilled yet.')
+      : facTab === 'all' ? 'Everything your factory uses is entered.' : 'Everything on this tab that your factory uses is entered.';
     $('#main').innerHTML = `
-      <h1>${ic('assembling-machine-2', 'lg')}<span class="ttl">Your factory<div class="sub">${intro}</div></span>
-        <button class="iconbtn star ${fav ? 'on' : ''}" data-fav="c/factory" title="Pin to the home screen" tabindex="-1">★</button></h1>
+      <h1>${ic('assembling-machine-2', 'lg')}<span class="ttl">Your factory<div class="sub">${intro}</div></span></h1>
       ${tabBar}${sum}
-      <div class="tbl fac" id="tree">${th}${groups.map(g => g.join('')).join(line)}${groups.length ? line : ''}${facFilter ? (groups.length ? '' : `<div class="tr full"><div class="td"><span class="sub">${facTab === 'all' ? 'Everything your factory uses is entered.' : 'Everything on this tab that your factory uses is entered.'}</span></div></div>`) : addRowHtml()}</div>
+      <div class="tbl fac" id="tree">${th}${groups.map(g => g.join('')).join(line)}${groups.length ? line : ''}${facFilter ? (groups.length ? '' : `<div class="tr full"><div class="td"><span class="sub">${filtEmpty}</span></div></div>`) : addRowHtml()}</div>
       ${facFilter ? '' : bpHtml()}
-      ${entered ? `<div class="summary" id="forget"><button class="iconbtn sm" data-forget="ask" title="Forget every number, machine choice and opened row you entered, on every page" tabindex="-1">Clear all</button></div>` : ''}`;
+      ${facTabKept(facTab) ? `<div class="summary" id="forget"><button class="iconbtn sm" data-forget="ask" title="${facTab === 'all' ? 'Forget every number, machine choice and opened row you entered, on every page' : 'Forget every number and machine choice you entered on this tab; the other tabs keep theirs'}" tabindex="-1">${facTab === 'all' ? 'Clear all' : 'Clear this tab'}</button></div>` : ''}`;
     doc.title = 'Your factory – Factorio Ratios';
   }
 
@@ -1429,6 +1458,52 @@
     const after = itemMachine(id); if (count !== null && after) st.scale = count / after.k;
     closePop(); persist(); clearViews(); renderFactory(true);
   }
+  // Remove on a ledger row: its count, machine and recipe choice, and dismissal go; the row stays while you are on the
+  // page, with Put back
+  function facRemove(key) {
+    const was = { dismissed: facDismiss.has(key) };
+    if (key.startsWith('unit:')) { const id = key.slice(5); was.n = facUnits[id]; was.txt = `${fmt(was.n)} × ${nameOf(UNITS[id].machine || id)}`; facUnits[id] = 0; }
+    else {
+      const st = chainState(key), im = itemMachine(key), fl = isFluid(key);
+      Object.assign(was, { scale: st.scale, anchor: st.anchor, machine: machineOf[key], recipe: recipeOf[key],
+        txt: im ? `${fmt(st.scale * im.k)} × ${nameOf(im.machine)}` : `${fmt(toUnit(st.scale, fl))} ${fl ? 'per second' : unitWord(toUnit(st.scale, fl))}` });
+      st.scale = null; st.anchor = null; st.touched = false; delete machineOf[key]; delete recipeOf[key];
+    }
+    facRemoved[key] = was; facDismiss.delete(key); facKeep.add(key);
+    closePop(); persist(); clearViews(); renderFactory(true);
+  }
+  function facPutBack(key) {
+    const was = facRemoved[key]; if (!was) return;
+    if (key.startsWith('unit:')) facUnits[key.slice(5)] = was.n;
+    else {
+      const st = chainState(key); st.scale = was.scale; st.anchor = was.anchor; st.touched = true;
+      if (was.machine) machineOf[key] = was.machine;
+      if (was.recipe) recipeOf[key] = was.recipe;
+    }
+    if (was.dismissed) facDismiss.add(key);
+    delete facRemoved[key]; closePop(); persist(); clearViews(); renderFactory(true);
+  }
+  // the tab a ledger row (or a dismissed shortage) sits in
+  const rowTab = k => k === 'power' || k === 'steam' ? 'power' : k.startsWith('unit:') ? (UNITS[k.slice(5)] || {}).tab : tabOf(k);
+  // Clear this tab: only what is on that tab (its rows' numbers, machine and recipe choices, dismissals and opened rows, and
+  // the tab's own settings: Science's research time and lab speed, Oil's Basic/Advanced). Everything's Clear all: all of it.
+  function facTabKept(tab) {
+    if (tab === 'all') return anyKept();
+    return Object.entries(chainMem).some(([id, v]) => saved(v) && tabOf(id) === tab) || Object.entries(UNITS).some(([id, u]) => u.tab === tab && unitN(id) > 0)
+      || [machineOf, recipeOf].some(m => Object.keys(m).some(id => tabOf(id) === tab)) || [...facDismiss].some(d => rowTab(d) === tab)
+      || (tab === 'science' && !!cardMem.science && cardKept('science', cardMem.science)) || (tab === 'oil' && !!cardMem.oil && cardKept('oil', cardMem.oil));
+  }
+  function forgetTab(tab) {
+    if (tab === 'all') { forgetAll(); return; }
+    for (const id of Object.keys(chainMem)) if (tabOf(id) === tab) delete chainMem[id];
+    for (const [id, u] of Object.entries(UNITS)) if (u.tab === tab) delete facUnits[id];
+    for (const m of [machineOf, recipeOf]) for (const id of Object.keys(m)) if (tabOf(id) === tab) delete m[id];
+    for (const d of [...facDismiss]) if (rowTab(d) === tab) facDismiss.delete(d);
+    for (const k of [...facOpen]) if (rowTab(k) === tab) facOpen.delete(k);
+    if (tab === 'science' && cardMem.science) Object.assign(cardMem.science, { time: CARD_DEF.time, bonus: CARD_DEF.bonus });
+    if (tab === 'oil' && cardMem.oil) cardMem.oil.basic = CARD_DEF.basic;
+    clearViews(); persist();
+  }
 
   // ---------- oil processing: what the oil products your factory uses take ----------
   function renderOil(spec) {
@@ -1469,8 +1544,7 @@
     const inFac = unitN('refinery') > 0 && Object.entries(want).every(([u, n]) => unitN(u) === n);
     const btn = !(plan.R > 0) ? '' : inFac ? `<button class="iconbtn sm infac" data-go="#c/factory" tabindex="-1" title="These machines are in your factory; open the ledger">In your factory ✓</button>`
       : `<button class="iconbtn sm${changed ? ' cta' : ''}" data-oil-tofactory tabindex="-1" title="Put ${want.refinery} refineries${basic ? '' : `, ${want['heavy-oil-cracking']} heavy and ${want['light-oil-cracking']} light oil cracking plants`} into your factory">${unitN('refinery') > 0 ? 'Update in factory' : '+ Add to factory'}</button>`;
-    const fav = favs.includes('c/oil');
-    $('#main').innerHTML = `<h1>${ic('oil-refinery', 'lg')}<span class="ttl">Oil processing<div class="sub">${intro}</div>${sized ? `<div class="sub">${sized}</div>` : ''}</span>${btn}<button class="iconbtn star ${fav ? 'on' : ''}" data-fav="c/oil" title="Pin to the home screen" tabindex="-1">★</button></h1>
+    $('#main').innerHTML = `<h1>${ic('oil-refinery', 'lg')}<span class="ttl">Oil processing<div class="sub">${intro}</div>${sized ? `<div class="sub">${sized}</div>` : ''}</span>${btn}</h1>
       ${modeSeg}${notes.join('')}
       <div class="tbl two"><div class="th">What</div><div class="th">How many</div>${prods}<div class="tr line"><div class="td"><span class="rule"></span></div></div>${mach.join('')}</div>`;
     doc.title = 'Oil processing – Factorio Ratios';
@@ -1698,7 +1772,6 @@
     if (def.isScience) { st.labs = st.scale; }
     curCard = { id, st, fields, defaultScale: def.defaultScale, def };
     const R = st.scale;
-    const fav = favs.includes('c/' + id);
     const row = (f, i) => {
       const key = 'f' + i;
       const label = `<b>${esc(f.label)}</b>${f.nick ? ` <span class="sub">(${f.nick})</span>` : ''}`;
@@ -1722,7 +1795,7 @@
     } else {
       body = `${def.extra ? `<div class="settings" style="margin:0 0 8px">${def.extra}</div>` : ''}<div class="tbl two"><div class="th">What</div><div class="th">How many</div>${fields.map(row).join('')}</div>`;
     }
-    $('#main').innerHTML = `<h1>${ic(c.icon, 'lg')}<span class="ttl">${esc(c.title)}<div class="sub">${def.intro ? def.intro : esc(c.desc)}</div></span>${['science', 'steam'].includes(id) ? cardFacBtn(id, cardCount(id, def, R)) : ''}<button class="iconbtn star ${fav ? 'on' : ''}" data-fav="c/${id}" title="Pin to the home screen" tabindex="-1">★</button></h1>
+    $('#main').innerHTML = `<h1>${ic(c.icon, 'lg')}<span class="ttl">${esc(c.title)}<div class="sub">${def.intro ? def.intro : esc(c.desc)}</div></span>${['science', 'steam'].includes(id) ? cardFacBtn(id, cardCount(id, def, R)) : ''}</h1>
       ${body}
       ${id === 'steam' ? `<p class="hint">A full ${beltColour()} belt of coal (${Engine.beltRate(S)} per second) feeds ${fmt(Engine.beltRate(S) / 0.45)} boilers, which is ${fmt(Engine.beltRate(S) / 0.45 * 1.8)} MW. One steam engine (900 kW) runs ${fmt(900 / 77.5)} assembler 1s, ${fmt(900 / 155)} assembler 2s, ${fmt(900 / 387.5)} assembler 3s, ${fmt(900 / 90)} electric drills or ${fmt(900 / 186)} electric furnaces at full load.</p>` : ''}
       ${id === 'mining' ? `<p class="hint">A full ${beltColour()} belt (${Engine.beltRate(S)} per second) takes ${fmt(Engine.beltRate(S) / (FD.machines[S.drill].speed * (1 + S.mp / 100)))} ${nameOf(S.drill).toLowerCase()}s and keeps ${fmt(Engine.beltRate(S) / 0.3125)} stone or ${fmt(Engine.beltRate(S) / 0.625)} steel or electric furnaces busy. Steel: one furnace on iron plates for each furnace on steel (5 plates per steel plate, 16 s). Stone bricks: 2 stone per brick, at plate speed. Burner drills burn 0.0375 coal per second each; stone and steel furnaces 0.0225.</p>` : ''}`;

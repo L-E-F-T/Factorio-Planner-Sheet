@@ -104,16 +104,18 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
   * An item row has the machines making it, what they make, what the rest of your factory uses, and what is
     left over: "short" in red, with how many machines close the gap, or "fulfilled" in green, with how much
     is left over. Type into any box and the page recounts as you type; empty or 0 takes the item out.
+    **Remove** under a row's name does the same and also forgets its machine choice and any dismissal;
+    the row stays until you leave the page, with **Put back** to bring it back as it was.
     Anything your machines use that you have not entered shows grey as "not entered".
   * **The top of each tab** counts what is short, what is used but not entered (rows marked "not entered")
-    and what is fulfilled; a count of 0 is left out, except short. Click **used but not entered** to see
-    only those rows and fill them in: a row you fill in stays until you click it again, which shows every
-    row. Under the counts, what is short is listed, biggest gap
-    first: click a name to go to its row, or × to dismiss a shortage you are fine with. **Dismiss all**
-    dismisses everything listed, and **Bring back N dismissed** lists them again. Both work on the tab you
-    are on, so you can dismiss all the science on the Science tab; on Everything they cover every tab.
-    Dismissing only takes a shortage out of that list, the short count and the tabs' red counts: its row
-    below still shows it short. Dismissals are saved with your factory.
+    and what is fulfilled; a count of 0 is left out, except short. Click a count to see only those rows
+    (dismissed shortages stay out of **short**, as they do out of its count): a row you change meanwhile
+    stays until you click the count again, which shows every row. Under the counts, what is short is
+    listed, biggest gap first: click a name to go to its row, or × to dismiss a shortage you are fine
+    with. **Dismiss all** dismisses everything listed, and **Bring back N dismissed** lists them again.
+    Both work on the tab you are on, so you can dismiss all the science on the Science tab; on Everything
+    they cover every tab. Dismissing only takes a shortage out of that list, the short count and the tabs'
+    red counts: its row below still shows it short. Dismissals are saved with your factory.
   * Every row has its own machine: click it to pick the assembler tier, furnace or drill (and the recipe,
     for the few items with a choice, like solid fuel). The count stays the same and the output follows. The
     choice is used on every page, and entering a row pins its machine, so changing "Your base" later does
@@ -123,13 +125,18 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     Boilers' coal and water show on the Coal and Water rows.
   * **Science** has your labs, with the research time and lab speed they run at; they eat each science
     pack you make.
-  * **Oil & chemicals** has your oil refineries (basic or advanced processing) and heavy and light oil
-    cracking plants, each set against what your factory's oil products need, with how busy they are. The
+  * **Oil & chemicals** starts with crude oil: your pumpjacks against what your refineries take, running flat
+    out like every other machine (20 per second each). Then your oil refineries (basic or advanced
+    processing, with what each takes and makes) and heavy and light oil cracking plants, each set against
+    what your factory's oil products need, with how busy they are. Refineries on Advanced and cracking
+    plants also take water, which shows on the Water row. The
     petroleum gas, light oil and heavy oil rows show what your refineries really deliver with nothing
     backing up: a refinery stops once any of its outputs has nowhere to go, so too little cracking shows
     up as a shortage, with the reason on the refinery row. Plastic, sulfur and the other chemical plant
-    items live here too, as do pumpjacks on crude oil.
-  * "Clear all" at the bottom forgets everything, dismissals included, after asking.
+    items live here too.
+  * **Clear all** at the bottom of Everything forgets everything, dismissals included, after asking. On any
+    other tab the button reads **Clear this tab** and forgets only that tab: its rows' numbers, machine
+    choices and dismissals, plus the research time and lab speed on Science or Basic/Advanced on Oil.
 * **Oil processing** (home screen, or search "oil" or "10 refineries") is the oil calculator. It opens at
   what your factory's machines use of petroleum gas, light oil and heavy oil, and shows what that takes:
   refineries, cracking plants, crude oil, pumpjacks, water and electricity, for basic or advanced
@@ -150,7 +157,7 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
   PC. Petroleum gas, crude oil, steam and uranium in a chain open their page set to that amount. Changing a
   "Your base" setting redraws the page where you are, without jumping to the top.
 * Keyboard: type anywhere to search, **Tab** moves between boxes, **↑/↓** nudge a box by 1 (Shift: 10),
-  **Esc** reverts a box, then goes back. **★** pins an item or card to the home screen.
+  **Esc** reverts a box, then goes back.
 
 Not covered: modules, beacons, quality, Space Age.
 
