@@ -289,7 +289,10 @@
   // ---------- router ----------
   let skipRender = false;
   function go(hash) { if (location.hash === hash) render(); else if (tour) { history.replaceState(null, '', hash); render(); } else location.hash = hash; }   // the tour leaves no history behind
-  window.addEventListener('hashchange', () => { if (skipRender) { skipRender = false; return; } preview = null; render(); });
+  window.addEventListener('hashchange', () => {
+    if (tour) { tour.from.hash = location.hash; tourEnd(); return; }   // the browser's Back during the tutorial ends it, on the page Back went to
+    if (skipRender) { skipRender = false; return; } preview = null; render();
+  });
   const route = () => { const [kind, id] = location.hash.replace(/^#\/?/, '').split('/'); return { kind: kind || 'home', id }; };
   let preview = null;   // {kind,id,spec} while typing in the search box
   let cur = null;       // current item view
@@ -439,10 +442,11 @@
         return;
       }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key === 'Escape') { e.preventDefault(); if (consAsk && curCard && curCard.id === 'factory') { consAsk = null; renderFactory(true); return; } closePop(); back(); }   // Esc says No to a − that asks
+      if (e.key === 'Escape') { e.preventDefault(); if (consUnarm()) return; closePop(); back(); }   // Esc first lets go of a − clicked once
       else if (e.key.length === 1 && e.key !== ' ') { q.focus(); q.select(); }
     });
     d.addEventListener('click', e => {
+      if (!e.target.closest('[data-cons-rm]')) consUnarm();   // a − clicked once: any other click lets go of it
       const popCtx = () => !popEl ? null : cur ? (popEl.dataset.block === cur.id ? { id: cur.id, st: cur.st, nodes: cur.nodes } : null) : (curRes && curRes.blocks[popEl.dataset.block]) || null;
       const pm = e.target.closest('[data-pick-m]');
       if (pm && popEl) {   // a machine for that line (a line moved onto another line's machine joins it), or back to the start
@@ -1064,7 +1068,7 @@
     const amp = e.target.closest('[data-add-mpick]'); if (amp) { if (popEl && popEl.dataset.addPick) closePop(); else openAddPick(amp); return; }
     const ap = e.target.closest('[data-add-pick]'); if (ap) { addPick(ap.dataset.addPick); return; }
     if (e.target.closest('[data-add]')) { addItem(); return; }
-    const of = e.target.closest('[data-open-f]'); if (of) { const i = of.dataset.openF; if (facOpen.has(i)) facOpen.delete(i); else facOpen.add(i); consAsk = null; renderFactory(true); return; }
+    const of = e.target.closest('[data-open-f]'); if (of) { const i = of.dataset.openF; if (facOpen.has(i)) facOpen.delete(i); else facOpen.add(i); renderFactory(true); return; }
     // the ledger's short list: × dismisses, Bring back lists them again (rows, space-separated)
     const dz = e.target.closest('[data-dismiss-f]'); if (dz) { for (const d of dz.dataset.dismissF.split(' ')) if (d) facDismiss.add(d); persist(); renderFactory(true, true); return; }
     const uz = e.target.closest('[data-undismiss-f]'); if (uz) { for (const d of uz.dataset.undismissF.split(' ')) facDismiss.delete(d); persist(); renderFactory(true, facFilter !== 'short'); return; }   // under the short filter, their rows join the table
@@ -1072,10 +1076,9 @@
     const fl = e.target.closest('[data-fac-filter]'); if (fl) { facFilter = facFilter === fl.dataset.facFilter ? null : fl.dataset.facFilter; facFiltSeen.clear(); renderFactory(true); return; }
     // Remove on a row: out of your factory; Put back: as it was
     const rm = e.target.closest('[data-rm-f]'); if (rm) { facRemove(rm.dataset.rmF); return; }
-    // − before a line of an opened row asks first; Yes takes it out, No leaves it
-    const cr = e.target.closest('[data-cons-rm]'); if (cr) { consAsk = { key: cr.dataset.consRm, under: cr.dataset.under }; renderFactory(true); return; }
-    if (e.target.closest('[data-cons-yes]')) { const a = consAsk; consAsk = null; if (a) consRemove(a.key); else renderFactory(true); return; }
-    if (e.target.closest('[data-cons-no]')) { consAsk = null; renderFactory(true); return; }
+    // − before a line of an opened row: the first click arms it (red, "remove?"), the second takes the line out
+    const cr = e.target.closest('[data-cons-rm]');
+    if (cr) { if (cr.classList.contains('sure')) consRemove(cr.dataset.consRm); else { consUnarm(); cr.classList.add('sure'); cr.title = 'Click again to take it out'; const sd = cr.parentElement.querySelector('.side'); if (sd) { sd.classList.add('sure'); sd.textContent = 'remove?'; } } return; }
     const pb = e.target.closest('[data-unrm-f]'); if (pb) { facPutBack(pb.dataset.unrmF); return; }
     const ff = e.target.closest('[data-focus-f]');
     if (ff) {   // a short item's name: to its own row (out of the filter, if the filter hides it), into its box when it has one
@@ -1207,7 +1210,8 @@
   let facTab = store.get('factab', 'all'); if (!FAC_TABS.some(t => t[0] === facTab)) facTab = 'all';
   const facOpen = new Set();   // rows opened to show what uses the item
   let facFilter = null;            // 'short', 'none' or 'ok': the table shows only what that count at the top counts (this visit)
-  let consAsk = null;              // { key, under }: the − of an opened row's line that asks before it takes the line out
+  // a − clicked once goes back to how it was: another click anywhere, or Esc
+  const consUnarm = () => { const b = $('#main .exp.minus.sure'); if (!b) return false; b.classList.remove('sure'); b.title = b.getAttribute('aria-label'); const sd = b.parentElement.querySelector('.side.sure'); if (sd) { sd.classList.remove('sure'); sd.textContent = sd.dataset.side; } return true; };
   const facFiltSeen = new Set();   // the rows that filter has shown: they stay while you fill them in
   const facKeep = new Set();   // rows you emptied on the ledger this visit: they stay until you leave the page
   const facRemoved = {};       // rows you took out with Remove this visit, as they were: Put back restores them
@@ -1519,7 +1523,7 @@
     cur = null; curRes = null; curCard = { id: 'factory', st: {}, fields: [] }; setBg('factory');
     closePop();   // a picker belongs to the rows it was opened on
     // arriving on the page (a Your base change redraws in place and keeps them): no kept rows, Put back or filter yet
-    if (!fromInput && !keepPlace) { facKeep.clear(); for (const k of Object.keys(facRemoved)) delete facRemoved[k]; facFilter = null; facFiltSeen.clear(); refShown.clear(); nucShown.clear(); consAsk = null; }
+    if (!fromInput && !keepPlace) { facKeep.clear(); for (const k of Object.keys(facRemoved)) delete facRemoved[k]; facFilter = null; facFiltSeen.clear(); refShown.clear(); nucShown.clear(); }
     const { have, uses, runsOf, ids, power, steam, oil, sci } = factoryModel();
     const shared = {};   // rows the Oil tab shows too: coal, steam and water, when its machines take them
     const laneTab = new Set();   // tabs with an item row counted in your belt's unit, so their headers name it
@@ -1569,14 +1573,12 @@
     const consKey = u => u.proc ? 'proc|' + u.proc : u.layout ? 'lay|' + u.layout
       : UNITS[u.by] ? ((u.by === 'refinery' ? refAll() : u.by === 'nuclear' ? nucAll() : unitN(u.by)) > 0 ? 'unit|' + u.by : null)
       : saved(chainMem[u.by]) ? ['line', u.by, u.machine || '', u.recipe || ''].join('|') : null;
-    // under: the row they are opened under. A − asks first ("Take … out of your factory? Yes / No", under the line's name)
-    const flowRows = (makers, users, fluid, amt, under) => {
+    // a − takes its line out on a second click: the first turns it red and its "made by" / "used by" reads "remove?"
+    const flowRows = (makers, users, fluid, amt) => {
       const a = amt || (v => amountText(v, fluid)), cap = w => capOf(w, fluid || !!amt);   // an amount given its own unit (MW) says it itself
       const line = (u, mk) => { const go = u.go || '#i/' + u.by, nm = u.label || nameOf(u.by), k = consKey(u), what = esc(nm) + (u.machine ? ` (${fmt(u.machines)} × ${esc(mName(u.machine))})` : '');
-        const asking = !!k && !!consAsk && consAsk.key === k && consAsk.under === under;
-        const ask = asking ? `<span class="cask"><span class="lead">Take ${what} out of your factory?</span><button class="iconbtn sm" data-cons-yes tabindex="-1">Yes</button><button class="iconbtn sm" data-cons-no tabindex="-1">No</button></span>` : '';
-        const minus = k && !asking ? `<button class="exp minus" data-cons-rm="${esc(k)}" data-under="${esc(under)}" tabindex="-1" title="Take ${what} out of your factory" aria-label="Take ${what} out of your factory">−</button>` : '<span class="exp gap"></span>';
-        return `<div class="tr cons ${mk ? 'makes' : 'uses'}${asking ? ' asking' : ''}"><div class="td item" style="--d:0">${minus}<span class="cwho"><span class="side">${mk ? 'made by' : 'used by'}</span>${ic(iconOf(u.by), 'sm')}<span class="nmtxt"><a class="lnk" href="${go}" data-go="${go}" title="Open ${esc(nm)}">${esc(nm)}</a>${u.fuel ? ' <span class="sub">fuel</span>' : ''}</span></span>${ask}</div><div class="td mach" data-label="machines">${u.machine ? `${fmt(u.machines)} × ${esc(mName(u.machine))}` : esc(u.what || 'rocket launches')}</div><div class="td amt"${mk ? ` data-label="${cap('supply')}"` : ''}>${mk ? a(u.rate) : ''}</div><div class="td amt"${mk ? '' : ` data-label="${cap('demand')}"`}>${mk ? '' : a(u.rate)}</div><div class="td amt"></div></div>`; };
+        const minus = k ? `<button class="exp minus" data-cons-rm="${esc(k)}" tabindex="-1" title="Take ${what} out of your factory" aria-label="Take ${what} out of your factory">−</button>` : '<span class="exp gap"></span>';
+        return `<div class="tr cons ${mk ? 'makes' : 'uses'}"><div class="td item" style="--d:0">${minus}<span class="cwho"><span class="side" data-side="${mk ? 'made by' : 'used by'}">${mk ? 'made by' : 'used by'}</span>${ic(iconOf(u.by), 'sm')}<span class="nmtxt"><a class="lnk" href="${go}" data-go="${go}" title="Open ${esc(nm)}">${esc(nm)}</a>${u.fuel ? ' <span class="sub">fuel</span>' : ''}</span></span></div><div class="td mach" data-label="machines">${u.machine ? `${fmt(u.machines)} × ${esc(mName(u.machine))}` : esc(u.what || 'rocket launches')}</div><div class="td amt"${mk ? ` data-label="${cap('supply')}"` : ''}>${mk ? a(u.rate) : ''}</div><div class="td amt"${mk ? '' : ` data-label="${cap('demand')}"`}>${mk ? '' : a(u.rate)}</div><div class="td amt"></div></div>`; };
       return makers.map(u => line(u, true)).join('') + users.slice().sort((x, y) => y.rate - x.rate).map(u => line(u, false)).join('');
     };
     const showUnit = id => (id === 'refinery' ? refAll() : id === 'nuclear' ? nucAll() + nucShown.size : unitN(id)) > 0 || facKeep.has('unit:' + id) || STARTER_UNITS.includes(id);
@@ -1606,7 +1608,7 @@
       const b = balance(steam.made, steamUsed, v => fmt(v) + ' per second', 1 / B.steam_per_s, 'boiler');
       tally('power', b.st, 'steam', 'Steam', 'steam', fmt(b.miss) + ' per second', b.miss / (steamUsed || 1));
       const boilers = unitN('boiler') ? [{ by: 'boiler', label: 'Boilers', go: '#c/steam', rate: steam.made, machines: unitN('boiler'), machine: 'boiler' }] : [];
-      shared.steam = sumRow('steam', 'steam', 'Steam', '', unitN('boiler') ? `${fmt(unitN('boiler'))} × Boiler` : 'no boilers entered', steam.made, steamUsed, 'per second', b, steam.uses.length, flowRows(boilers, steam.uses, true, undefined, 'steam'));
+      shared.steam = sumRow('steam', 'steam', 'Steam', '', unitN('boiler') ? `${fmt(unitN('boiler'))} × Boiler` : 'no boilers entered', steam.made, steamUsed, 'per second', b, steam.uses.length, flowRows(boilers, steam.uses, true));
       head.power.push(shared.steam);
     }
     if (power.made || power.used) {
@@ -1616,7 +1618,7 @@
       const from = [unitN('steam-engine') ? `${fmt(unitN('steam-engine'))} × Steam engine` : '', unitN('solar-panel') ? `${fmt(unitN('solar-panel'))} × Solar panel` : '', nucAll() ? `${fmt(nucReactors())} × Nuclear reactor` : ''].filter(Boolean).join(' + ') || 'nothing entered';
       const mwMakers = [['steam-engine', 'Steam engines', E.kw], ['solar-panel', 'Solar panels', FD.power.solar.avg_kw]].filter(([id]) => unitN(id) > 0).map(([id, label, kw]) => ({ by: id, label, go: UNITS[id].go, rate: unitN(id) * kw / 1000, machines: unitN(id), machine: id }))
         .concat(NUC_LAYOUTS.filter(l => nucN(l) > 0).map((l, i, ls) => Object.assign({ by: 'nuclear', label: `Nuclear reactors (${l})`, go: '#c/nuclear', rate: nucN(l) * nucOf(l).mw, machines: nucN(l) * nucOf(l).reactors, machine: 'nuclear-reactor' }, ls.length > 1 ? { layout: l } : {})));
-      const list = flowRows(mwMakers, power.parts.map(u => Object.assign({}, u, { rate: u.mw })), false, v => `${fmt(v)} <span class="unit">MW</span>`, 'power');
+      const list = flowRows(mwMakers, power.parts.map(u => Object.assign({}, u, { rate: u.mw })), false, v => `${fmt(v)} <span class="unit">MW</span>`);
       head.power.push(sumRow('power', 'small-electric-pole', 'Electricity', '', from, power.made, power.used, 'MW', b, power.parts.length, list));
     }
 
@@ -1710,7 +1712,7 @@
       const list = by[k].slice();
       if (own > 1e-9) list.push(Object.assign({ by: 'refinery', label: 'Coal liquefaction', go: '#c/oil', rate: own, machines: N.rm.coal || 0, machine: 'oil-refinery' }, manyProc ? { proc: 'coal' } : {}));
       if (crackIn[k] > 1e-9) list.push({ by: k === 'h' ? 'heavy-oil-cracking' : 'light-oil-cracking', label: k === 'h' ? 'Heavy oil cracking' : 'Light oil cracking', go: '#c/oil', rate: crackIn[k], machines: k === 'h' ? N.a : N.b, machine: cp });
-      head.oil.push(sumRow(item, item, nameOf(item), '', N.r ? `${fmt(N.r)} × Oil refinery${crackers}` : 'no refineries entered', made, used, 'per second', b, list.length || makers.length > 1, flowRows(makers, list, true, undefined, item)));
+      head.oil.push(sumRow(item, item, nameOf(item), '', N.r ? `${fmt(N.r)} × Oil refinery${crackers}` : 'no refineries entered', made, used, 'per second', b, list.length || makers.length > 1, flowRows(makers, list, true)));
     }
 
     // every item row, in the tab of the machine that makes it; crude oil goes first on the Oil tab, above the refineries
@@ -1738,7 +1740,7 @@
       const recs = new Set((partsOf(i) || []).map(q => q.recipe));   // lines on different recipes are named by their recipe
       const makers = runsOf[i] ? runsOf[i].map(([t, r]) => ({ by: i, label: recs.size > 1 ? FD.recipes[t.recipe].name : nameOf(i), go: page || '#i/' + i, rate: r, machines: t.kMach * r, machine: t.machine, recipe: t.recipe }))
         : made ? (partsOf(i) || [{ machine: null, scale: made }]).filter(q => q.scale > 0).map(q => { const s = supply(i, 1, q.machine); return { by: i, label: nameOf(i), go: page || '#i/' + i, rate: q.scale, machines: s ? s.k * q.scale : 0, machine: s ? s.id : null, what: s ? '' : originText(i) || 'what you entered' }; }) : [];
-      const rowHtml = (`<div class="tr${made ? ' product' : ''}" data-fac="${i}"><div class="td item" style="--d:0">${expBtn(i, list.length || makers.length > 1, 'what makes and uses ' + nameOf(i))}${ic(i)}<span class="nmtxt">${link}${nick(i)}${i === 'crude-oil' ? yieldLine() : ''}${rmBtn(i, nameOf(i), made > 0)}</span></div>${mach}${makes}<div class="td amt" data-label="${capOf('demand', fluid)}">${used ? qty(used) : '<span class="sub">–</span>'}</div>${b.html}</div>` + (facOpen.has(i) ? flowRows(makers, list, fluid, fluid ? qty : undefined, i) : ''));
+      const rowHtml = (`<div class="tr${made ? ' product' : ''}" data-fac="${i}"><div class="td item" style="--d:0">${expBtn(i, list.length || makers.length > 1, 'what makes and uses ' + nameOf(i))}${ic(i)}<span class="nmtxt">${link}${nick(i)}${i === 'crude-oil' ? yieldLine() : ''}${rmBtn(i, nameOf(i), made > 0)}</span></div>${mach}${makes}<div class="td amt" data-label="${capOf('demand', fluid)}">${used ? qty(used) : '<span class="sub">–</span>'}</div>${b.html}</div>` + (facOpen.has(i) ? flowRows(makers, list, fluid, fluid ? qty : undefined) : ''));
       (i === 'crude-oil' ? oilFirst : body[tab]).push(rowHtml);
       if (i === 'coal' || i === 'water') shared[i] = rowHtml;
     }
@@ -1799,6 +1801,7 @@
   // processing), then Enter or Add. It replaces the line on the same machine and recipe (the button reads Update), else
   // the row gets a line of its own
   let addSel = null;   // { kind: 'item' | 'unit', id, machine, recipe, proc }
+  let addsMade = 0;    // how many times the add row has added or updated a line (the tutorial waits for one)
   const addName = s => s.kind === 'unit' ? UNITS[s.id].name : nameOf(s.id);
   const addIcon = s => s.kind === 'unit' ? UNITS[s.id].icon : s.id;
   // the line the add row would make: its machine, machines per 1 unit/s and the choices (null: typed as an amount)
@@ -1925,7 +1928,7 @@
       else { const st = chainState(id); st.scale = rate; st.anchor = { path: id, kind: 'mach' }; st.touched = true; chainMem[id] = st; }
       persist(); clearViews();
     }
-    addSel = null; renderFactory(true);
+    addSel = null; addsMade++; renderFactory(true);
     const q2 = $('#addq'); if (q2 && fine()) q2.focus();   // on a phone that would bring the keyboard and the list back over the ledger
   }
   let restoringFocus = false;
@@ -2323,12 +2326,17 @@
     }
   }
   async function bpRun(str) {
-    const tab = facTab;
+    const tab = facTab, t0 = tour;
     bpDraft = '';
+    // the tutorial started or ended while the string was being read: nothing is imported, and the string goes back in the
+    // box of the factory it was meant for (yours, once the tutorial is over)
+    const moved = () => { if (tour === t0) return false; if (tour) tour.from.visit.bpDraft = str; else { bpDraft = str; if (curCard && curCard.id === 'factory') renderFactory(true); } return true; };
+    const redraw = () => { if (curCard && curCard.id === 'factory') renderFactory(true); };   // unless you have gone to another page meanwhile
     let obj;
-    try { obj = await bpDecode(str); } catch (err) { bpImport = { tab, error: err.message }; renderFactory(true); return; }
+    try { obj = await bpDecode(str); } catch (err) { if (moved()) return; bpImport = { tab, error: err.message }; redraw(); return; }
+    if (moved()) return;
     const ents = bpEntities(obj);
-    if (!ents.length) { bpImport = { tab, error: 'That blueprint has no machines in it.' }; renderFactory(true); return; }
+    if (!ents.length) { bpImport = { tab, error: 'That blueprint has no machines in it.' }; redraw(); return; }
     const c = bpCount(ents), entries = [];
     for (const [item, groups] of Object.entries(c.items)) entries.push(bpItemEntry(item, groups));
     for (const [u, n] of Object.entries(c.units)) entries.push({ kind: 'unit', id: u, tab: UNITS[u].tab, n });
@@ -2349,7 +2357,7 @@
     if (c.refAsk) { if (inScope('oil')) splits.refineries = c.refAsk; else others.push({ kind: 'raw', id: 'oil-refinery', tab: 'oil', n: c.refAsk }); }
     if (updated.length) { persist(); clearViews(); }
     bpImport = { tab, total: ents.length, updated, same, matched, pending, others, splits: Object.keys(splits).length ? splits : null, skipped: c.skipped, unticked: new Set(), splitVals: {} };
-    renderFactory(true);
+    redraw();
   }
   // Add: the ticked new rows, then the furnaces, drills and refineries as you split them
   function bpConfirm() {
@@ -2582,7 +2590,7 @@
     return { view: Object.assign({}, viewMem), chains: Object.fromEntries(Object.entries(chainMem).map(([k, v]) => [k, { overrides: Object.assign({}, v.overrides), open: (v.open || []).slice() }])),
       cards: Object.fromEntries(Object.entries(cardMem).map(([k, v]) => [k, { scale: v.scale, anchor: v.anchor, touched: v.touched, layout: v.layout, labs: v.labs, dem: v.dem, anchorN: v.anchorN }])),
       facOpen: [...facOpen], facKeep: [...facKeep], facFiltSeen: [...facFiltSeen], refShown: [...refShown], nucShown: [...nucShown], facRemoved: Object.assign({}, facRemoved),
-      facFilter, addSel: addSel && Object.assign({}, addSel), bpImport, bpDraft, facTab, baseOpen, q: q.value };
+      facFilter, addSel: addSel && Object.assign({}, addSel), bpImport, bpDraft, facTab, baseOpen, q: q.value, selIdx, previewing: !!preview };
   }
   function clearVisit() {
     closePop();
@@ -2591,7 +2599,7 @@
     for (const v of Object.values(cardMem)) Object.assign(v, { scale: null, anchor: null, touched: false, layout: CARD_DEF.layout, labs: CARD_DEF.labs, dem: null, anchorN: null });
     for (const s of [facOpen, facKeep, facFiltSeen, refShown, nucShown]) s.clear();
     for (const k of Object.keys(facRemoved)) delete facRemoved[k];
-    facFilter = null; addSel = null; bpImport = null; bpDraft = ''; baseOpen = false; consAsk = null;
+    facFilter = null; addSel = null; bpImport = null; bpDraft = ''; baseOpen = false;
     q.value = ''; hits = []; selIdx = 0; preview = null; strip.hidden = true; strip.innerHTML = '';
   }
   function putVisit(v) {
@@ -2612,11 +2620,10 @@
   const topBtn = () => $('#main h1 .iconbtn.sm');   // a page's Add to factory, Update in factory or In your factory
   const onFactory = () => !!$('#main h1 .iconbtn.sm.infac');
   const btnName = () => { const b = topBtn(); return b ? b.textContent.replace(/^\+\s*/, '').trim() : 'Add to factory'; };
-  const ledgerKey = () => Object.keys(chainMem).filter(k => saved(chainMem[k])).sort().join() + JSON.stringify(facUnits);
   // where a step is: at() says whether it is showing, page is where to go when it is not (a step without one is shown
   // wherever you are)
   const HOME = { at: () => !location.hash || location.hash === '#', page: '#' };
-  const ITEM = { at: () => !!cur && !preview, page: () => '#i/' + (tour.item || 'electronic-circuit') };
+  const ITEM = { at: () => !!cur && !preview && (!tour.item || cur.id === tour.item), page: () => '#i/' + (tour.item || 'electronic-circuit') };
   const FACTORY = { at: () => location.hash === '#c/factory', page: '#c/factory' };
   const CARD = id => ({ at: () => location.hash === '#c/' + id, page: '#c/' + id });
   // A step: where it is, what it says (text, or a function for text that depends on the page), what it rings (target)
@@ -2654,7 +2661,7 @@
         text: 'Click ▸ on Coal to see what makes it and what uses it.' }),
       Object.assign({}, FACTORY, { target: () => facRow('coal') && facRow('coal').querySelector('input.num'), show: coalInView, focus: () => facRow('coal') && facRow('coal').querySelector('input.num'),
         mark: () => (chainMem.coal || {}).scale, done: m => (chainMem.coal || {}).scale !== m, text: 'Type how many machines you have.' }),
-      Object.assign({}, FACTORY, { target: () => [$('#tree .tr.add'), $('#tree .tr.add-hits')], show: () => { if (facFilter) facTabTo(facTab); }, auto: true, mark: ledgerKey, done: m => ledgerKey() !== m,
+      Object.assign({}, FACTORY, { target: () => [$('#tree .tr.add'), $('#tree .tr.add-hits')], show: () => { if (facFilter) facTabTo(facTab); }, auto: true, mark: () => addsMade, done: m => addsMade > m,
         text: 'Click here, pick what to add, type how many and click Add.' }),
       Object.assign({}, FACTORY, { target: () => $('#main .bp'), show: addClose,
         text: 'You can also paste a blueprint here and click Import.' }),
@@ -2686,7 +2693,7 @@
         text: () => onFactory() ? 'These refineries are in your factory now.' : `Click ${btnName()} to put them in your factory.` }),
       Object.assign(toStep('#main h1 .iconbtn.sm.infac', FACTORY.at, 'Click In your factory to open your factory.'), CARD('oil')),
       Object.assign(toStep('#main [data-fac-tab="oil"]', () => FACTORY.at() && facTab === 'oil', 'Click Oil & chemicals.'), FACTORY),
-      Object.assign({}, FACTORY, { target: () => facRow('crude-oil'), show: () => facTabTo('oil'), focus: () => $('#main input.yld'), mark: () => cardState('oil').yield, done: m => cardState('oil').yield !== m,
+      Object.assign({}, FACTORY, { target: () => facRow('crude-oil'), show: () => facTabTo('oil'), focus: () => $('#main input.yld'), mark: () => cardState('oil').yield, done: m => { const y = $('#main input.yld'); return cardState('oil').yield !== m || (!!y && parseFloat(y.value) > 0 && parseFloat(y.value) !== m); },
         text: 'Type your oil field\'s yield in the % yield box.' }),
       Object.assign({}, FACTORY, { target: () => facRow('unit:refinery'), show: () => facTabTo('oil'), try: true,
         text: 'Refineries show how many your factory needs and how busy they are.' }),
@@ -2722,13 +2729,14 @@
     store.off = true;
     tourEl = doc.createElement('div'); tourEl.id = 'tour';
     tourEl.innerHTML = '<div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="ring none"></div>'
-      + '<div class="tcard" role="dialog" aria-label="Tutorial"><div class="tstep"><span class="tpos"></span><button class="tx" data-tour="end" title="Close the tutorial (Esc)" aria-label="Close the tutorial">×</button></div><p class="ttext" aria-live="polite"></p><div class="tnav"></div></div>';
+      + '<div class="tcard" role="dialog" aria-label="Tutorial" tabindex="-1"><div class="tstep"><span class="tpos"></span><button class="tx" data-tour="end" title="Close the tutorial (Esc)" aria-label="Close the tutorial">×</button></div><p class="ttext" aria-live="polite"></p><div class="tnav"></div></div>';
     doc.body.appendChild(tourEl); doc.body.classList.add('touring');   // room below the page, so what a step rings can come up above the sheet
     tourEl.addEventListener('click', tourClick);
     w.addEventListener('keydown', tourKey, true);
     w.addEventListener('scroll', tourSoon, true);
     w.addEventListener('resize', tourSoon);
     for (const ev of TOUR_EVENTS) doc.addEventListener(ev, tourSoon);   // anything you do can be what a step waits for
+    doc.addEventListener('focusin', tourFocus);
     tourObs = new MutationObserver(tourSoon);
     tourObs.observe($('#main'), { childList: true, subtree: true }); tourObs.observe($('header'), { childList: true, subtree: true }); tourObs.observe(doc.body, { childList: true });
     tourShowCard();
@@ -2766,9 +2774,9 @@
       closePop();
       if (step.page && !step.at()) {   // you are not where it is (you went elsewhere): go there
         const want = typeof step.page === 'function' ? step.page() : step.page;
-        history.replaceState(null, '', want === '#' ? location.pathname + location.search : want); render();
+        preview = null; history.replaceState(null, '', want === '#' ? location.pathname + location.search : want); render();
       }
-      if (cur && !preview) tour.item = cur.id;
+      if (cur && !preview && !tour.item) tour.item = cur.id;   // the item you typed, kept for the rest of the part
       if (step.end) tour.done.add(tour.part); else tour.snaps[i] = tourSnap();
       tourArrive(step);
     } finally { tour.busy = false; }
@@ -2793,7 +2801,7 @@
     tour.busy = true; try { tourDraw(); } finally { tour.busy = false; }
     const box = step.focus && fine() ? step.focus() : null;
     if (box) { box.focus({ preventScroll: true }); if (box.select) box.select(); }
-    else { const b = tourEl.querySelector('.tnav .cta:not([hidden])') || tourEl.querySelector('.tnav button:not([hidden])') || tourEl.querySelector('.tx'); if (b) b.focus({ preventScroll: true }); }
+    else (tourEl.querySelector('.tnav .cta:not([hidden])') || tourEl.querySelector('.tcard')).focus({ preventScroll: true });
   }
   function tourCard(step) {
     const c = tourEl.querySelector('.tcard'), list = tourList(), counted = list.filter(s => !s.opener);
@@ -2801,13 +2809,22 @@
     const parts = keys => keys.map(k => `<button class="iconbtn sm" data-tour-part="${k}">${esc(TOUR_PARTS[k].name)}${tour.done.has(k) ? ' ✓' : ''}</button>`).join('');
     c.querySelector('.tpos').textContent = step.intro || step.end ? 'Tutorial' : step.opener ? TOUR_PARTS[tour.part].name : `${TOUR_PARTS[tour.part].name} · ${counted.indexOf(step) + 1} / ${counted.length}`;
     c.querySelector('.ttext').textContent = tourText(step);
-    const keys = Object.keys(TOUR_PARTS), next = step.end && keys.find(k => k !== tour.part && !tour.done.has(k));   // the next part you have not done
+    const keys = Object.keys(TOUR_PARTS), next = step.end && tourNextPart();
     c.querySelector('.tnav').innerHTML = step.intro ? `<div class="chaps"><span class="lead">Or skip to:</span>${parts(keys.slice(1))}</div><button class="iconbtn sm cta" data-tour="next">Start</button>`
       : step.end ? `<div class="chaps"><span class="lead">Parts:</span>${parts(keys)}</div><button class="iconbtn sm" data-tour="back">Back</button><button class="iconbtn sm${next ? '' : ' cta'}" data-tour="end">Done</button>${next ? `<button class="iconbtn sm cta" data-tour-part="${next}">Next: ${esc(TOUR_PARTS[next].name)}</button>` : ''}`
       : `<button class="iconbtn sm" data-tour="back">Back</button><button class="iconbtn sm cta" data-tour="next"${tourCanNext(step) ? '' : ' hidden'}>Next</button>`;
   }
+  // the next part you have not done
+  const tourNextPart = () => Object.keys(TOUR_PARTS).find(k => k !== tour.part && !tour.done.has(k));
   // while a phone's keyboard is up for a box on the page, the sheet folds to its buttons
   const tourMini = () => { const a = doc.activeElement; tourEl.querySelector('.tcard').classList.toggle('mini', !fine() && !!a && !!a.matches && a.matches('input,textarea') && !a.closest('#tour')); };
+  // the keyboard stays where you can act: on the card, or in what a step lets you use; Tab past the ring comes back
+  function tourFocus(e) {
+    const t = e.target, step = tour && tourStep();
+    if (!step || tour.busy || !t || !t.closest || t.closest('#tour')) return;
+    if ((step.try || step.done) && tourTargets(step).some(el => el.contains(t))) return;
+    const c = tourEl.querySelector('.tnav .cta:not([hidden])') || tourEl.querySelector('.tcard'); if (c) c.focus({ preventScroll: true });
+  }
   // redraw on the next frame (or shortly, where frames are held back)
   const tourSoon = () => {
     if (!tour || tourRaf) return;
@@ -2857,7 +2874,7 @@
   function tourNext() {
     const step = tourStep();
     if (step.intro) { tourPart('basics'); return; }
-    if (step.end) { tourEnd(); return; }
+    if (step.end) { const nx = tourNextPart(); if (nx) tourPart(nx); else tourEnd(); return; }
     if (tourCanNext(step)) tourEnter(tour.i + 1, 1);   // a step you act on waits for you
   }
   function tourBack() {
@@ -2876,7 +2893,7 @@
       if (t === q && q.value) return;
       if (typing && t.matches('input.num') && t.dataset.orig !== undefined && t.value !== t.dataset.orig) return;
       if (t && t.id === 'addq' && $('#addhits .chip2')) return;
-      if (consAsk && curCard && curCard.id === 'factory') return;   // a − that asks says No
+      if ($('#main .exp.minus.sure')) return;   // a − clicked once lets go
       e.preventDefault(); e.stopPropagation(); tourEnd(); return;
     }
     if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -2892,6 +2909,7 @@
     tourObs.disconnect(); tourObs = null;
     w.removeEventListener('keydown', tourKey, true); w.removeEventListener('scroll', tourSoon, true); w.removeEventListener('resize', tourSoon);
     for (const ev of TOUR_EVENTS) doc.removeEventListener(ev, tourSoon);
+    doc.removeEventListener('focusin', tourFocus);
     tourEl.remove(); tourEl = null; doc.body.classList.remove('touring');
     // your own factory and Defaults as they are saved now, then what this visit had, on the page you were on
     store.off = false;
@@ -2901,7 +2919,7 @@
     putVisit(from.visit);
     if (location.hash !== from.hash) history.replaceState(null, '', from.hash || location.pathname + location.search);
     keepPlace = true;
-    try { renderSettings(); render(); if (from.visit.q) { q.value = from.visit.q; runSearch(); } } finally { keepPlace = false; }
+    try { renderSettings(); render(); if (from.visit.q) { q.value = from.visit.q; if (from.visit.previewing) { selIdx = from.visit.selIdx; runSearch(); } } } finally { keepPlace = false; }   // a search you had opened stays opened, not a preview again
     w.scrollTo(0, from.y);
     if (fine()) q.focus();
   }

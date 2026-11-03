@@ -137,9 +137,9 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     machines to add, the same as a short row. **▸** opens a row: what makes it ("made by", with the
     amount under Supply) and what uses it ("used by", biggest first, with the amount under Demand),
     each with its machines, so you can see where a shortage comes from. The **−** before a line takes it out
-    of your factory once you say Yes to "Take … out of your factory?" (No or Esc leaves it): just those
-    machines when the item has other lines (as its × would), else the item itself, with Put back on its row
-    (as Remove would); boilers, engines, refineries and the like the same way.
+    of your factory on a second click (the first turns it red and reads "remove?"; any other click or Esc
+    leaves it): just those machines when the item has other lines (as its × would), else the item itself,
+    with Put back on its row (as Remove would); boilers, engines, refineries and the like the same way.
   * A row can have a line per machine and recipe: gears in assembler 1 and 2, iron plate in stone and steel
     furnaces, iron ore under burner and electric drills. Each line has its own count, picker and ×, and the row
     adds them up; switching a line to a machine another line uses joins the two. A row with machines entered
