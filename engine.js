@@ -58,34 +58,62 @@ const Engine = (() => {
     const out = recipe.out.find(o => o[0] === item);
     return (m.speed / recipe.time) * (out ? out[1] : 1);
   }
+  // the drills that can mine a raw item: none for what is pumped or gathered, electric only where mining takes a fluid
+  // (uranium ore); and items per second one of them mines
+  const DRILLS = ['electric-mining-drill', 'burner-mining-drill'];
+  function drillOptions(item) { const res = FD.resources[item]; return res && res.cat === 'basic-solid' ? (res.fluid ? DRILLS.slice(0, 1) : DRILLS) : []; }
+  const perDrill = (item, drillId, S) => FD.machines[drillId].speed / FD.resources[item].time * (1 + S.mp / 100);
 
   /* Build a chain for making 1 unit/s of `item`. Every node carries k values per 1 unit/s of root output:
-     kRate = units/s of this item needed, kMach = machines needed. */
+     kRate = units/s of this item needed, kMach = machines needed. A node can be made (or mined) on more than one machine:
+     lines = [{ machine, share, per, kMach }], each making its share of the node (per: items/s one of them makes); machine
+     is the first line's and kMach their sum. */
   function build(item, S, overrides, opts) {
     overrides = overrides || {};
     opts = opts || {};
+    // A node's lines: those picked on this page win (overrides['l:' + path]: [{ machine, share }]), then what your factory
+    // makes the item with (S.lines(item), on the pages: the ledger's lines that make it, on this recipe, so two tiers stay
+    // two; S.machineOf for the ledger's own rows), then the default. dflt: the default made it.
+    function lineUp(itemId, path, rid, options, made, def) {
+      const ok = l => options.includes(l.machine);
+      let ls = (overrides['l:' + path] || []).filter(ok), dflt = false;
+      if (!ls.length && made) ls = made.filter(l => (l.recipe || rid) === rid && ok(l)).map(l => ({ machine: l.machine, share: l.scale }));
+      if (!ls.length && !made && S.machineOf && options.includes(S.machineOf[itemId])) ls = [{ machine: S.machineOf[itemId], share: 1 }];
+      if (!ls.length && def) { ls = [{ machine: def, share: 1 }]; dflt = true; }
+      const tot = ls.reduce((a, l) => a + Math.max(0, l.share), 0);   // a line just added makes nothing yet
+      return { dflt, lines: ls.map((l, i) => ({ machine: l.machine, share: tot > 0 ? Math.max(0, l.share) / tot : i ? 0 : 1 })) };
+    }
     function node(itemId, kRate, path, ancestors) {
       const n = { item: itemId, path, kRate, children: [], leaf: true, recipe: null, machine: null, kMach: 0 };
       const choices = byProduct[itemId] || [];
       const forceLeaf = LEAVES.has(itemId) && !(opts.expandLeaf && opts.expandLeaf.has(path));
-      if (!choices.length || forceLeaf || ancestors.has(itemId)) return n;
-      // a choice made on this page wins, then the one made for this item in your factory (S.recipeOf / S.machineOf), then the default
-      const pickR = S.recipeOf && S.recipeOf[itemId];
+      const made = S.lines ? S.lines(itemId) : null;
+      if (!choices.length || forceLeaf || ancestors.has(itemId)) {   // mined, pumped or gathered: an ore's drills
+        const drills = drillOptions(itemId);
+        if (drills.length) {
+          n.machineChoices = drills;
+          n.lines = lineUp(itemId, path, null, drills, made, drills.includes(S.drill) ? S.drill : drills[0]).lines
+            .map(l => { const per = perDrill(itemId, l.machine, S); return Object.assign(l, { per, kMach: kRate * l.share / per }); });
+        }
+        return n;
+      }
+      // the recipe: one picked on this page, then the one your factory makes it with (its first line's), then the default
+      const pickR = made ? made.length && made[0].recipe : S.recipeOf && S.recipeOf[itemId];
       const rid = overrides['r:' + path] && choices.includes(overrides['r:' + path]) ? overrides['r:' + path] : pickR && choices.includes(pickR) ? pickR : choices[0];
-      const r = FD.recipes[rid];
-      const pickM = S.machineOf && S.machineOf[itemId] && machineOptions(r).includes(S.machineOf[itemId]) ? S.machineOf[itemId] : null;
-      const mid = overrides['m:' + path] && machineOptions(r).includes(overrides['m:' + path]) ? overrides['m:' + path] : pickM || machineFor(r, S);
+      const r = FD.recipes[rid], options = machineOptions(r);
+      const { lines, dflt } = lineUp(itemId, path, rid, options, made, machineFor(r, S));
       n.leaf = false;
       n.recipe = rid;
       n.recipeChoices = choices;
-      n.machine = mid;
-      n.machineChoices = machineOptions(r);
-      n.fluidBump = r.cat === 'crafting-with-fluid' && S.tier === 1 && !overrides['m:' + path] && !pickM;
+      n.machineChoices = options;
+      n.lines = lines.map(l => { const per = perMachine(r, l.machine, itemId); return Object.assign(l, { per, kMach: kRate * l.share / per }); });
+      n.machine = lines.length ? lines[0].machine : null;
+      n.fluidBump = r.cat === 'crafting-with-fluid' && S.tier === 1 && dflt;
       const outAmt = r.out.find(o => o[0] === itemId)[1];
       const kCrafts = kRate / outAmt;              // crafts per second per 1 root unit/s
       n.kCrafts = kCrafts;
-      n.perMach = perMachine(r, mid, itemId);      // items/s per machine
-      n.kMach = mid ? kRate / n.perMach : 0;
+      n.perMach = perMachine(r, n.machine, itemId);   // items/s per machine (the first line's)
+      n.kMach = n.lines.reduce((a, l) => a + l.kMach, 0);
       n.byproducts = r.out.filter(o => o[0] !== itemId).map(([id, a]) => ({ item: id, kRate: kCrafts * a }));
       const anc = new Set(ancestors); anc.add(itemId);
       for (const [ing, amt] of r.in) {

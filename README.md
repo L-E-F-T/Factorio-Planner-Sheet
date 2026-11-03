@@ -69,7 +69,9 @@ not typed (on the power, mining and uranium pages, say), it is the other way rou
 what to build and the small one says the exact count, as in `12 exactly 11.4`.
 
 * **Defaults** (the strip under the search box) is what the numbers assume: assembler tier, furnace,
-  drill, belt colour, mining productivity. A fresh browser starts at the early game (assembler 1, stone
+  drill, belt colour, mining productivity. An item your factory makes is on the ledger's machines instead,
+  on every page (a row on two furnaces is on both there, in the same shares), and what you pick on a page
+  wins over both for that visit. A fresh browser starts at the early game (assembler 1, stone
   furnace, burner drill, yellow belt, no research); after that it is simply whatever you chose last. There
   is nothing to reset: change it when your base changes. Changing mining productivity keeps your factory's
   drills and pumpjacks as many as you entered: what they mine changes.
@@ -77,7 +79,11 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
   so a yellow lane is 7.5 items per second), full belts (15 per second for yellow), items per second,
   or items per minute. Fluids are per second, except water and crude oil, which are always counted in the
   offshore pumps and pumpjacks that pump them.
-* Click the machine name in a row to try a different assembler or furnace for that row (a what-if; set your factory's machines on the ledger).
+* Click the machine name in a row to try a different assembler, furnace or drill for that row; **+** at the
+  end of its machines adds a line on another one, ready to type in, and **×** takes a line off (the row's
+  other lines make its amount). A count typed on one line of a row leaves the other lines as they are, and
+  the page follows. All of it is a what-if for this visit: the picker's last button goes back to your
+  factory's machines (or Defaults), and Add to factory saves it.
 * Click an ingredient's name to make it the product, carrying its amount down the chain. ▸ opens one more level.
 * **Home** (top left, on every page) goes back to the full list; **Factory** beside it opens the Your factory
   ledger; **←** goes back one step.
@@ -112,7 +118,8 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     uses (**Demand**), and the verdict: "short" in red, with how many machines close the gap, or
     "fulfilled" in green, with how much is left over. The bar under it fills as what you make covers what
     your factory uses: full once it is fulfilled. Water and crude oil are counted in offshore pumps and
-    pumpjacks. Type into any box and the page recounts as you type; empty or 0 takes the item out.
+    pumpjacks. Type into any box and the page recounts as you type; empty or 0 takes the item out (its
+    machine stays for this visit, so a new number goes back on it; after that the row is on Defaults).
     **Remove** under a row's name does the same and also forgets its machine choice and any dismissal;
     the row stays until you leave the page, with **Put back** to bring it back as it was.
     Anything your machines use that you have not entered shows grey as "missing", with how many
@@ -136,9 +143,10 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     Everything it covers every tab. Dismissing only takes a shortage out of that list, the short count and
     the tabs' red counts: its row below still shows it short. Dismissals are saved with your factory.
   * Every row has its own machine: click it to pick the assembler tier, furnace or drill (and the recipe,
-    for the few items with a choice, like solid fuel). The count stays the same and the output follows. The
-    choice is used on every page, and entering a row pins its machine, so changing Defaults later does
-    not change what you already have. Defaults are only for things not in your factory.
+    for the few items with a choice, like solid fuel). The count stays the same and the output follows.
+    Entering a row pins its machine, so changing Defaults later does not change what you already have, and
+    every page makes the item on the row's lines while it has a number (both machines, in their shares,
+    when it has two). A row at 0 makes nothing, so the pages put that item on Defaults.
   * **Power** has boilers, steam engines, solar panels and nuclear reactors, then a Steam row (boilers' 60
     per second against engines' 30) and an Electricity row (engines, solar and reactors against everything
     electric you entered). Boilers burn the fuel you pick on their row (coal, wood, solid fuel, rocket fuel
@@ -185,8 +193,9 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
   whatever you type there is a
   what-if for this visit only. A small ↺ appears beside any box you changed and drops the what-if. To keep a
   scenario, press **+ Add to factory** at the top of the page (it reads **Update in factory** when the item is
-  already there at a different number, and **In your factory** when it matches). The page's number is the
-  item's total: the line on the page's machine takes what the item's other lines do not make. The Steam,
+  already there at a different number or on other machines, and **In your factory** when it matches). The
+  ledger row becomes the page's top row: a line for each of its machines, making what they make on the page
+  (an item on two recipes, like solid fuel, keeps its other recipe's lines, and the page's take the rest). The Steam,
   Solar, Nuclear and Labs cards have it too (Nuclear puts the blocks of the card's layout into the ledger).
   Things in your factory carry a gold border on the home screen.
 * **Memory** lives in this browser, and only here: nothing is stored on the server, so on a hosted copy every

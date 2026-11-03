@@ -116,12 +116,17 @@ h3{font-size:13px;color:var(--faint);margin:12px 0 4px;font-weight:600}
    "+"; where the cell is too narrow for a line, its picker goes under its count */
 .td.mach.parts{flex-wrap:wrap;row-gap:6px}
 .td.mach.parts > .part + .part{border-top:1px solid var(--line);padding-top:6px}
-.tbl.fac .td.mach{container-type:inline-size}
+.tbl.fac .td.mach,.td.mach.parts{container-type:inline-size}
 .part{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 100%}
 .part > .partx{margin-left:auto}
 @container (max-width:300px){
   .part{flex-wrap:wrap;row-gap:2px}
   .part > .mbtn{order:1;flex:1 1 100%}
+}
+/* a page's lines also say "build N", so they need more room before the picker goes under the count */
+@container (max-width:400px){
+  .tbl:not(.fac) .td.mach .part{flex-wrap:wrap;row-gap:2px}
+  .tbl:not(.fac) .td.mach .part > .mbtn{order:1;flex:1 1 100%}
 }
 .partx{flex:none;width:26px;height:26px;border:0;border-radius:50%;background:transparent;color:var(--faint);font-size:16px;line-height:1;padding:0;cursor:pointer}
 .partx:hover{background:#2a292a;color:var(--fg)}
