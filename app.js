@@ -1019,7 +1019,6 @@
   // "Everything" shows them all. A tab's dashed add row only offers what belongs in that tab.
   const FAC_TABS = [['all', 'Everything', ''], ['mining', 'Mining & smelting', 'electric-mining-drill'], ['assembling', 'Assembling', 'assembling-machine-2'], ['oil', 'Oil & chemicals', 'oil-refinery'], ['power', 'Power', 'steam-engine'], ['science', 'Science', 'lab']];
   const FAC_ORDER = ['mining', 'assembling', 'oil', 'power', 'science'];
-  const ADD_HINT = { all: 'Search', mining: 'Add drills or furnaces', assembling: 'Add an assembled item', oil: 'Add pumpjacks, refineries, cracking', power: 'Add boilers, steam engines, solar', science: 'Add labs or a science pack' };
   let facTab = store.get('factab', 'all'); if (!FAC_TABS.some(t => t[0] === facTab)) facTab = 'all';
   const facOpen = new Set();   // rows opened to show what uses the item
   let facFilter = null;            // 'short', 'none' or 'ok': the table shows only what that count at the top counts (this visit)
@@ -1630,7 +1629,7 @@
     if (g) g.textContent = addVerb(addSel);
     if (n && !n.dataset.typed) { const c = addSel ? addCount(addSel) : 0; n.value = c > 0 ? fmtIn(c) : ''; }
   }
-  const addRowHtml = () => `<div class="tr add"><div class="td item" style="--d:0"><span class="exp none"></span><span id="addi">${addSel ? ic(addIcon(addSel)) : ''}</span><input class="txt" id="addq" placeholder="${esc(ADD_HINT[facTab])}" autocomplete="off" spellcheck="false" aria-label="what to add" value="${addSel ? esc(addName(addSel)) : ''}"></div><div class="td mach" data-label="how many"><input class="num" id="addn" inputmode="decimal" placeholder="1" aria-label="how many"><span id="addm">${addSel ? addMachineHtml(addSel) : ''}</span></div><div class="td amt"></div><div class="td amt"></div><div class="td amt"><button class="iconbtn sm" id="addgo" data-add tabindex="-1">${addVerb(addSel)}</button></div></div><div class="tr add-hits"><div class="td" id="addhits"></div></div>`;
+  const addRowHtml = () => `<div class="tr add"><div class="td item" style="--d:0"><span class="exp none"></span><span id="addi">${addSel ? ic(addIcon(addSel)) : ''}</span><input class="txt" id="addq" placeholder="Search" autocomplete="off" spellcheck="false" aria-label="what to add" value="${addSel ? esc(addName(addSel)) : ''}"></div><div class="td mach" data-label="how many"><input class="num" id="addn" inputmode="decimal" placeholder="1" aria-label="how many"><span id="addm">${addSel ? addMachineHtml(addSel) : ''}</span></div><div class="td amt"></div><div class="td amt"></div><div class="td amt"><button class="iconbtn sm" id="addgo" data-add tabindex="-1">${addVerb(addSel)}</button></div></div><div class="tr add-hits"><div class="td" id="addhits"></div></div>`;
   // the add row's picker: an item's machine and recipe, or the refineries' processing
   function openAddPick(btn) {
     closePop(); if (!addSel) return;
