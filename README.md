@@ -85,7 +85,7 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
   is the supply: drills on one side, amount on the other. Every item below it is sized as if all of that
   supply went to it, with its other ingredients under it, so changing any box moves the whole page. Links
   at the bottom go one step further. Open one by clicking the resource in any chain or typing its name; the
-  mined ones also head the Intermediate products list.
+  mined ones also head the Intermediate products list, the first list on the home page.
 * **Your factory** (the Factory button beside Home, or search "factory") is the one place that saves. It is
   a ledger in tabs: **Everything**, **Mining & smelting**, **Assembling**, **Oil & chemicals**, **Power** and
   **Science**. Each row sits in the tab of the machine that makes it. A new ledger starts with the basics at 0

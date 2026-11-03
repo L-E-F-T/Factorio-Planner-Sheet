@@ -16,15 +16,9 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.35 var(--sans);-webkit-text-size-adjust:100%}
-/* each kind of page sits on an in-game view (bg/), darkened so the numbers stay easy to read */
+/* each kind of page sits on its own in-game view (bg/, picked by setBg in app.js), darkened so the numbers stay easy to read */
 body{background:transparent}
 body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(rgba(22,21,22,.8),rgba(22,21,22,.8)),var(--bgimg,none) center/cover no-repeat}
-body[data-bg="home"]{--bgimg:url(bg/home.webp)}
-body[data-bg="factory"]{--bgimg:url(bg/factory.webp)}
-body[data-bg="item"]{--bgimg:url(bg/item.webp)}
-body[data-bg="oil"]{--bgimg:url(bg/oil.webp)}
-body[data-bg="power"]{--bgimg:url(bg/power.webp)}
-body[data-bg="cards"]{--bgimg:url(bg/cards.webp)}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer}
 a{color:var(--accent2)}

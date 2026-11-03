@@ -109,7 +109,7 @@
     'steam': { card: 'steam', field: 'boiler', v: r => r / FD.power.boiler.steam_per_s },
     'uranium-235': { card: 'uranium', field: 'uranium-235', v: r => r * 60 }, 'uranium-238': { card: 'uranium', field: 'uranium-238', v: r => r * 60 }, 'uranium-ore': { card: 'uranium', field: 'centrifuge', v: r => r / (10 / 12) },
   };
-  const GROUPS = [['logistics', 'Logistics'], ['production', 'Production'], ['intermediate-products', 'Intermediate products'], ['combat', 'Combat']];
+  const GROUPS = [['intermediate-products', 'Intermediate products'], ['logistics', 'Logistics'], ['production', 'Production'], ['combat', 'Combat']];
 
   const CARDS = {
     factory: { title: 'Your factory', desc: 'What you have making each item, and where it runs short', icon: 'assembling-machine-2', keys: ['factory', 'my factory', 'your factory', 'bottleneck', 'bottlenecks', 'short', 'shortage', 'spare', 'fulfilled', 'surplus', 'deficit', 'balance', 'ledger'] },
@@ -259,7 +259,7 @@
   let curRes = null;    // current raw-resource view
 
   let keepPlace = false;   // set while a "Your base" change redraws the page: stay where you are, leave the focus alone
-  const setBg = k => { doc.body.dataset.bg = k; };   // the page's background: an in-game view for each kind of page
+  const setBg = k => { doc.body.style.setProperty('--bgimg', `url(bg/${k}.webp)`); };   // the page's background: bg/<kind of page>.webp, a different in-game view for each
   function render() {
     if (baseOpen && !keepPlace) { baseOpen = false; renderSettings(); }   // an opened "Your base" folds again on another page
     const w = doc.defaultView || window, y = keepPlace ? w.scrollY : 0;
@@ -424,7 +424,6 @@
     const chip = id => FD.items[id] ? `<button class="chip2${remembered('i', id) ? ' mem' : ''}" data-go="#i/${id}" tabindex="-1"${remembered('i', id) ? ' title="In your factory"' : ''}>${ic(id, 'sm')}${esc(nameOf(id))}</button>` : '';
     $('#main').innerHTML = `
       <div class="cards">${Object.entries(CARDS).filter(([id]) => id !== 'factory').map(([id, c]) => `<button class="card${remembered('c', id) ? ' mem' : ''}" data-go="#c/${id}" tabindex="-1"${remembered('c', id) ? ' title="In your factory"' : ''}>${ic(c.icon, 'lg')}<span><span class="t">${esc(c.title)}</span><br><span class="d">${esc(c.desc)}</span></span></button>`).join('')}</div>
-      <h3>Raw resources</h3><div class="chips">${RESOURCES.map(chip).join('')}</div>
       ${GROUPS.map(([g, title]) => { const ids = makeable.filter(id => (FD.items[id].group || 'other') === g); return ids.length ? `<h3>${esc(title)}</h3><div class="chips">${ids.map(chip).join('')}</div>` : ''; }).join('')}
       ${(() => { const rest = makeable.filter(id => !GROUPS.some(([g]) => (FD.items[id].group || 'other') === g)); return rest.length ? `<h3>Other</h3><div class="chips">${rest.map(chip).join('')}</div>` : ''; })()}`;
   }
@@ -580,7 +579,7 @@
   // ---------- raw-resource view: what one drill gives, then everything made straight from it ----------
   const originText = item => item === 'wood' ? 'from trees' : /oil|petroleum/.test(item) ? 'from refineries' : item.startsWith('uranium-2') ? 'from centrifuges' : '';
   function renderResource(id, spec) {
-    cur = null; curCard = null; setBg('item');
+    cur = null; curCard = null; setBg('resource');
     const fluid = isFluid(id);
     const st = preview ? cloneState(chainState(id)) : chainState(id);   // scale = units of the resource per second: its saved number
     const sup = supply(id, 1);                        // {id, k}: machines per 1 unit/s, or null for wood
@@ -2227,7 +2226,7 @@
     if (spec && spec.layout && id === 'nuclear') { st.layout = spec.layout; st.touched = true; if (!preview) saveCard(id, st); }
     const def = cardFields(id, st);
     const fields = def.fields;
-    setBg(['steam', 'solar', 'nuclear'].includes(id) ? 'power' : 'cards');
+    setBg(id);
     if (spec && spec.n !== null && fields.length) {
       const qs = words((spec.wantQ !== null && spec.haveQ) ? spec.haveQ : spec.haveQ || '');
       let best = -1, bestSc = 0;
@@ -2296,7 +2295,7 @@
   }
 
   function renderReference() {
-    curCard = { id: 'reference', st: {}, fields: [] }; setBg('cards');
+    curCard = { id: 'reference', st: {}, fields: [] }; setBg('reference');
     const caps = FD.tech.inserter_capacity;
     const hand = lvl => { let reg = 1, bulk = FD.tech.bulk_base; for (const c of caps) if (c.level <= lvl) { reg += c.reg; bulk += c.bulk; } return { reg, bulk }; };
     const ins = Object.entries(FD.inserters).map(([id, i]) => `<tr><td>${ic(id, 'sm')} ${esc(i.name)}</td><td class="n">${fmt(i.swings_per_s, 2)}</td><td class="n">${i.bulk ? fmt(i.swings_per_s * hand(S.cap).bulk, 1) : fmt(i.swings_per_s * hand(S.cap).reg, 2)}</td></tr>`).join('');
