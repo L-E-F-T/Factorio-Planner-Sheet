@@ -1224,6 +1224,8 @@
       const hv = unitN(id);
       if (!(hv > 0) && !(needN > 1e-9)) return empty;
       if (!(hv > 0)) return { st: 'none', html: cell('none', `not entered<small>needs ${fmt(needN)} ${noun}</small>`, 100) };
+      // entered, with nothing for them to do: say why, instead of "fulfilled, needs 0, 0% busy"
+      if (!(needN > 1e-9)) return { st: null, html: cell('none', `idle<small>${id === 'refinery' ? 'nothing in your factory uses what they make' : basic ? 'basic processing makes nothing to crack' : 'your factory needs no cracking'}</small>`, 0) };
       const dlt = hv - needN, pct = Math.min(100, needN / hv * 100);
       if (dlt < -1e-6) return { st: 'short', miss: -dlt, html: cell('short', `${fmt(-dlt)} ${noun} short<small>needs ${fmt(needN)}: add ${fmt(Math.ceil(-dlt - 1e-9))} × ${esc(nameOf(UNITS[id].machine))}</small>`, 100) };
       const busy = `${fmt(run / hv * 100)}% busy${id === 'refinery' ? heldBack : ''}`;
