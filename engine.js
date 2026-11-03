@@ -165,11 +165,21 @@ const Engine = (() => {
   /* Advanced oil processing + cracking to meet demands (per second). Returns machine counts per 1 root unit/s.
      Refinery cycle (5 s): 100 crude + 50 water -> 25 heavy, 45 light, 55 petroleum.
      Heavy cracking (2 s): 40 heavy + 30 water -> 30 light.  Light cracking (2 s): 30 light + 30 water -> 20 petroleum. */
-  function oilBlock(P, L, H, S) {
+  // one machine running a recipe flat out, per second, from the game's recipe: what it makes minus what it takes of each
+  // oil (h, l, p), and what else it takes (crude oil, water, coal, steam)
+  function oilRecipeRates(rid, machine) {
+    const r = FD.recipes[rid], sp = (FD.machines[machine] || {}).speed || 1;
+    const per = (side, item) => { const x = r ? r[side].find(([i]) => i === item) : null; return x ? x[1] / r.time * sp : 0; };
+    const net = item => per('out', item) - per('in', item);
+    return { h: net('heavy-oil'), l: net('light-oil'), p: net('petroleum-gas'), crude: per('in', 'crude-oil'), water: per('in', 'water'), coal: per('in', 'coal'), steam: per('in', 'steam') };
+  }
+  // refineries on a recipe (advanced oil processing unless told: coal liquefaction works the same way) plus cracking
+  function oilBlock(P, L, H, S, rid) {
     // per-second production of one machine
-    const r = { h: 25 / 5, l: 45 / 5, p: 55 / 5, crude: 100 / 5, water: 50 / 5 };
-    const hc = { in: 40 / 2, out: 30 / 2, water: 30 / 2 };
-    const lc = { in: 30 / 2, out: 20 / 2, water: 30 / 2 };
+    const r = oilRecipeRates(rid || 'advanced-oil-processing', 'oil-refinery');
+    const hcR = oilRecipeRates('heavy-oil-cracking', 'chemical-plant'), lcR = oilRecipeRates('light-oil-cracking', 'chemical-plant');
+    const hc = { in: -hcR.h, out: hcR.l, water: hcR.water };
+    const lc = { in: -lcR.l, out: lcR.p, water: lcR.water };
     // Solve for refineries R, heavy crackers Hc, light crackers Lc (all >= 0) meeting demand exactly where possible.
     // Equations: r.h R - hc.in Hc = H ; r.l R + hc.out Hc - lc.in Lc = L ; r.p R + lc.out Lc = P
     // Try full solve first.
@@ -222,10 +232,10 @@ const Engine = (() => {
     // only petroleum gas is ever left over (a refinery stops once any of its oils has nowhere to go)
     if (surplus.heavy > 1e-9) { const x = surplus.heavy / hc.in; Hc += x; surplus.light += x * hc.out; surplus.heavy = 0; }
     if (surplus.light > 1e-9) { const y = surplus.light / lc.in; Lc += y; surplus.petroleum += y * lc.out; surplus.light = 0; }
-    const crude = R * r.crude, water = R * r.water + Hc * hc.water + Lc * lc.water;
+    const crude = R * r.crude, water = R * r.water + Hc * hc.water + Lc * lc.water, coal = R * r.coal, steam = R * r.steam;
     const mp = 1 + S.mp / 100;
     const kw = R * FD.machines['oil-refinery'].kw + (Hc + Lc) * FD.machines['chemical-plant'].kw;
-    return { refineries: R, heavyCrackers: Hc, lightCrackers: Lc, crude, water, pumpjacks: crude / (FD.resources['crude-oil'].amount * mp * (S.jackYield || 1)), surplus, kw,
+    return { refineries: R, heavyCrackers: Hc, lightCrackers: Lc, crude, water, coal, steam, pumpjacks: crude / (FD.resources['crude-oil'].amount * mp * (S.jackYield || 1)), surplus, kw,
       basic: { refineries: P / (45 / 5), crude: P / (45 / 5) * 20, note: L + H > 0 ? 'basic oil makes petroleum gas only' : '' } };
   }
 
@@ -311,6 +321,6 @@ const Engine = (() => {
     ];
   }
 
-  return { LEAVES, byProduct, defaults, machineFor, machineOptions, perMachine, build, walk, totals, oilBlock, niceRatio,
+  return { LEAVES, byProduct, defaults, machineFor, machineOptions, perMachine, build, walk, totals, oilBlock, oilRecipeRates, niceRatio,
     beltRate, inserterFor, steamCard, solarCard, nuclearLayout, miningCard, TIERS, FURNACES };
 })();

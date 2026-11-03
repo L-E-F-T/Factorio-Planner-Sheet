@@ -104,7 +104,8 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     item is made in mixed tiers, the tier with the most machines wins and the rest count as the same output
     in it. On a tab, the import only touches that tab: the rest is listed as "Not added here", by the tab
     it goes on, so import on that tab or on Everything to add it; on Everything it covers all of them.
-    Modules and beacons are ignored.
+    Refineries take the processing most of them run (Basic, Advanced or Coal liquefaction). Modules and
+    beacons are ignored.
   * An item row has the machines making it, what they make, what the rest of your factory uses, and what is
     left over: "short" in red, with how many machines close the gap, or "fulfilled" in green, with how much
     is left over. Type into any box and the page recounts as you type; empty or 0 takes the item out.
@@ -129,13 +130,16 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     not change what you already have. "Your base" is only the default for things not in your factory.
   * **Power** has boilers, steam engines and solar panels, then a Steam row (boilers' 60 per second against
     engines' 30) and an Electricity row (engines and solar against everything electric you entered).
-    Boilers' coal and water show on the Coal and Water rows.
+    Boilers burn the fuel you pick on their row (coal, wood, solid fuel, rocket fuel or nuclear fuel), which
+    shows on that fuel's row, and their water shows on the Water row.
   * **Science** has your labs, with the research time and lab speed they run at; they eat each science
     pack you make.
   * **Oil & chemicals** follows the oil. First crude oil: your pumpjacks, at the yield you type on the row
     (the % the game shows on an oil field), against what your refineries take running flat out like every
-    other machine (20 per second each). Then your oil refineries (Basic or Advanced, with what each takes
-    and makes) and your heavy and light oil cracking plants, each saying in grey how many your factory
+    other machine (20 per second each). Then your oil refineries (Basic, Advanced or Coal liquefaction,
+    with what each takes and makes; on coal liquefaction they take coal, shown on the Coal row, and steam
+    from your boilers, shown on the Steam row, instead of crude oil) and your heavy and light oil cracking
+    plants, each saying in grey how many your factory
     needs ("needs 2.05 of your 3", "not entered: add 2 × Chemical plant", or "idle" with why). Then heavy
     oil, light oil and petroleum gas: what your refineries make at full speed plus what cracking turns
     into each, against what your factory and the cracking use. A refinery stops once any of its oils has
@@ -146,14 +150,16 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     plant items live here too; uranium drills' sulfuric acid counts on the Sulfuric acid row.
   * **Clear all** at the bottom of Everything forgets everything, dismissals included, after asking. On any
     other tab the button reads **Clear this tab** and forgets only that tab: its rows' numbers, machine
-    choices and dismissals, plus the research time and lab speed on Science or Basic/Advanced on Oil.
+    choices and dismissals, plus the research time and lab speed on Science, the processing and pumpjack
+    yield on Oil, or the boilers' fuel on Power.
 * **Oil processing** (home screen, or search "oil", "10 refineries", "8 pumpjacks", "100 crude oil" or
   "3 light oil cracking") is the oil calculator. It opens at what your factory's machines use of petroleum
   gas, light oil and heavy oil (with nothing using oil yet, at your own refineries), and shows what that
   takes: refineries, cracking plants, crude oil, pumpjacks, water and electricity, each machine with how
   many your factory has. Type a product to change that product, or a machine count to see what that many
   supply; the products then say how far short or over your factory's use they are, and a machine count
-  you typed stays when you switch between Basic and Advanced (that switch is your factory's own setting).
+  you typed stays when you switch between Basic, Advanced and Coal liquefaction (that switch is your
+  factory's own setting; on coal liquefaction the page lists the coal, the steam and the boilers for it).
   Oil that would be left over even with everything cracked is called out, since it backs up and stops the
   refineries. "Add to factory" puts the whole refineries and the cracking it needs into your ledger, plus
   the pumpjacks for their crude oil; it leaves cracking you have alone when it needs none.
