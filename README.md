@@ -108,7 +108,8 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     fuel from two oils) keeps a line per recipe. Modules and beacons are ignored.
   * An item row has the machines making it, what they make, what the rest of your factory uses, and what is
     left over: "short" in red, with how many machines close the gap, or "fulfilled" in green, with how much
-    is left over. Type into any box and the page recounts as you type; empty or 0 takes the item out.
+    is left over. The bar under it fills as what you make covers what your factory uses: full once it is
+    fulfilled. Type into any box and the page recounts as you type; empty or 0 takes the item out.
     **Remove** under a row's name does the same and also forgets its machine choice and any dismissal;
     the row stays until you leave the page, with **Put back** to bring it back as it was.
     Anything your machines use that you have not entered shows grey as "not entered", with how many
@@ -143,7 +144,7 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     other machine (20 per second each), with coal, steam and water under it when your oil machines take
     them (the same rows as on Mining & smelting and Power). Then your oil refineries: a line per
     processing you run (Basic, Advanced or Coal liquefaction; **+ another processing** adds one, and each
-    line's picker moves its refineries to another), with what each takes and makes; on coal liquefaction
+    line's picker moves its refineries to another); on coal liquefaction
     they take coal and steam from your boilers instead of crude oil. Then your heavy and light oil cracking
     plants. Refineries and cracking each say in grey how many your factory
     needs ("needs 2.05 of your 3", "not entered: add 2 × Chemical plant", or "idle" with why). Then heavy

@@ -82,7 +82,6 @@ h3{font-size:13px;color:var(--faint);margin:12px 0 4px;font-weight:600}
 .th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:4px 10px;display:flex;align-items:flex-end;gap:4px}
 .th.amth{display:block;text-align:right}
 .th .u{display:block;text-transform:none;letter-spacing:0;color:var(--fg);font-size:13px}
-.th .uu{display:block;text-transform:none;letter-spacing:0;color:var(--faint);font-size:11px}
 .tr{display:contents}
 .td{background:var(--panel);border-top:1px solid #3c3b3c;border-bottom:1px solid #3c3b3c;min-height:56px;display:flex;align-items:center;gap:8px;padding:6px 10px;min-width:0}
 .tr .td:first-child{border-left:1px solid #3c3b3c;border-radius:var(--r) 0 0 var(--r)}
@@ -369,7 +368,6 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   input.yld{height:36px;font-size:16px;width:66px}
   .partx{width:36px;height:36px;font-size:18px}
   .addpart{height:34px;padding:0 8px}
-  footer .keys{display:none}
 }
 </style>
 </head>
@@ -377,15 +375,15 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
 <header>
   <div class="searchwrap">
     <button id="back" class="iconbtn" title="Back (Esc)" aria-label="Back" tabindex="-1">&#8592;</button>
-    <button id="home" class="iconbtn home" title="Home screen" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-6h4v6"/></svg><span>Home</span></button>
-    <button id="fac" class="iconbtn home" title="Your factory: what you have, and where it runs short" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V9.5l5.5 3.5V9.5l5.5 3.5V9.5l5.5 3.5V20z"/><path d="M16.5 9V4h3v8"/></svg><span>Factory</span></button>
+    <button id="home" class="iconbtn home" title="Home" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-6h4v6"/></svg><span>Home</span></button>
+    <button id="fac" class="iconbtn home" title="Your factory" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V9.5l5.5 3.5V9.5l5.5 3.5V9.5l5.5 3.5V20z"/><path d="M16.5 9V4h3v8"/></svg><span>Factory</span></button>
     <input id="q" type="text" placeholder="What are you making?" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-label="Search">
   </div>
   <div id="strip" hidden></div>
   <div id="settings" class="settings"></div>
 </header>
 <main id="main"></main>
-<footer>Change any number and the rest follow. Numbers come from the Factorio <span id="ver"></span> base-game files; no modules, beacons, quality or Space Age. <span class="keys"><b>Esc</b> goes back, <b>Tab</b> moves between boxes.</span></footer>
+<footer>Factorio <span id="ver"></span> base game. No modules, beacons, quality or Space Age.</footer>
 <script src="data.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>
