@@ -167,12 +167,14 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     Advanced or Coal liquefaction; **+** adds one, and each line's picker moves its refineries to another);
     on coal liquefaction they take coal and steam from your boilers instead of crude oil. Then your heavy
     and light oil cracking plants. Refineries and cracking each say in grey how many your factory
-    needs ("needs 2.05 of your 3", "missing: add 2 × Chemical plant", or "idle" with why). Then heavy
+    needs ("needs 2.05 of your 3 · 80% busy", "needs 2: add 2 × Chemical plant", or "idle" with why), and
+    what holds them up when they run slower than that ("0% busy: heavy oil and light oil back up"). Then heavy
     oil, light oil and petroleum gas: what your refineries make at full speed plus what cracking turns
     into each, against what your factory and the cracking use. A refinery stops once any of its oils has
-    nowhere to go, so an oil is short when the refineries cannot deliver it with nothing backing up; its
-    row says why and what to add ("light oil backs up: add 2 × light oil cracking"), and the oil with
-    nowhere to go reads "backs up". Each gap is counted once, on the oil. Refineries on Advanced and
+    nowhere to go, so an oil is short when the refineries cannot deliver it with nothing backing up, even
+    when they could make enough at full speed; its row says why and what to add ("light oil backs up, so
+    the refineries stop: add 2 × light oil cracking"), and the oil with nowhere to go reads "backs up".
+    Each gap is counted once, on the oil (the refinery and cracking rows have no verdict of their own). Refineries on Advanced and
     cracking plants also take water, which shows on the Water row. Plastic, sulfur and the other chemical
     plant items live here too; uranium drills' sulfuric acid counts on the Sulfuric acid row.
   * **Clear all** at the bottom of Everything forgets everything, dismissals included, after asking
@@ -193,22 +195,26 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
   processing stay) and the cracking it needs into your ledger, plus the pumpjacks for their crude oil; it
   leaves cracking you have alone when it needs none.
 * **Every other page is a scenario.** Item pages, resource pages and the cards open at your factory's numbers
-  (an item at its ledger number, otherwise sized to the tightest factory component in its chain, with a line
-  under the title saying which; labs, boilers, solar panels and reactor blocks at their ledger counts) and
+  (an item at its ledger number, otherwise sized to what your factory has spare of the tightest component
+  in its chain, after what the rest of your factory uses, with a line under the title saying which, or that
+  one has none to spare; labs, boilers, solar panels and reactor blocks at their ledger counts) and
   whatever you type there is a
   what-if for this visit only. A small ↺ appears beside any box you changed and drops the what-if. To keep a
   scenario, press **+ Add to factory** at the top of the page (it reads **Update in factory** when the item is
   already there at a different number or on other machines, and **In your factory** when it matches). The
-  ledger row becomes the page's top row: a line for each of its machines, making what they make on the page
-  (an item on two recipes, like solid fuel, keeps its other recipe's lines, and the page's take the rest). The Steam,
-  Solar, Nuclear and Labs cards have it too (Nuclear puts the blocks of the card's layout into the ledger).
+  ledger row becomes the page's top row: a line for each of its machines, in whole machines (a page at
+  "3.33 build 4" adds 4), making what they make on the page (an item on two recipes, like solid fuel,
+  keeps its other recipe's lines, and the page's take the rest). The Steam, Solar, Nuclear and Labs cards
+  have it too, also in whole machines (Nuclear puts the blocks of the card's layout into the ledger).
   Things in your factory carry a gold border on the home screen.
 * **Memory** lives in this browser, and only here: nothing is stored on the server, so on a hosted copy every
   visitor has their own memory and nobody else's changes can reach yours. The browser keeps the memory per
   address, so `http://localhost:8765/` and the LAN or public address are separate memories even on the same
   PC. Tabs and windows open on the same address share it: Defaults or a factory change made in one show up
   in the others at once, so an older tab never saves over a newer change. Petroleum gas, crude oil, steam and uranium in a chain open their page set to that amount. Changing a
-  Defaults setting redraws the page where you are, without jumping to the top.
+  Defaults setting redraws the page where you are, without jumping to the top, and keeps what you typed
+  there: a count of machines stays that many machines on the new tier, furnace or drill, and an amount
+  stays that amount.
 * Keyboard: type anywhere to search, **Tab** moves between boxes, **↑/↓** nudge a box by 1 (Shift: 10),
   **Esc** reverts a box, then goes back.
 

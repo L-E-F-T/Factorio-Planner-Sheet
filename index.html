@@ -280,7 +280,8 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
 /* small desktop windows: the ledger's five columns, narrower, so they still fit; a machine picker moves under its box
    when its name would not fit beside it; amounts and their units may take two lines */
 @media (min-width:701px) and (max-width:1000px){
-  .tbl.fac{grid-template-columns:minmax(150px,.8fr) minmax(210px,1.2fr) repeat(3,minmax(84px,.5fr))}
+  /* the machines column takes the room a box, its picker and the + need on one line; names wrap instead */
+  .tbl.fac{grid-template-columns:minmax(140px,.6fr) minmax(210px,1.4fr) repeat(3,minmax(84px,.5fr))}
   .tbl.fac input.num{width:76px}
   .tbl.fac .td.item .nmtxt{overflow-wrap:break-word;hyphens:auto}
   .tbl.fac .td.item b,.tbl.fac .td.item .lnk{font-size:15px}
