@@ -6,7 +6,7 @@ Every number comes from the game's own prototype files, not from a wiki table.
 ## Run it
 
 * **Online:** <https://l-e-f-t.github.io/Factorio-Planner-Sheet/> always has the latest version, on any PC
-  or phone, with nothing to install. Your ledger is saved in that browser, separately from a copy you
+  or phone, with nothing to install. Your factory is saved in that browser, separately from a copy you
   run yourself.
 * **Double-click `index.html`.** That is all. It works straight from the file, offline, in any browser.
 * **Beside the game:** a chromeless window fits well next to Factorio:
@@ -79,15 +79,15 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
   offshore pumps and pumpjacks that pump them.
 * Click the machine name in a row to try a different assembler or furnace for that row (a what-if; set your factory's machines on the ledger).
 * Click an ingredient's name to make it the product, carrying its amount down the chain. ▸ opens one more level.
-* **Home** (top left, on every page) goes back to the full list; **Ledger** beside it opens the ledger;
-  **←** goes back one step.
+* **Home** (top left, on every page) goes back to the full list; **Factory** beside it opens the Your factory
+  ledger; **←** goes back one step.
 * **Raw resources** (stone, iron ore, copper ore, coal, wood, water) have a page of their own. The first row
   is the supply: drills on one side, amount on the other. Every item below it is sized as if all of that
   supply went to it, with its other ingredients under it, so changing any box moves the whole page. Links
   at the bottom go one step further. Open one by clicking the resource in any chain or typing its name; the
   mined ones also head the Intermediate products list.
-* **The ledger** (the Ledger button beside Home, or search "ledger") is the one place that saves. It is
-  in tabs: **Everything**, **Mining & smelting**, **Assembling**, **Oil & chemicals**, **Power** and
+* **Your factory** (the Factory button beside Home, or search "factory") is the one place that saves. It is
+  a ledger in tabs: **Everything**, **Mining & smelting**, **Assembling**, **Oil & chemicals**, **Power** and
   **Science**. Each row sits in the tab of the machine that makes it. A new ledger starts with the basics at 0
   (drills on iron, copper, coal and stone, the smelting, gears, cable, circuits, boilers, steam engines, labs,
   red and green science). Each tab's dashed row at the bottom adds more, and only offers what belongs there:
@@ -138,7 +138,7 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
   * Every row has its own machine: click it to pick the assembler tier, furnace or drill (and the recipe,
     for the few items with a choice, like solid fuel). The count stays the same and the output follows. The
     choice is used on every page, and entering a row pins its machine, so changing Defaults later does
-    not change what you already have. Defaults are only for things not in your ledger.
+    not change what you already have. Defaults are only for things not in your factory.
   * **Power** has boilers, steam engines, solar panels and nuclear reactors, then a Steam row (boilers' 60
     per second against engines' 30) and an Electricity row (engines, solar and reactors against everything
     electric you entered). Boilers burn the fuel you pick on their row (coal, wood, solid fuel, rocket fuel

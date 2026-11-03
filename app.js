@@ -112,7 +112,7 @@
   const GROUPS = [['logistics', 'Logistics'], ['production', 'Production'], ['intermediate-products', 'Intermediate products'], ['combat', 'Combat']];
 
   const CARDS = {
-    factory: { title: 'Ledger', desc: 'What you have making each item, and where it runs short', icon: 'assembling-machine-2', keys: ['factory', 'my factory', 'your factory', 'bottleneck', 'bottlenecks', 'short', 'shortage', 'spare', 'fulfilled', 'surplus', 'deficit', 'balance', 'ledger'] },
+    factory: { title: 'Your factory', desc: 'What you have making each item, and where it runs short', icon: 'assembling-machine-2', keys: ['factory', 'my factory', 'your factory', 'bottleneck', 'bottlenecks', 'short', 'shortage', 'spare', 'fulfilled', 'surplus', 'deficit', 'balance', 'ledger'] },
     steam: { title: 'Steam power', desc: 'Boilers, steam engines, fuel', icon: 'boiler', keys: ['steam', 'boiler', 'boilers', 'power', 'steam engine', 'steam engines', 'engines', 'coal', 'electricity', 'generator', 'water', 'offshore pump', 'water pump', 'mw'] },
     solar: { title: 'Solar power', desc: 'Panels and accumulators', icon: 'solar-panel', keys: ['solar', 'accumulator', 'accumulators', 'panels', 'solar panels', 'power', 'electricity', 'accum'] },
     nuclear: { title: 'Nuclear power', desc: 'Reactors, heat exchangers, turbines, fuel cells', icon: 'nuclear-reactor', keys: ['nuclear', 'reactor', 'reactors', 'turbine', 'turbines', 'heat exchanger', 'exchangers', 'power', 'fuel cell'] },
@@ -526,7 +526,7 @@
   // row's other lines do not make): Add, Update, or, when it matches, a link to the ledger
   function facBtn(id, R, mode) {
     const st = chainMem[id], inFac = saved(st);
-    if (mode === 'own' || (inFac && near(R, st.scale))) return `<button class="iconbtn sm infac" data-go="#c/factory" tabindex="-1" title="Open the ledger">In your factory ✓</button>`;
+    if (mode === 'own' || (inFac && near(R, st.scale))) return `<button class="iconbtn sm infac" data-go="#c/factory" tabindex="-1" title="Open your factory">In your factory ✓</button>`;
     return `<button class="iconbtn sm${mode === 'view' ? ' cta' : ''}" data-tofactory tabindex="-1">${inFac ? 'Update in factory' : '+ Add to factory'}</button>`;
   }
   // the same for a card's count (labs, or boilers): the ledger's number against what the card shows now
@@ -537,7 +537,7 @@
   const cardHave = id => CARD_ADD.includes(id) && unitN(cardUnitKey(id)) > 0 ? unitN(cardUnitKey(id)) : 0;
   function cardFacBtn(id, n) {
     const have = cardHave(id), st = cardState(id);
-    if (have > 0 && near(n, have)) return `<button class="iconbtn sm infac" data-go="#c/factory" tabindex="-1" title="Open the ledger">In your factory ✓</button>`;
+    if (have > 0 && near(n, have)) return `<button class="iconbtn sm infac" data-go="#c/factory" tabindex="-1" title="Open your factory">In your factory ✓</button>`;
     return `<button class="iconbtn sm${st.touched ? ' cta' : ''}" data-tofactory-card="${id}" tabindex="-1">${have > 0 ? 'Update in factory' : '+ Add to factory'}</button>`;
   }
   const cardCount = (id, def, R) => R;   // labs or boilers shown on the card
@@ -1582,12 +1582,12 @@
     const filtEmpty = facFilter === 'short' ? 'Nothing is short' + (wavedHere.length ? ' apart from what you dismissed.' : '.')
       : facFilter === 'ok' ? 'Nothing is fulfilled yet.' : 'Nothing is missing.';
     $('#main').innerHTML = `
-      <h1>${ic('assembling-machine-2', 'lg')}<span class="ttl">Ledger${entered ? '' : '<div class="sub">Nothing entered yet.</div>'}</span></h1>
+      <h1>${ic('assembling-machine-2', 'lg')}<span class="ttl">Your factory${entered ? '' : '<div class="sub">Nothing entered yet.</div>'}</span></h1>
       ${tabBar}${sum}
       <div class="tbl fac" id="tree">${th}${groups.map(g => g.join('')).join(line)}${groups.length ? line : ''}${facFilter ? (groups.length ? '' : `<div class="tr full"><div class="td"><span class="sub">${filtEmpty}</span></div></div>`) : addRowHtml()}</div>
       ${facFilter ? '' : bpHtml()}
       ${facTabKept(facTab) ? `<div class="summary" id="forget"><button class="iconbtn sm" data-forget="ask" tabindex="-1">${facTab === 'all' ? 'Clear all' : 'Clear this tab'}</button></div>` : ''}`;
-    doc.title = 'Ledger – Factorio Ratios';
+    doc.title = 'Your factory – Factorio Ratios';
   }
 
   // the dashed "add" row at the bottom of a tab: name, then how many and on what (machine and recipe, or the refineries'
@@ -1987,7 +1987,7 @@
     const want = oilWant(plan, basic), crudeNeed = oilCrudeNeed(want.refinery, mode, M.uses), crudeHave = saved(chainMem['crude-oil']) ? chainMem['crude-oil'].scale : 0;
     const crackOk = (id, n) => basic || !(n > 1e-9) || unitN(id) === want[id], jacksOk = crudeHave >= crudeNeed - 1e-9;
     const inFac = refN(mode) === want.refinery && crackOk('heavy-oil-cracking', plan.Hc) && crackOk('light-oil-cracking', plan.Lc) && jacksOk;
-    const btn = !(plan.R > 0) ? '' : inFac ? `<button class="iconbtn sm infac" data-go="#c/factory" tabindex="-1" title="Open the ledger">In your factory ✓</button>`
+    const btn = !(plan.R > 0) ? '' : inFac ? `<button class="iconbtn sm infac" data-go="#c/factory" tabindex="-1" title="Open your factory">In your factory ✓</button>`
       : `<button class="iconbtn sm${changed ? ' cta' : ''}" data-oil-tofactory tabindex="-1" title="Put ${want.refinery} refineries${basic ? '' : `, ${want['heavy-oil-cracking']} heavy and ${want['light-oil-cracking']} light oil cracking plants`}${jacksOk ? '' : ` and ${fmt(Math.ceil(crudeNeed * supply('crude-oil', 1).k - 1e-9))} pumpjacks`} into your factory">${refN(mode) > 0 ? 'Update in factory' : '+ Add to factory'}</button>`;
     $('#main').innerHTML = `<h1>${ic('oil-refinery', 'lg')}<span class="ttl">Oil processing<div class="sub">${intro}</div>${sized ? `<div class="sub">${sized}</div>` : ''}</span>${btn}</h1>
       ${modeSeg}${notes.join('')}
