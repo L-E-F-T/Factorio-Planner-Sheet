@@ -2646,7 +2646,8 @@
         text: 'Defaults sets the tier of the assemblers, furnaces, drills and belts that every page uses. Set them to what you have built in your game.' }),
       Object.assign({}, HOME, { target: () => [q, strip], auto: true, focus: () => q, show: () => { if (baseOpen) { baseOpen = false; renderSettings(); } },
         done: () => !!cur && !preview && /^#i\//.test(location.hash), text: 'Type the name of something you want to make, like green circuit, then press Enter to open its page.' }),
-      Object.assign({}, ITEM, { target: () => $('#main h1'), text: 'This is the page for the item you searched for. Under its name is the recipe from the game.' }),
+      Object.assign({}, ITEM, { target: () => $('#main h1'), show: () => { if (q.value && !preview) { q.value = ''; hits = []; strip.hidden = true; strip.innerHTML = ''; } },   // the search is done: its box and suggestions give the room back
+        text: 'This is the page for the item you searched for. Under its name is the recipe from the game.' }),
       Object.assign({}, ITEM, { target: () => $('#tree .tr.product'), focus: () => $('#tree .tr.product input.num'), done: () => !!(cur && viewMem[cur.id]),
         text: 'The top row is the item itself. Type how many machines you want making it, and every ingredient below changes to match.' }),
       Object.assign({}, ITEM, { target: () => $('#tree .tr.product .mbtn.can'), auto: true, done: () => !!(cur && cur.st.overrides['l:' + cur.tree.path]),
@@ -2724,7 +2725,7 @@
   };
   const TOUR_INTRO = { intro: true, text: () => `Hello! This is the Factorio Ratios tutorial. ${!tour.done.size ? 'Press Start to begin with the basics, or pick a part.' : tour.done.size < Object.keys(TOUR_PARTS).length ? 'Press Start for the next part, or pick one.' : 'You have done every part. Press Start to go through them again, or pick one.'}` };
   const TOUR_END = { end: true, target: () => $('#tourbtn'), text: 'That\'s it for this part. Done brings back your own factory, and the ? button opens the tutorial again.' };
-  let tour = null, tourEl = null, tourRaf = 0, tourObs = null;
+  let tour = null, tourEl = null, tourRaf = 0, tourObs = null, tourSize = null;
   const TOUR_EVENTS = ['focusin', 'focusout', 'input', 'change', 'keyup', 'click'];
   const tourList = () => tour.part ? TOUR_PARTS[tour.part].steps : [];
   const tourStep = () => !tour.part ? TOUR_INTRO : tour.i >= tourList().length ? TOUR_END : tourList()[tour.i];
@@ -2752,9 +2753,10 @@
     store.off = true;
     tourEl = doc.createElement('div'); tourEl.id = 'tour';
     tourEl.innerHTML = '<div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="ring none"></div>'
-      + '<div class="tcard" role="dialog" aria-label="Tutorial" tabindex="-1"><div class="tstep"><span class="tpos"></span><button class="tx" data-tour="end" title="Close the tutorial (Esc)" aria-label="Close the tutorial">×</button></div><p class="ttext" aria-live="polite"></p><div class="tnav"></div></div>';
+      + '<div class="tcard" role="dialog" aria-label="Tutorial" tabindex="-1"><div class="tprog"><i></i></div><div class="tstep"><span class="tpos"></span><button class="tx" data-tour="end" title="Close the tutorial (Esc)" aria-label="Close the tutorial">×</button></div><p class="ttext" aria-live="polite"></p><div class="tnav"></div></div>';
     doc.body.appendChild(tourEl); doc.body.classList.add('touring');   // room below the page, so what a step rings can come up above the sheet
     tourEl.addEventListener('click', tourClick);
+    tourEl.addEventListener('animationend', e => e.target.classList.remove('pulse'));
     w.addEventListener('keydown', tourKey, true);
     w.addEventListener('scroll', tourSoon, true);
     w.addEventListener('resize', tourSoon);
@@ -2762,6 +2764,7 @@
     doc.addEventListener('focusin', tourFocus);
     tourObs = new MutationObserver(tourSoon);
     tourObs.observe($('#main'), { childList: true, subtree: true }); tourObs.observe($('header'), { childList: true, subtree: true }); tourObs.observe(doc.body, { childList: true });
+    if (w.ResizeObserver) { tourSize = new ResizeObserver(tourSoon); tourSize.observe(doc.documentElement); tourSize.observe($('header')); }   // a turned phone or a zoom, even with no resize event
     tourShowCard();
   }
   // a part from its start, on a clean sample, from wherever you are
@@ -2817,11 +2820,9 @@
     const step = tourStep(), w = doc.defaultView || window;
     tourCard(step); tourMini();   // the sheet at the size it will have, before it is measured
     const els = tourTargets(step), r = tourRect(els);
-    if (r && !els.every(el => el.closest('header'))) {   // between the header and the sheet (what is in the header is always in sight)
-      const top = $('header').getBoundingClientRect().bottom + 10, bottom = w.innerHeight - (tourSheet() ? tourEl.querySelector('.tcard').offsetHeight : 0) - 10;
-      if (r.top < top || r.bottom > bottom) w.scrollBy(0, r.bottom - r.top > bottom - top || r.top < top ? r.top - top : r.bottom - bottom);
-    }
+    tourIntoView(els, r); tour.ringH = r ? r.bottom - r.top : 0;
     tour.busy = true; try { tourDraw(); } finally { tour.busy = false; }
+    const ring = tourEl.querySelector('.ring'); ring.classList.remove('pulse'); void ring.offsetWidth; if (r) ring.classList.add('pulse');   // a new step: the ring glows out once
     const box = step.focus && fine() ? step.focus() : null;
     if (box) { box.focus({ preventScroll: true }); if (box.select) box.select(); }
     else (tourEl.querySelector('.tnav .cta:not([hidden])') || tourEl.querySelector('.tcard')).focus({ preventScroll: true });
@@ -2829,13 +2830,26 @@
   function tourCard(step) {
     const c = tourEl.querySelector('.tcard'), list = tourList(), counted = list.filter(s => !s.opener);
     // a part's button, with a ✓ once you have been through it
-    const parts = keys => keys.map(k => `<button class="iconbtn sm" data-tour-part="${k}">${esc(TOUR_PARTS[k].name)}${tour.done.has(k) ? ' ✓' : ''}</button>`).join('');
-    c.querySelector('.tpos').textContent = step.intro || step.end ? 'Tutorial' : step.opener ? TOUR_PARTS[tour.part].name : `${TOUR_PARTS[tour.part].name} · ${counted.indexOf(step) + 1} / ${counted.length}`;
+    const parts = keys => keys.map(k => `<button class="iconbtn sm${tour.done.has(k) ? ' done' : ''}" data-tour-part="${k}">${esc(TOUR_PARTS[k].name)}${tour.done.has(k) ? '<span class="ok">✓</span>' : ''}</button>`).join('');
+    const n = counted.indexOf(step) + 1, name = tour.part ? esc(TOUR_PARTS[tour.part].name) : '';
+    c.querySelector('.tpos').innerHTML = step.intro || step.end ? '<b>Tutorial</b>' : step.opener ? `<b>${name}</b>` : `<b>${name}</b> · ${n} / ${counted.length}`;
+    // the bar along the top: how far into the part you are, full (and green) at its end
+    const pr = c.querySelector('.tprog'), pct = step.intro ? 0 : step.end ? 100 : step.opener ? 0 : n / counted.length * 100;
+    pr.hidden = !!step.intro; pr.classList.toggle('full', !!step.end); pr.firstElementChild.style.width = pct + '%';
     c.querySelector('.ttext').textContent = tourText(step);
     const keys = Object.keys(TOUR_PARTS), next = step.end && tourNextPart();
     c.querySelector('.tnav').innerHTML = step.intro ? `<div class="chaps"><span class="lead">Parts:</span>${parts(keys)}</div><button class="iconbtn sm cta" data-tour="next">Start</button>`
       : step.end ? `<div class="chaps"><span class="lead">Parts:</span>${parts(keys)}</div><button class="iconbtn sm" data-tour="back">Back</button><button class="iconbtn sm${next ? '' : ' cta'}" data-tour="end">Done</button>${next ? `<button class="iconbtn sm cta" data-tour-part="${next}">Next: ${esc(TOUR_PARTS[next].name)}</button>` : ''}`
       : `<button class="iconbtn sm" data-tour="back">Back</button><button class="iconbtn sm cta" data-tour="next"${tourCanNext(step) ? '' : ' hidden'}>Next</button>`;
+  }
+  // what a step rings brought between the header and the sheet (what is in the header is always in sight): true if it
+  // scrolled
+  function tourIntoView(els, r) {
+    if (!r || els.every(el => el.closest('header'))) return false;
+    const w = doc.defaultView || window, top = $('header').getBoundingClientRect().bottom + 10, bottom = w.innerHeight - (tourSheet() ? tourEl.querySelector('.tcard').offsetHeight : 0) - 10;
+    if (r.top >= top && r.bottom <= bottom) return false;
+    w.scrollBy(0, r.bottom - r.top > bottom - top || r.top < top ? r.top - top : r.bottom - bottom);
+    return true;
   }
   // the next part you have not done
   const tourNextPart = () => Object.keys(TOUR_PARTS).find(k => k !== tour.part && !tour.done.has(k));
@@ -2864,14 +2878,17 @@
     if (!tour.busy && step.auto && !tour.wasDone && step.done(tour.mark)) { tourEnter(tour.i + 1, 1); return; }
     const tx = tourText(step), te = tourEl.querySelector('.ttext'); if (te.textContent !== tx) te.textContent = tx;
     const nx = tourEl.querySelector('.tnav [data-tour="next"]'); if (nx && !step.intro) nx.hidden = !tourCanNext(step);
-    const r0 = tourRect(tourTargets(step)), w = doc.defaultView || window, vw = doc.documentElement.clientWidth, vh = w.innerHeight;
+    const els = tourTargets(step), r0 = tourRect(els), w = doc.defaultView || window, vw = doc.documentElement.clientWidth, vh = w.innerHeight;
+    // what it rings grew (a list or picker you opened, rows you unfolded): bring it into sight again
+    const rh = r0 ? r0.bottom - r0.top : 0, grew = rh > (tour.ringH || 0) + 8; tour.ringH = rh;
+    if (grew && tourIntoView(els, r0)) { tourSoon(); return; }
     const [t, b, l, rt, lid] = tourEl.querySelectorAll('.tb'), ring = tourEl.querySelector('.ring'), card = tourEl.querySelector('.tcard');
     const box = (el, x, y, bw, bh) => Object.assign(el.style, { left: x + 'px', top: y + 'px', width: Math.max(0, bw) + 'px', height: Math.max(0, bh) + 'px' });
     tourMini();
     if (!r0) { ring.className = 'ring none'; ring.removeAttribute('style'); box(t, 0, 0, vw, vh); for (const x of [b, l, rt, lid]) box(x, 0, 0, 0, 0); }
     else {
       const p = 6, r = { left: Math.max(0, r0.left - p), top: Math.max(0, r0.top - p), right: Math.min(vw, r0.right + p), bottom: Math.min(vh, r0.bottom + p) };
-      ring.className = 'ring'; box(ring, r.left, r.top, r.right - r.left, r.bottom - r.top);
+      ring.className = ring.classList.contains('pulse') ? 'ring pulse' : 'ring'; box(ring, r.left, r.top, r.right - r.left, r.bottom - r.top);
       box(t, 0, 0, vw, r.top); box(b, 0, r.bottom, vw, vh - r.bottom); box(l, 0, r.top, r.left, r.bottom - r.top); box(rt, r.right, r.top, vw - r.right, r.bottom - r.top);
       if (step.try || step.done) box(lid, 0, 0, 0, 0); else box(lid, r.left, r.top, r.right - r.left, r.bottom - r.top);
     }
@@ -2929,7 +2946,7 @@
     const from = tour.from, w = doc.defaultView || window;
     tour = null;
     if (tourRaf) cancelAnimationFrame(tourRaf); tourRaf = 0;
-    tourObs.disconnect(); tourObs = null;
+    tourObs.disconnect(); tourObs = null; if (tourSize) { tourSize.disconnect(); tourSize = null; }
     w.removeEventListener('keydown', tourKey, true); w.removeEventListener('scroll', tourSoon, true); w.removeEventListener('resize', tourSoon);
     for (const ev of TOUR_EVENTS) doc.removeEventListener(ev, tourSoon);
     doc.removeEventListener('focusin', tourFocus);
