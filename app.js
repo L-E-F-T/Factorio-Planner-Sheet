@@ -5,8 +5,9 @@
   const $ = s => doc.querySelector(s);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const store = {
+    off: false,   // while the tour runs nothing is saved
     get(k, d) { try { const v = localStorage.getItem('fr:' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
-    set(k, v) { try { localStorage.setItem('fr:' + k, JSON.stringify(v)); } catch (e) { } },
+    set(k, v) { if (store.off) return; try { localStorage.setItem('fr:' + k, JSON.stringify(v)); } catch (e) { } },
   };
   const fine = () => matchMedia('(pointer:fine)').matches;
 
@@ -286,7 +287,7 @@
 
   // ---------- router ----------
   let skipRender = false;
-  function go(hash) { if (location.hash === hash) render(); else location.hash = hash; }
+  function go(hash) { if (location.hash === hash) render(); else if (tour) { history.replaceState(null, '', hash); render(); } else location.hash = hash; }   // the tour leaves no history behind
   window.addEventListener('hashchange', () => { if (skipRender) { skipRender = false; return; } preview = null; render(); });
   const route = () => { const [kind, id] = location.hash.replace(/^#\/?/, '').split('/'); return { kind: kind || 'home', id }; };
   let preview = null;   // {kind,id,spec} while typing in the search box
@@ -371,6 +372,8 @@
     hits = targetQ ? search(targetQ) : [];
     const mc = parsed.n !== null && !parsed.unit && parsed.wantQ === null && hits[0] && hits[0].kind === 'item' && MACHINE_CARD[hits[0].id];   // "8 stone furnaces": that card first
     if (mc) { const c = INDEX.find(e => e.kind === 'card' && e.id === mc); hits = [c].concat(hits.filter(e => e !== c)).slice(0, 8); }
+    const tw = q.value.trim().toLowerCase();   // "tour", "help", "guide", "tutorial": the tour first, started only by Enter or a tap
+    if (tw.length >= 3 && TOUR_WORDS.some(w => w.startsWith(tw))) hits = [TOUR_HIT].concat(hits).slice(0, 8);
     haveHit = parsed.wantQ !== null && parsed.haveQ ? (search(parsed.haveQ)[0] || null) : null;
     selIdx = Math.min(selIdx, Math.max(0, hits.length - 1));
     showStrip();
@@ -382,7 +385,7 @@
     if (parsed.n !== null) ch.push(`<span class="ch n">${fmt(parsed.n)}${parsed.unit ? ' ' + ({ belt: 'belt' + s, lane: 'lane' + s, '/s': 'per second', '/min': 'per minute', labs: 'lab' + s, spm: 'science per minute', mw: 'MW' }[parsed.unit] || parsed.unit) : ''}</span>`);
     if (parsed.wantQ !== null) ch.push(haveHit ? `<span class="ch">${ic(haveHit.kind === 'card' ? CARDS[haveHit.id].icon : haveHit.id, 'xs')}${esc(haveHit.name)}</span><span>→</span>` : `<span class="ch">?</span><span>→</span>`);
     strip.innerHTML = (ch.length ? `<span class="parse">${ch.join('')}</span>` : '') +
-      (hits.length ? hits.map((e, i) => `<span class="hit ${i === selIdx ? 'sel' : ''}" data-i="${i}">${ic(e.kind === 'card' ? CARDS[e.id].icon : e.id, 'sm')}<span class="nm">${i === selIdx ? '<kbd>↵</kbd>' : ''}${esc(e.name)}</span></span>`).join('') : amountOnly ? '' : '<span class="sub">nothing called that</span>');
+      (hits.length ? hits.map((e, i) => `<span class="hit ${i === selIdx ? 'sel' : ''}" data-i="${i}">${e.kind === 'tour' ? `<span class="tourq">${TOUR_SVG}</span>` : ic(e.kind === 'card' ? CARDS[e.id].icon : e.id, 'sm')}<span class="nm">${i === selIdx ? '<kbd>↵</kbd>' : ''}${esc(e.name)}</span></span>`).join('') : amountOnly ? '' : '<span class="sub">nothing called that</span>');
     strip.hidden = false;
     // on a narrow screen the suggestions are one line that scrolls sideways: keep the chosen one in sight
     const sel = strip.querySelector('.hit.sel'); if (sel && strip.scrollWidth > strip.clientWidth) sel.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -390,6 +393,7 @@
   function showPreview() {
     if (!hits.length) return;
     const e = hits[selIdx];
+    if (e.kind === 'tour') { if (preview) { preview = null; render(); } return; }   // nothing to show before it starts
     // on a card, the machine the query counts: the first match that card counts ("4 reactors": Nuclear reactor)
     const machine = e.kind === 'card' ? (hits.find(h => h.kind === 'item' && MACHINE_CARD[h.id] === e.id) || {}).id || null : null;
     const spec = { n: parsed.n, unit: parsed.unit, have: haveHit && haveHit.kind === 'item' ? haveHit.id : null, layout: parsed.layout, haveQ: parsed.haveQ, wantQ: parsed.wantQ, machine };
@@ -405,7 +409,7 @@
     if (p.kind === 'c' && p.id === 'oil' && curCard && curCard.id === 'oil' && curCard.view) { const st = cardState('oil'); st.dem = curCard.view.dem; st.anchor = curCard.view.anchor; st.anchorN = curCard.view.anchorN; }
     else if (p.kind === 'c' && curCard && curCard.id === p.id && curCard.def) cardMem[p.id] = curCard.st;   // the count (and layout) the search set stays on the next redraw
     touch(p.kind + '/' + p.id);
-    if (location.hash !== hash) { skipRender = true; location.hash = hash; }
+    if (location.hash !== hash) { if (tour) history.replaceState(null, '', hash); else { skipRender = true; location.hash = hash; } }
     $('#back').style.visibility = 'visible';
     if (focusBox) { const box = $('#main input.num[data-focus]') || $('#main input.num'); if (box) { box.focus(); box.select(); } }
   }
@@ -415,11 +419,11 @@
       if (!hits.length) return; e.preventDefault();
       selIdx = (selIdx + (e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : hits.length - 1)) % hits.length;
       showStrip(); showPreview();
-    } else if (e.key === 'Enter') { e.preventDefault(); if (preview) commitPreview(fine()); else if (hits.length) { showPreview(); commitPreview(fine()); } if (!fine()) q.blur(); }   // a phone's keyboard goes away
+    } else if (e.key === 'Enter') { e.preventDefault(); if (hits[selIdx] && hits[selIdx].kind === 'tour') { tourStart(true); return; } if (preview) commitPreview(fine()); else if (hits.length) { showPreview(); commitPreview(fine()); } if (!fine()) q.blur(); }   // a phone's keyboard goes away
     else if (e.key === 'Escape') { e.preventDefault(); if (q.value) { q.value = ''; hits = []; strip.hidden = true; preview = null; render(); } else { q.blur(); back(); } }
     else if (e.key === 'Tab' && preview) { commitPreview(false); }
   });
-  strip.addEventListener('mousedown', e => { const h = e.target.closest('.hit'); if (h) { e.preventDefault(); selIdx = Number(h.dataset.i); showStrip(); showPreview(); commitPreview(false); if (!fine()) q.blur(); } });
+  strip.addEventListener('mousedown', e => { const h = e.target.closest('.hit'); if (h) { e.preventDefault(); selIdx = Number(h.dataset.i); if (hits[selIdx] && hits[selIdx].kind === 'tour') { tourStart(true); return; } showStrip(); showPreview(); commitPreview(false); if (!fine()) q.blur(); } });
   function back() { if (route().kind === 'home') return; if (history.length > 1) history.back(); else go('#'); }
 
   function bindDoc(d) {
@@ -465,7 +469,7 @@
     });
   }
   bindDoc(document);
-  window.addEventListener('focus', () => { const a = doc.activeElement; if (a && a.matches && a.matches('input.num')) a.select(); else if (fine() && !(a && a.matches && a.matches('input,select'))) { q.focus(); q.select(); } });
+  window.addEventListener('focus', () => { if (tour) return; const a = doc.activeElement; if (a && a.matches && a.matches('input.num')) a.select(); else if (fine() && !(a && a.matches && a.matches('input,select'))) { q.focus(); q.select(); } });
   document.getElementById('back').addEventListener('click', back);
   document.getElementById('home').addEventListener('click', () => { q.value = ''; strip.hidden = true; preview = null; go('#'); });
   document.getElementById('fac').addEventListener('click', () => { q.value = ''; strip.hidden = true; preview = null; go('#c/factory'); });
@@ -2533,6 +2537,276 @@
   }
 
 
+  // ---------- tour: a guided walk through the pages, on a sample factory ----------
+  // Opt-in: the Tour button, or "tour" (help, guide, tutorial) in the search. It runs on a sample factory with fixed
+  // Defaults, in memory only: nothing is saved while it runs (store.off), other tabs' saves wait for it, and every step
+  // starts again from the clean sample, so trying things on a step cannot break the next one. On the way out your own
+  // factory and Defaults come back from storage (with anything another tab saved meanwhile), and what this visit had open
+  // or typed comes back as it was, on the page you started from. It moves between pages with history.replaceState, so
+  // it leaves nothing for Back to walk through.
+  const TOUR_WORDS = ['tour', 'help', 'guide', 'tutorial'];
+  const TOUR_HIT = { kind: 'tour', id: 'tour', name: 'Start the tour' };
+  const TOUR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.5c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.9v.1"/></svg>';
+  const TOUR_DEFAULTS = { tier: 2, furnace: 'steel-furnace', drill: 'electric-mining-drill', belt: 'transport-belt', rateUnit: 'lane', mp: 0, cap: 0 };
+  // the sample's rows, by machine count: iron plate on two furnaces, electronic circuits used but not entered (missing),
+  // coal short, the rest fulfilled; oil on advanced processing with cracking, plastic and pumpjacks at 150% yield
+  const TOUR_ROWS = [['iron-ore', 30], ['copper-ore', 16], ['coal', 6], ['iron-plate', [['steel-furnace', 16], ['stone-furnace', 12]]], ['copper-plate', 12],
+    ['iron-gear-wheel', 3], ['copper-cable', 4], ['inserter', 1], ['transport-belt', 1], ['automation-science-pack', 6], ['logistic-science-pack', 8], ['plastic-bar', 2], ['crude-oil', 6]];
+  const TOUR_UNITS = { boiler: 10, 'steam-engine': 20, lab: 10, refinery: 4, 'heavy-oil-cracking': 1, 'light-oil-cracking': 4 };
+  function tourSample() {
+    Object.assign(S, TOUR_DEFAULTS);
+    const m = { chains: {}, cards: { oil: { yield: 150 } }, units: Object.assign({}, TOUR_UNITS), machines: {}, recipes: {}, dismissed: [] };
+    loadMem(m);   // the pumpjacks' yield first: it sets what one of them pumps
+    for (const [id, n] of TOUR_ROWS) {
+      const im = itemMachine(id), recipe = im.recipe || null;
+      if (Array.isArray(n)) {
+        const parts = n.map(([machine, c]) => ({ recipe, machine, scale: c / partMachine(id, { recipe, machine }).k }));
+        m.chains[id] = { scale: parts.reduce((a, p) => a + p.scale, 0), anchor: { path: id, kind: 'mach' }, touched: true, parts }; m.machines[id] = parts[0].machine;
+      } else { m.chains[id] = { scale: n / im.k, anchor: { path: id, kind: 'mach' }, touched: true }; if (im.options.length > 1) m.machines[id] = im.machine; }
+    }
+    loadMem(m);
+  }
+  // what this visit has open, picked or typed besides your factory: put aside while the tour runs (each step clears it)
+  function visitState() {
+    return { view: Object.assign({}, viewMem), chains: Object.fromEntries(Object.entries(chainMem).map(([k, v]) => [k, { overrides: v.overrides, open: v.open }])),
+      cards: Object.fromEntries(Object.entries(cardMem).map(([k, v]) => [k, { scale: v.scale, anchor: v.anchor, touched: v.touched, layout: v.layout, labs: v.labs, dem: v.dem, anchorN: v.anchorN }])),
+      facOpen: [...facOpen], facKeep: [...facKeep], facFiltSeen: [...facFiltSeen], refShown: [...refShown], nucShown: [...nucShown], facRemoved: Object.assign({}, facRemoved),
+      facFilter, addSel, bpImport, bpDraft, facTab, baseOpen, q: q.value };
+  }
+  function clearVisit() {
+    closePop();
+    for (const k of Object.keys(viewMem)) delete viewMem[k];
+    for (const v of Object.values(chainMem)) { v.overrides = {}; v.open = []; }
+    for (const v of Object.values(cardMem)) Object.assign(v, { scale: null, anchor: null, touched: false, layout: CARD_DEF.layout, labs: CARD_DEF.labs, dem: null, anchorN: null });
+    for (const s of [facOpen, facKeep, facFiltSeen, refShown, nucShown]) s.clear();
+    for (const k of Object.keys(facRemoved)) delete facRemoved[k];
+    facFilter = null; addSel = null; bpImport = null; bpDraft = ''; baseOpen = false;
+    q.value = ''; hits = []; selIdx = 0; preview = null; strip.hidden = true; strip.innerHTML = '';
+  }
+  function putVisit(v) {
+    clearVisit();
+    Object.assign(viewMem, v.view);
+    for (const [k, c] of Object.entries(v.chains)) Object.assign(chainState(k), c);
+    for (const [k, c] of Object.entries(v.cards)) Object.assign(cardState(k), c);
+    for (const [s, l] of [[facOpen, v.facOpen], [facKeep, v.facKeep], [facFiltSeen, v.facFiltSeen], [refShown, v.refShown], [nucShown, v.nucShown]]) l.forEach(x => s.add(x));
+    Object.assign(facRemoved, v.facRemoved);
+    ({ facFilter, addSel, bpImport, bpDraft, facTab, baseOpen } = v);
+  }
+  // what the steps act with: the app's own boxes and buttons, as you would use them
+  const $$ = s => [...doc.querySelectorAll(s)];
+  const facRow = id => $(`#tree .tr[data-fac="${id}"]`);
+  const withCons = id => { const r = facRow(id), out = r ? [r] : []; let n = r && r.nextElementSibling; while (n && n.classList.contains('cons')) { out.push(n); n = n.nextElementSibling; } return out; };
+  const typeIn = (box, v) => { if (!box) return; box.value = v; box.dispatchEvent(new Event('input', { bubbles: true })); const a = doc.activeElement; if (a && a.blur && !(a.closest && a.closest('#tour'))) a.blur(); };
+  const scrollHigh = el => { if (el) (doc.defaultView || window).scrollBy(0, el.getBoundingClientRect().top - $('header').getBoundingClientRect().bottom - 12); };
+  const afterLine = () => { const rows = $$('#main .tbl.two > .tr'), i = rows.findIndex(r => r.classList.contains('line')); return i < 0 ? [] : rows.slice(i + 1); };
+  // a step: the page it is on (and ledger tab), what it says, what it rings (target), what the tour does first (prep), and
+  // whether the ringed part can be used (try)
+  const TOUR_CORE = [
+    { page: '#', text: 'A quick tour, on a sample factory. Try anything along the way: nothing is saved, and your own factory comes back when it ends.' },
+    { page: '#', target: () => q, try: true, prep: () => { q.value = '5 gear'; runSearch(); },
+      text: 'Type what you want to make; the best match opens as you type. "5 gear" is gears from 5 assemblers; "2 lanes of stone" or "15/s" set an amount.' },
+    { page: '#', target: () => $('#settings'), try: true, prep: () => { if (matchMedia('(max-width:900px)').matches) { baseOpen = true; renderSettings(); } },
+      text: 'Defaults: what every page assumes, from assembler tier to belt. Amounts are in lanes of your belt (a yellow lane is 7.5 per second); fluids are per second, water and crude oil in pumps.' },
+    { page: '#i/electronic-circuit', target: () => $('#main h1'),
+      text: 'An item page: the recipe from the game. The line under it says what in your factory sizes the page: what that has spare after the rest of your factory.' },
+    { page: '#i/electronic-circuit', target: () => $('#tree .tr.product'), try: true, prep: () => typeIn($('#tree .tr.product input.num'), '4'),
+      text: 'The top row is what you make; under "needs" are its ingredients, down to the ore. Type into any box and the page follows ("2.4 build 3" means build 3); ↺ drops your change.' },
+    { page: '#i/electronic-circuit', target: () => [$('#tree .tr.product .mbtn.can'), popEl], try: true, prep: () => { const b = $('#tree .tr.product .mbtn.can'); scrollHigh(b); if (b) b.click(); },
+      text: 'Pick the tier, furnace or drill for a row. Like everything you change on a page, it lasts for this visit.' },
+    { page: '#i/electronic-circuit', target: () => $('#tree .tr[data-path="electronic-circuit>iron-plate"]'), try: true,
+      text: 'The sample factory makes iron plate in stone and steel furnaces, so this page does too. + adds a line on another machine, × takes one off, ▸ opens a row deeper.' },
+    { page: '#i/electronic-circuit', target: () => $('#main h1 .iconbtn.sm'), try: true,
+      text: 'A page is a what-if. Add to factory keeps it: it writes the top row into your ledger, in whole machines.' },
+    { page: '#c/factory', target: () => $('#main .factabs'), try: true,
+      text: 'Factory, at the top, opens the ledger: the machines a factory really has, here the sample. With Defaults, it is all that is saved. A red count on a tab means something there is short.' },
+    { page: '#c/factory', target: () => facRow('coal'),
+      text: 'Each row: its machines, what they make (Supply), what the rest of the factory uses (Demand), and the verdict: short in red with what to add, missing in grey, fulfilled in green.' },
+    { page: '#c/factory', target: () => facRow('coal') && facRow('coal').querySelector('input.num'), try: true,
+      prep: () => { const used = (factoryModel().uses.coal || []).reduce((a, u) => a + u.rate, 0), r = facRow('coal'); typeIn(r && r.querySelector('input.num'), String(Math.ceil(used * itemMachine('coal').k - 1e-9))); },
+      text: 'Type how many you have, and the ledger recounts as you type.' },
+    { page: '#c/factory', target: () => $('#main .fac-sum'), try: true,
+      text: 'Press a count to see only those rows. The short list puts the biggest gap first; a name jumps to its row.' },
+    { page: '#c/factory', target: () => $('#main .fac-sum'), prep: () => { const x = $('#main .fac-sum .chip2.dz .x'); if (x) x.click(); },
+      text: '× dismisses a shortage you are fine with. Only this list changes, never the row; Bring back puts it back.' },
+    { page: '#c/factory', target: () => withCons('coal'), try: true, prep: () => { facOpen.add('coal'); renderFactory(true); },
+      text: '▸ shows what makes a row and what uses it, so you can see where a shortage comes from. − takes that line out of your factory.' },
+    { page: '#c/factory', target: () => $('#tourbtn'),
+      text: 'That is the tour. Your own factory is saved in this browser only, per address, and open tabs stay in step. This button runs the tour again.' },
+  ];
+  // more, from the last step; each chapter ends back on it
+  const TOUR_CHAPTERS = {
+    cards: { name: 'Cards', steps: [
+      { page: '#c/steam', target: () => [0, 1, 2, 3].map(i => $(`#main .tbl.two .tr[data-path="f${i}"]`)), try: true, prep: () => typeIn($('#main input.num[data-path="f0"]'), '30'),
+        text: 'A card links machines that work together. Type boilers, steam engines, pumps or MW and the rest follows. Steam, Solar, Nuclear and Labs can add to your factory too.' },
+      { page: '#c/nuclear', target: () => [$('#main .settings'), ...[0, 1, 2].map(i => $(`#main .tbl.two .tr[data-path="f${i}"]`))], try: true,
+        text: 'Pick a reactor layout. A count the card works out shows the whole number to build big, and the exact count small.' },
+      { page: '#c/science', target: () => $('#main .tbl.two .tr.product'), try: true,
+        text: 'Labs: the research time and lab speed set how fast they use packs. Type labs, or the assemblers on a pack, and the rest follows.' },
+      { page: '#c/reference', target: () => $('#main .panel'),
+        text: 'Belts, inserters, fuel, power draw, poles and wagons, straight from the game\'s files.' },
+    ] },
+    oil: { name: 'Oil processing', steps: [
+      { page: '#c/oil', target: () => [$('#main .settings'), $('#main .tbl.two .tr.product')], try: true, prep: () => typeIn($('#main input.num[data-oil="R"]'), '10'),
+        text: 'Pick the processing, then type refineries, cracking, pumpjacks or an oil: the rest follows, each machine with how many your factory has.' },
+      { page: '#c/oil', target: afterLine, try: true,
+        text: 'Each oil, against what your factory uses. Add to factory puts the whole refineries, the cracking and the pumpjacks into your ledger.' },
+    ] },
+    tabs: { name: 'Power and oil tabs', steps: [
+      { page: '#c/factory', tab: 'power', target: () => facRow('unit:boiler'), try: true,
+        text: 'Power: boilers burn the fuel you pick on their row. The Steam and Electricity rows below add up what makes them and what uses them.' },
+      { page: '#c/factory', tab: 'oil', target: () => facRow('unit:refinery'), try: true,
+        text: 'Oil & chemicals: refineries, a line per processing, with how many your factory needs and how busy they are. Above them crude oil at your pumpjacks\' yield; below, the cracking and each oil, with what backs up.' },
+    ] },
+    add: { name: 'Adding rows and blueprints', steps: [
+      { page: '#c/factory', tab: 'assembling', target: () => [$('#tree .tr.add'), $('#tree .tr.add-hits')], try: true, prep: () => addQuery(''),
+        text: 'The dashed row adds anything this tab holds: click it for the list, or type to narrow it; pick one, type how many, then Add.' },
+      { page: '#c/factory', tab: 'assembling', target: () => $('#main .bp'),
+        text: 'Paste a blueprint or blueprint book string and press Import: it counts the machines in it, and asks what its furnaces and drills make.' },
+    ] },
+  };
+  let tour = null, tourEl = null, tourRaf = 0, tourObs = null;
+  const tourTargets = step => step.target ? [].concat(step.target()).filter(el => el && el.isConnected) : [];
+  // what a step rings, as one rectangle on screen (a row above 700 px has no box of its own: its cells have)
+  function tourRect(els) {
+    let r = null;
+    const add = b => { if (!(b.width > 0 && b.height > 0)) return; r = r ? { left: Math.min(r.left, b.left), top: Math.min(r.top, b.top), right: Math.max(r.right, b.right), bottom: Math.max(r.bottom, b.bottom) } : { left: b.left, top: b.top, right: b.right, bottom: b.bottom }; };
+    for (const el of els) { const b = el.getBoundingClientRect(); if (b.width > 0 && b.height > 0) add(b); else for (const c of el.children) add(c.getBoundingClientRect()); }
+    return r;
+  }
+  const tourSheet = () => matchMedia('(max-width:700px)').matches;   // on narrow screens the card is a sheet at the bottom
+  function tourStart(fromSearch) {
+    if (tour) return;
+    if (fromSearch) { q.value = ''; hits = []; preview = null; strip.hidden = true; strip.innerHTML = ''; }   // the search that started it is not kept
+    if (!fine()) q.blur();
+    closePop();
+    const w = doc.defaultView || window;
+    tour = { i: 0, list: TOUR_CORE, chapter: null, from: { hash: location.hash, y: w.scrollY, visit: visitState() } };
+    store.off = true;
+    tourEl = doc.createElement('div'); tourEl.id = 'tour';
+    tourEl.innerHTML = '<div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="ring none"></div>'
+      + '<div class="tcard" role="dialog" aria-label="Tour"><div class="tstep"><span class="tpos"></span><button class="tx" data-tour="end" title="End the tour (Esc)" aria-label="End the tour">×</button></div><p class="ttext" aria-live="polite"></p><div class="tnav"></div></div>';
+    doc.body.appendChild(tourEl); doc.body.classList.add('touring');   // room below the page, so what a step rings can come up above the sheet
+    tourEl.addEventListener('click', tourClick);
+    w.addEventListener('keydown', tourKey, true);
+    w.addEventListener('scroll', tourSoon, true);
+    w.addEventListener('resize', tourSoon);
+    doc.addEventListener('focusin', tourSoon); doc.addEventListener('focusout', tourSoon);
+    tourObs = new MutationObserver(tourSoon);
+    tourObs.observe($('#main'), { childList: true, subtree: true }); tourObs.observe($('header'), { childList: true, subtree: true }); tourObs.observe(doc.body, { childList: true });
+    tourGo(0);
+  }
+  function tourGo(i, list, chapter) {
+    if (list) { tour.list = list; tour.chapter = chapter || null; }
+    tour.i = i;
+    const step = tour.list[i], w = doc.defaultView || window;
+    clearVisit(); tourSample(); facTab = step.tab || 'all';
+    const url = step.page === '#' ? location.pathname + location.search : step.page;
+    if (location.hash !== (step.page === '#' ? '' : step.page)) history.replaceState(null, '', url);
+    renderSettings(); render();
+    if (step.prep) step.prep();
+    tourCard(step);
+    // bring what it rings between the header and the sheet (what is in the header is always in sight)
+    const els = tourTargets(step), r = tourRect(els);
+    if (r && !els.every(el => el.closest('header'))) {
+      const top = $('header').getBoundingClientRect().bottom + 10, bottom = w.innerHeight - (tourSheet() ? tourEl.querySelector('.tcard').offsetHeight : 0) - 10;
+      if (r.top < top || r.bottom > bottom) w.scrollBy(0, r.bottom - r.top > bottom - top || r.top < top ? r.top - top : r.bottom - bottom);
+    }
+    tourDraw();
+    const go = tourEl.querySelector('.tnav .cta'); if (go) go.focus({ preventScroll: true });
+  }
+  function tourCard(step) {
+    const n = tour.list.length, last = !tour.chapter && tour.i === n - 1, c = tourEl.querySelector('.tcard');
+    c.querySelector('.tpos').textContent = `${tour.chapter ? TOUR_CHAPTERS[tour.chapter].name : 'Tour'} · ${tour.i + 1} / ${n}`;
+    c.querySelector('.ttext').textContent = step.text;
+    c.querySelector('.tnav').innerHTML = (last ? `<div class="chaps"><span class="lead">More:</span>${Object.entries(TOUR_CHAPTERS).map(([k, ch]) => `<button class="iconbtn sm" data-tour-ch="${k}">${esc(ch.name)}</button>`).join('')}</div>` : '')
+      + `<button class="iconbtn sm" data-tour="back"${tour.i === 0 && !tour.chapter ? ' disabled' : ''}>Back</button><button class="iconbtn sm cta" data-tour="${last ? 'end' : 'next'}">${last ? 'Done' : 'Next'}</button>`;
+  }
+  // redraw on the next frame (or shortly, where frames are held back)
+  const tourSoon = () => {
+    if (!tour || tourRaf) return;
+    const draw = () => { if (!tourRaf) return; cancelAnimationFrame(tourRaf); tourRaf = 0; tourDraw(); };
+    tourRaf = requestAnimationFrame(draw); setTimeout(draw, 80);
+  };
+  // the dimmed page with a ring around what the step is about; clear blockers around the ring take the clicks meant for
+  // the rest of the page (and one over the ring, unless the step lets you try it); the card goes beside the ring, never
+  // over it, or is the sheet at the bottom of a narrow screen
+  function tourDraw() {
+    if (!tour) return;
+    const step = tour.list[tour.i], r0 = tourRect(tourTargets(step)), w = doc.defaultView || window, vw = doc.documentElement.clientWidth, vh = w.innerHeight;
+    const [t, b, l, rt, lid] = tourEl.querySelectorAll('.tb'), ring = tourEl.querySelector('.ring'), card = tourEl.querySelector('.tcard');
+    const box = (el, x, y, bw, bh) => Object.assign(el.style, { left: x + 'px', top: y + 'px', width: Math.max(0, bw) + 'px', height: Math.max(0, bh) + 'px' });
+    const a = doc.activeElement;   // a phone's keyboard is up: the sheet folds to its buttons
+    card.classList.toggle('mini', !fine() && !!a && !!a.matches && a.matches('input,textarea') && !a.closest('#tour'));
+    if (!r0) { ring.className = 'ring none'; ring.removeAttribute('style'); box(t, 0, 0, vw, vh); for (const x of [b, l, rt, lid]) box(x, 0, 0, 0, 0); }
+    else {
+      const p = 6, r = { left: Math.max(0, r0.left - p), top: Math.max(0, r0.top - p), right: Math.min(vw, r0.right + p), bottom: Math.min(vh, r0.bottom + p) };
+      ring.className = 'ring'; box(ring, r.left, r.top, r.right - r.left, r.bottom - r.top);
+      box(t, 0, 0, vw, r.top); box(b, 0, r.bottom, vw, vh - r.bottom); box(l, 0, r.top, r.left, r.bottom - r.top); box(rt, r.right, r.top, vw - r.right, r.bottom - r.top);
+      if (step.try) box(lid, 0, 0, 0, 0); else box(lid, r.left, r.top, r.right - r.left, r.bottom - r.top);
+    }
+    if (tourSheet()) { card.style.left = card.style.top = ''; return; }
+    const cw = card.offsetWidth, ch = card.offsetHeight, m = 12, g = 6 + m;
+    const cx = v => Math.max(m, Math.min(v, vw - cw - m)), cy = v => Math.max(m, Math.min(v, vh - ch - m));
+    let x, y;
+    if (!r0) { x = (vw - cw) / 2; y = Math.max(m, (vh - ch) / 2); }
+    else if (r0.bottom + g + ch <= vh - m) { x = cx(r0.left); y = r0.bottom + g; }
+    else if (r0.top - g - ch >= m) { x = cx(r0.left); y = r0.top - g - ch; }
+    else if (r0.right + g + cw <= vw - m) { x = r0.right + g; y = cy(r0.top); }
+    else if (r0.left - g - cw >= m) { x = r0.left - g - cw; y = cy(r0.top); }
+    else { x = vw - cw - m; y = vh - ch - m; }
+    card.style.left = x + 'px'; card.style.top = y + 'px';
+  }
+  function tourClick(e) {
+    if (e.target.closest('.tcard')) e.stopPropagation();   // the card's clicks are the tour's: they do not close a picker a step opened
+    const bt = e.target.closest('button'); if (!bt || bt.disabled) return;
+    if (bt.dataset.tourCh) { tourGo(0, TOUR_CHAPTERS[bt.dataset.tourCh].steps, bt.dataset.tourCh); return; }
+    const a = bt.dataset.tour;
+    if (a === 'end') tourEnd(); else if (a === 'next') tourNext(); else if (a === 'back') tourBack();
+  }
+  const tourLast = () => tourGo(TOUR_CORE.length - 1, TOUR_CORE, null);
+  function tourNext() { if (tour.i < tour.list.length - 1) tourGo(tour.i + 1); else if (tour.chapter) tourLast(); else tourEnd(); }
+  function tourBack() { if (tour.i > 0) tourGo(tour.i - 1); else if (tour.chapter) tourLast(); }
+  // ahead of the app's own keys: Esc first does what it does where you are (puts a changed box back, clears the search box,
+  // closes the add list or a picker) and with nothing left to undo ends the tour; → and Enter go on, ← goes back; letters
+  // do not jump into the search box
+  function tourKey(e) {
+    if (!tour) return;
+    const t = e.target, inCard = !!(t && t.closest && t.closest('#tour')), typing = !!(t && t.matches && t.matches('input,select,textarea'));
+    if (e.key === 'Escape') {
+      if (popEl) { e.preventDefault(); e.stopPropagation(); closePop(); tourSoon(); return; }
+      if (t === q && q.value) return;
+      if (typing && t.matches('input.num') && t.dataset.orig !== undefined && t.value !== t.dataset.orig) return;
+      if (t && t.id === 'addq' && $('#addhits .chip2')) return;
+      e.preventDefault(); e.stopPropagation(); tourEnd(); return;
+    }
+    if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === 'ArrowRight' || (e.key === 'Enter' && !inCard)) { e.preventDefault(); e.stopPropagation(); tourNext(); }   // Enter on the card's own buttons presses them
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); tourBack(); }
+    else if (e.key.length === 1) e.stopPropagation();
+  }
+  function tourEnd() {
+    if (!tour) return;
+    const from = tour.from, w = doc.defaultView || window;
+    tour = null;
+    if (tourRaf) cancelAnimationFrame(tourRaf); tourRaf = 0;
+    tourObs.disconnect(); tourObs = null;
+    w.removeEventListener('keydown', tourKey, true); w.removeEventListener('scroll', tourSoon, true); w.removeEventListener('resize', tourSoon);
+    doc.removeEventListener('focusin', tourSoon); doc.removeEventListener('focusout', tourSoon);
+    tourEl.remove(); tourEl = null; doc.body.classList.remove('touring');
+    // your own factory and Defaults as they are saved now, then what this visit had, on the page you were on
+    store.off = false;
+    clearVisit();
+    loadMem(store.get('mem', {}));
+    Object.assign(S, fresh(), store.get('settings', {})); if (!['lane', 'belt', 's', 'min'].includes(S.rateUnit)) S.rateUnit = 'lane';
+    putVisit(from.visit);
+    if (location.hash !== from.hash) history.replaceState(null, '', from.hash || location.pathname + location.search);
+    keepPlace = true;
+    try { renderSettings(); render(); if (from.visit.q) { q.value = from.visit.q; runSearch(); } } finally { keepPlace = false; }
+    w.scrollTo(0, from.y);
+    if (fine()) q.focus();
+  }
+  document.getElementById('tourbtn').addEventListener('click', () => tourStart());
+
   // ---------- boot ----------
   // ledger entries saved before machines were pinned keep the machines they show today; rows an earlier version kept a
   // machine for after they were emptied go back to Defaults, like anything else not in your factory
@@ -2542,6 +2816,7 @@
   // another tab of this page saved Defaults or your factory: take them up here and redraw in place, so this tab never
   // saves its older copy back over them
   window.addEventListener('storage', e => {
+    if (tour) return;   // the tour's sample stays; its end takes up whatever was saved meanwhile
     if (e.key !== null && e.key !== 'fr:settings' && e.key !== 'fr:mem') return;   // null: that tab cleared everything
     let v; try { v = JSON.parse(e.newValue) || {}; } catch (err) { return; }   // taken out: a fresh start
     modelMemo = null;

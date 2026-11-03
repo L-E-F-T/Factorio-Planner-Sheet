@@ -90,6 +90,11 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
 * Click an ingredient's name to make it the product, carrying its amount down the chain. ▸ opens one more level.
 * **Home** (top left, on every page) goes back to the full list; **Factory** beside it opens the Your factory
   ledger; **←** goes back one step.
+* **Tour** (beside Factory; on a phone at the right end of that row; or search "tour" or "help") walks through
+  every page on a sample factory in 15 steps, with more on the cards, oil processing, the Power and Oil tabs
+  and adding rows from its last step. Try anything along the way: nothing is saved while it runs, and your
+  own factory, Defaults and the page you were on come back when it ends (Done, ×, or Esc once there is
+  nothing else for Esc to undo). → or Enter goes on, ← goes back.
 * **Raw resources** (stone, iron ore, copper ore, coal, wood, water) have a page of their own. The first row
   is the supply: drills on one side, amount on the other. Every item below it is sized as if all of that
   supply went to it, with its other ingredients under it, so changing any box moves the whole page. Links

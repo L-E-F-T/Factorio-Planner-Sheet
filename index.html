@@ -265,6 +265,24 @@ th,td{padding:6px 8px;border-bottom:1px solid #3c3b3c;text-align:left;vertical-a
 th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
 td.n,th.n{text-align:right;font-family:var(--mono)}
 footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30px}
+/* the guided tour (opt-in, the Tour button): the page dims, a ring shows what a step is about and a card says it (on a
+   narrow screen, a sheet at the bottom). Clear blockers take the clicks outside the ring; on a step you can try, what
+   the ring holds works */
+#tour{position:fixed;inset:0;z-index:30;pointer-events:none}
+#tour .tb{position:fixed;pointer-events:auto}
+#tour .ring{position:fixed;border:2px solid #ececec;border-radius:8px;box-shadow:0 0 0 200vmax rgba(12,11,12,.62);pointer-events:none}
+#tour .ring.none{left:50%;top:50%;width:0;height:0;border:0}
+#tour .tcard{position:fixed;pointer-events:auto;width:min(380px,calc(100vw - 24px));background:var(--panel);border:1px solid #6b696b;border-radius:var(--r);padding:8px 12px 12px;box-shadow:0 12px 32px rgba(0,0,0,.65)}
+#tour .tstep{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+#tour .tx{margin-left:auto;width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:var(--muted);font-size:20px;line-height:1;padding:0}
+#tour .tx:hover{background:#2a292a;color:var(--fg)}
+#tour .ttext{margin:2px 0 12px;font-size:15px;line-height:1.45}
+#tour .tnav{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center}
+#tour .chaps{display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex:1 1 100%;margin-bottom:4px}
+#tour button:disabled{opacity:.4;cursor:default}
+#tour button:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+.tourq{display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;flex:none;color:var(--muted)}
+.tourq svg{width:20px;height:20px}
 /* small windows and phones: "Your base" folds into one line (its choices as icons) that opens the full strip,
    and the search suggestions stay on one line that scrolls sideways */
 @media (max-width:900px){
@@ -386,10 +404,20 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   .fac-sum .chiprow{display:flex;flex:1 1 100%;flex-wrap:nowrap;align-items:center;gap:6px;overflow-x:auto;padding-bottom:3px;scrollbar-width:thin}
   .fac-sum .chiprow > *{flex:none}
 }
-/* the search box gets a row of its own only where it would be too narrow beside the buttons */
+/* the search box gets a row of its own only where it would be too narrow beside the buttons; Tour then sits at the
+   right end of the row of buttons */
 @media (max-width:519px){
   .searchwrap{flex-wrap:wrap}
   #q{flex-basis:100%;order:9}
+  #tourbtn{margin-left:auto}
+}
+@media (max-width:340px){ #tourbtn span{display:none} }
+/* the tour's card on a narrow screen: a sheet along the bottom; while a page box has the keyboard up, only its buttons */
+@media (max-width:700px){
+  #tour .tcard{left:0;right:0;bottom:0;top:auto;width:auto;max-height:50vh;overflow-y:auto;border-width:1px 0 0;border-radius:12px 12px 0 0;padding:6px 14px calc(12px + env(safe-area-inset-bottom))}
+  #tour .ttext{font-size:14px}
+  #tour .tcard.mini .ttext,#tour .tcard.mini .chaps{display:none}
+  body.touring main{padding-bottom:60vh}
 }
 @media (max-width:380px){
   #settings .seg button{padding:3px 6px;gap:4px}
@@ -448,6 +476,7 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
     <button id="back" class="iconbtn" title="Back (Esc)" aria-label="Back" tabindex="-1">&#8592;</button>
     <button id="home" class="iconbtn home" title="Home" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-6h4v6"/></svg><span>Home</span></button>
     <button id="fac" class="iconbtn home" title="Your factory" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V9.5l5.5 3.5V9.5l5.5 3.5V9.5l5.5 3.5V20z"/><path d="M16.5 9V4h3v8"/></svg><span>Factory</span></button>
+    <button id="tourbtn" class="iconbtn home" title="A guided tour of every page, on a sample factory" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.5c-.6.3-1 .8-1 1.5v.6"/><path d="M12 16.9v.1"/></svg><span>Tour</span></button>
     <input id="q" type="text" placeholder="Search" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-label="Search">
   </div>
   <div id="strip" hidden></div>
