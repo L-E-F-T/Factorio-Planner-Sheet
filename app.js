@@ -1019,7 +1019,7 @@
   // "Everything" shows them all. A tab's dashed add row only offers what belongs in that tab.
   const FAC_TABS = [['all', 'Everything', ''], ['mining', 'Mining & smelting', 'electric-mining-drill'], ['assembling', 'Assembling', 'assembling-machine-2'], ['oil', 'Oil & chemicals', 'oil-refinery'], ['power', 'Power', 'steam-engine'], ['science', 'Science', 'lab']];
   const FAC_ORDER = ['mining', 'assembling', 'oil', 'power', 'science'];
-  const ADD_HINT = { all: 'Add anything', mining: 'Add drills or furnaces', assembling: 'Add an assembled item', oil: 'Add pumpjacks, refineries, cracking', power: 'Add boilers, steam engines, solar', science: 'Add labs or a science pack' };
+  const ADD_HINT = { all: 'Search', mining: 'Add drills or furnaces', assembling: 'Add an assembled item', oil: 'Add pumpjacks, refineries, cracking', power: 'Add boilers, steam engines, solar', science: 'Add labs or a science pack' };
   let facTab = store.get('factab', 'all'); if (!FAC_TABS.some(t => t[0] === facTab)) facTab = 'all';
   const facOpen = new Set();   // rows opened to show what uses the item
   let facFilter = null;            // 'short', 'none' or 'ok': the table shows only what that count at the top counts (this visit)
