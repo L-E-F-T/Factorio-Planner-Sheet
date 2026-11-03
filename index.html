@@ -111,7 +111,7 @@ h3{font-size:13px;color:var(--faint);margin:12px 0 4px;font-weight:600}
 .exp.gap{visibility:hidden}
 /* − before a line of an opened ledger row: takes that line out of your factory; drawn as a bar so it is as large as the ▸ */
 .exp.minus{font-size:0}
-.exp.minus::before{content:"";display:block;width:18px;height:2px;margin:auto;border-radius:1px;background:currentColor}
+.exp.minus::before{content:"";display:block;width:12px;height:2px;margin:auto;border-radius:1px;background:currentColor}
 /* Remove, under the name of a ledger row you entered; Put back while you are still on the page */
 .rm{position:relative;display:block;margin:2px 0 0 -6px;height:22px;padding:0 6px;border:0;border-radius:var(--r);background:transparent;color:var(--faint);font:12px var(--sans);cursor:pointer}
 .rm:hover{background:#2a292a;color:var(--fg)}
@@ -299,51 +299,73 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   .td.item{padding-left:calc(10px + var(--d,0) * 10px)}
   .td.item .nmtxt{overflow-wrap:break-word}
 }
-/* phones and narrow windows */
+/* phones and narrow windows: everything a size tighter (less padding, 40px boxes and buttons) so more of a page fits */
 @media (max-width:700px){
+  header{padding:6px 8px 5px}
+  #q{height:40px;font-size:16px;padding:0 12px}
+  .iconbtn{height:40px;min-width:40px}
   .iconbtn.home{padding:0 9px 0 8px;font-size:14px;gap:5px}
-  .settings{gap:8px 10px}
+  .iconbtn.home svg{width:19px;height:19px}
+  .base-sum{min-height:34px}
+  .settings{gap:6px 10px;margin-top:6px}
   .settings label{flex-wrap:wrap;max-width:100%}
   .settings .seg{flex-wrap:wrap;max-width:100%}
-  main{padding:10px 8px 40px}
+  main{padding:8px 8px 32px}
   footer{font-size:13px}
+  h2{margin:14px 0 4px}
+  h3{margin:10px 0 4px}
   /* a page title keeps the width beside its icon; "Add to factory" goes on the line under it */
-  h1{font-size:19px;flex-wrap:wrap}
-  h1 .ttl{flex:1 1 calc(100% - 70px)}
+  h1{font-size:19px;flex-wrap:wrap;gap:8px;margin:2px 0 4px}
+  h1 .ttl{flex:1 1 calc(100% - 60px)}
   h1 .iconbtn.sm{order:1;margin-left:auto}
-  h1 > img.ic.lg{align-self:flex-start}
+  h1 > img.ic.lg{align-self:flex-start;width:40px;height:40px}
+  .chips{gap:5px}
+  .chip2{min-height:34px;padding:2px 9px 2px 3px}
+  .chip2.dz .go{min-height:34px;padding:2px 4px}
   /* tables: one card per row, each value with its caption above it; a chain's deeper rows step in */
   .tbl,.tbl.two,.tbl.fac{grid-template-columns:1fr;gap:0}
   .th{display:none}
-  .tbl:not(.fac) .th.amth{display:block;text-align:left;padding:0 2px 6px}
-  .tbl.fac .th.amth{display:none}
-  .tr{display:grid;grid-template-columns:1fr 1fr;margin:0 0 8px;border:1px solid #3c3b3c;border-radius:var(--r);overflow:hidden;background:var(--panel)}
+  .tbl .th.amth{display:none}   /* each amount says its unit above it */
+  .tr{display:grid;grid-template-columns:1fr 1fr;margin:0 0 6px;border:1px solid #3c3b3c;border-radius:var(--r);overflow:hidden;background:var(--panel)}
   .tbl:not(.fac) .tr{margin-left:calc(min(var(--d,0), 4) * 12px)}
   .tr > .td{grid-column:1/-1}
   .tbl.fac .tr:not(.cons):not(.add) > .td.amt:not(.bal){grid-column:auto}
+  /* a chain's row: its amount beside its name, its machines under both */
+  .tbl:not(.fac) .tr:not(.sep):not(.line){grid-template-columns:minmax(0,1fr) fit-content(170px)}
+  .tbl:not(.fac) .tr > .td.item{grid-column:1;grid-row:1}
+  .tbl:not(.fac) .tr > .td.amt{grid-column:2;grid-row:1;justify-content:flex-end;align-content:flex-start;text-align:right;padding-top:6px}
+  .tbl:not(.fac) .tr > .td.mach{grid-row:2}
+  /* a card's row that is just a number (boilers, MW, ore per second): the number beside its name too */
+  .tbl.two .tr:not(:has(.mbtn)) > .td.mach{grid-column:2;grid-row:1;justify-content:flex-end;align-content:flex-start;padding-top:6px}
+  .tbl.two .tr:not(:has(.mbtn)) > .td.mach[data-label]::before{text-align:right}
   .tr.product{border-color:#6a5230}
   .tr.sep{border:0;background:transparent;margin:0}
-  .tr.line,.tr.add-hits,.tr.full{border:0;background:transparent;margin:0 0 8px}
+  .tr.line,.tr.add-hits,.tr.full{border:0;background:transparent;margin:0 0 6px}
   .tr.line .td{padding:2px 0}
-  .td{border:0 !important;border-radius:0 !important;min-height:0;padding:6px 10px}
-  .td.item{padding-top:8px;padding-left:calc(10px + var(--d,0) * 10px)}
+  .td{border:0 !important;border-radius:0 !important;min-height:0;padding:4px 10px}
+  .td.item{padding-top:6px;padding-left:calc(10px + var(--d,0) * 10px)}
   .tbl:not(.fac) .td.item{padding-left:10px}
   .td.mach,.td.amt{padding-top:0;justify-content:flex-start;flex-wrap:wrap;text-align:left}
   .td.amt{font-size:18px}
   .td.amt.bal{align-items:stretch}
   .tr.add .td.amt{justify-content:flex-end}
-  .td[data-label]::before{display:block;flex:0 0 100%;font:11px/1.3 var(--sans);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:0 0 2px}
+  .td[data-label]::before{display:block;flex:0 0 100%;font:11px/1.3 var(--sans);color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin:0 0 1px}
+  .td[data-label]{row-gap:2px}
+  /* a chain's row on more than one machine: each line's picker beside its count while they fit (narrower boxes here) */
+  .tbl:not(.fac) .td.mach .part{flex-wrap:wrap}
+  .tbl:not(.fac) .td.mach .part > .mbtn{order:0;flex:1 1 120px}
+  .tbl:not(.fac) .td.amt[data-label]::before{text-align:right}
   .td.amt.bal[data-label]::before{flex:none}
-  .tbl.fac .tr:not(.cons):not(.add) > .td.amt:not(.bal)[data-label]::before{min-height:2.6em}
+  .mbtn{min-height:40px}
   .mbtn .mname{white-space:normal}
-  .td.mach .mbtn{flex:1 1 130px;min-width:0}
+  .td.mach .mbtn{flex:1 1 120px;min-width:0}
   .td:empty{display:none}
-  input.num{width:88px;font-size:20px}
+  input.num{width:76px;font-size:18px}
   /* the ledger: tabs three to a row; "what uses it" rows tucked under their item, machines and use side by side */
-  .factabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
-  .factabs button{justify-content:center;text-align:center;padding:4px 6px;font-size:13px;line-height:1.15}
+  .factabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:2px 0 8px}
+  .factabs button{justify-content:center;text-align:center;padding:3px 6px;font-size:13px;line-height:1.15;min-height:34px}
   .factabs button .icw,.factabs button img.ic{display:none}
-  .tbl.fac .tr.cons{margin:-4px 0 8px 14px}
+  .tbl.fac .tr.cons{margin:-3px 0 6px 14px}
   .tr.cons .td{min-height:0}
   .tbl.fac .tr.cons > .td.mach,.tbl.fac .tr.cons > .td.amt{grid-column:auto}
   /* the blueprint box: its lead on a line of its own, the furnace and drill boxes in even columns */
@@ -373,8 +395,8 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
 }
 /* phones: the home cards two to a row, names only */
 @media (max-width:480px){
-  .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
-  .card{padding:8px;gap:8px;min-height:52px}
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  .card{padding:6px 8px;gap:8px;min-height:46px}
   .card img.ic.lg{width:32px;height:32px;padding:2px}
   .card .d{display:none}
 }
@@ -401,6 +423,21 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   .partx{width:36px;height:36px;font-size:18px}
   .part{gap:12px}
   .addline{width:42px;height:42px}
+}
+/* touch phones: targets a size smaller than on a touch tablet, still easy to hit, so more of a page fits */
+@media (max-width:700px) and (pointer:coarse){
+  input.num{height:40px}
+  .iconbtn.sm{height:34px;min-width:34px}
+  #settings .seg button{min-height:34px}
+  .summary button.s{min-height:34px;padding:2px 10px 2px 5px}
+  .summary .s{min-height:28px}
+  .exp:not(.none){width:34px;height:40px}
+  .rm{height:28px}
+  .partx{width:32px;height:32px}
+  .part{gap:8px}
+  .addline{width:36px;height:36px}
+  .chip2.dz .x{width:32px;height:32px}
+  .undo,.settings .undo{width:32px;height:32px}
 }
 </style>
 </head>

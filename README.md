@@ -12,7 +12,9 @@ Every number comes from the game's own prototype files, not from a wiki table.
 * **Beside the game:** a chromeless window fits well next to Factorio:
   `chrome --app=file:///C:/path/to/factorioSheet/index.html --window-size=460,800`.
 * **Phones and small windows:** below 700 px wide every table turns into one card per row, each value with
-  its caption above it, and a chain's deeper rows step in. Below 900 px "Defaults" folds into one line
+  its caption above it, and a chain's deeper rows step in. A chain's amount (and a card's count) sits beside
+  the name with the machines under both, and boxes, buttons and spacing are a size smaller, so more of a
+  page fits. Below 900 px "Defaults" folds into one line
   showing its choices as icons (tap it to open the full strip; it folds again when you go to another page),
   and the search suggestions stay on one line that scrolls sideways. On the ledger the tabs sit three to a
   row, "made by" and "used by" rows tuck in under their item, and on a touch screen the short list is one line you
