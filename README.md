@@ -57,11 +57,12 @@ Type what you are making. The best match is shown as you type; no Enter needed.
 |---|---|
 | `eng` | the engine unit chain |
 | `5 gear` | gears with 5 assemblers |
-| `5 gear > engine` | what 5 gear assemblers feed: 100 engine assemblers, 10 pipe assemblers, 60 steel furnaces |
+| `5 gear > engine` | what 5 gear assemblers feed (on Assembler 2 and steel furnaces: 100 engine assemblers, 10 pipe assemblers, 60 steel furnaces) |
 | `5 iron plate > engine` | the same, counting every place iron plate is used in the chain (gears, pipes, steel) |
 | `15 stone`, `2 lanes of stone` | the stone page with that many drills, or that much stone |
 | `2 lanes of green circuits` | green circuits at that amount (also `1 belt`, `15/s`, `900/min`) |
-| `10 steam engines`, `100 solar`, `2x2 reactor`, `8 stone furnaces`, `10 labs` | the matching power / mining / science card, set to that number |
+| `10 steam engines`, `100 solar`, `2x2 reactor`, `4 reactors`, `8 stone furnaces`, `2 offshore pumps`, `10 labs` | the matching power / mining / science card, set to that many (a count of a machine a card counts opens that card) |
+| `60 spm` | Labs & science with the labs for 60 of each pack a minute |
 
 The chain is a table with three columns: **Item**, **Machines making it** (a box with the count and the
 machine type), and **Amount** in the unit named in the column header. The top row is the thing you are

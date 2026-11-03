@@ -61,6 +61,9 @@
   // (Concrete stays with the floor tiles: it is mostly laid as floor.)
   const REGROUP = { 'stone-brick': ['intermediate-products', 'raw-material', 'a[smelting]-d[stone-brick]'], satellite: ['intermediate-products', 'intermediate-product', 'd[rocket-parts]-e[satellite]'] };
   for (const [id, [group, subgroup, order]] of Object.entries(REGROUP)) if (FD.items[id]) Object.assign(FD.items[id], { group, subgroup, order });
+  // The game hides the rocket part item, so the data has its recipe but no item: give it one, so it has a page (the space
+  // science chain links to it) and "rocket" or "silo" finds it
+  if (!FD.items['rocket-part'] && FD.recipes['rocket-part']) FD.items['rocket-part'] = { name: FD.recipes['rocket-part'].name, group: 'intermediate-products', subgroup: 'intermediate-product', order: 'd[rocket-parts]-d[rocket-part]', stack: null, fuel: null, icon: FD.recipes['rocket-part'].icon, type: 'item' };
   const COLOUR = { 'automation-science-pack': 'red', 'logistic-science-pack': 'green', 'military-science-pack': 'black', 'chemical-science-pack': 'blue', 'production-science-pack': 'purple', 'utility-science-pack': 'yellow', 'space-science-pack': 'white',
     'electronic-circuit': 'green circuit', 'advanced-circuit': 'red circuit', 'processing-unit': 'blue circuit', 'transport-belt': 'yellow', 'fast-transport-belt': 'red', 'express-transport-belt': 'blue' };
   const nick = id => COLOUR[id] ? ` <span class="sub">(${COLOUR[id]})</span>` : '';
@@ -132,8 +135,13 @@
   for (const [id, c] of Object.entries(CARDS)) {
     const keys = c.keys.slice();
     for (const [item, card] of Object.entries(ROUTE)) if (card === id) keys.push(nameOf(item).toLowerCase(), ...(ALIASES[item] || []));
-    INDEX.push({ kind: 'card', id, name: c.title, keys, pri: 7 });
+    INDEX.push({ kind: 'card', id, name: c.title, keys, pri: id === 'reference' ? 5 : 7 });   // the reference tables' words (belt, inserter) are also things you make: those come first
   }
+  // a count of a machine that a card counts ("8 stone furnaces", "4 reactors", "2 offshore pumps") opens that card, set to
+  // that many of it
+  const MACHINE_CARD = { 'stone-furnace': 'mining', 'steel-furnace': 'mining', 'electric-furnace': 'mining', 'electric-mining-drill': 'mining', 'burner-mining-drill': 'mining',
+    boiler: 'steam', 'steam-engine': 'steam', 'offshore-pump': 'steam', 'solar-panel': 'solar', accumulator: 'solar', 'nuclear-reactor': 'nuclear', 'heat-exchanger': 'nuclear',
+    'steam-turbine': 'nuclear', centrifuge: 'uranium', lab: 'science', 'oil-refinery': 'oil', pumpjack: 'oil' };
   const words = s => s.toLowerCase().split(/[\s-]+/).filter(Boolean);
   function search(q) {
     q = q.trim().toLowerCase().replace(/-/g, ' ');
@@ -165,14 +173,16 @@
     let s = raw.trim().toLowerCase();
     const out = { n: null, unit: null, haveQ: '', wantQ: null, layout: null };
     const lm = s.match(/\b(\d)\s*x\s*(\d)\b/); if (lm) { out.layout = lm[1] + 'x' + lm[2]; s = s.replace(lm[0], ' '); }
-    const U = '(belts?|b|lanes?|\\/s|\\/m(?:in)?|per min|per minute|per second|spm|labs?|mw)?';
+    const U = '(?:(belts?|b|lanes?|\\/s|\\/m(?:in)?|per min|per minute|per second|spm|labs?|mw)(?![a-z]))?';   // a whole word: the b of "4 batteries" is not a belt
     let m = s.match(new RegExp('^(\\d+(?:\\.\\d+)?)\\s*' + U + '\\s*(?:of\\s+)?(.*)$'));
     if (m) { out.n = parseFloat(m[1]); out.unit = m[2] || null; s = m[3]; }
     else { m = s.match(new RegExp('^(.*?)\\s+(\\d+(?:\\.\\d+)?)\\s*' + U + '$')); if (m) { out.n = parseFloat(m[2]); out.unit = m[3] || null; s = m[1]; } }
     if (out.unit) out.unit = out.unit.replace(/^belts?$|^b$/, 'belt').replace(/^lanes?$/, 'lane').replace(/^\/m(in)?$|^per min(ute)?$/, '/min').replace(/^per second$/, '/s').replace(/^labs?$/, 'labs');
-    const parts = s.split(/\s*(?:>|->|→|\bfor\b|\bto\b|\binto\b|\bfeeding\b)\s*/);
+    // "pipe to ground" is a name, not pipe feeding ground: the words split only where no name runs on through them
+    const named = s.trim() && INDEX.some(e => e.name.toLowerCase().startsWith(s.trim()));
+    const parts = s.split(named ? /\s*(?:>|->|→)\s*/ : /\s*(?:>|->|→|\bfor\b|\bto\b|\binto\b|\bfeeding\b)\s*/);
     out.haveQ = parts[0].trim(); out.wantQ = parts[1] ? parts[1].trim() : null;
-    if (!out.haveQ && out.unit) out.haveQ = { labs: 'labs', mw: 'steam power', spm: 'science' }[out.unit] || '';
+    if (!out.haveQ && out.unit) out.haveQ = { labs: 'labs', mw: 'steam power', spm: 'labs & science' }[out.unit] || '';
     return out;
   }
   function unitToPerS(n, unit) {
@@ -324,6 +334,8 @@
     if (!parsed.haveQ && !parsed.wantQ) { hits = []; strip.hidden = true; strip.innerHTML = ''; if (preview) { preview = null; render(); } return; }
     const targetQ = parsed.wantQ !== null ? parsed.wantQ : parsed.haveQ;
     hits = targetQ ? search(targetQ) : [];
+    const mc = parsed.n !== null && !parsed.unit && parsed.wantQ === null && hits[0] && hits[0].kind === 'item' && MACHINE_CARD[hits[0].id];   // "8 stone furnaces": that card first
+    if (mc) { const c = INDEX.find(e => e.kind === 'card' && e.id === mc); hits = [c].concat(hits.filter(e => e !== c)).slice(0, 8); }
     haveHit = parsed.wantQ !== null && parsed.haveQ ? (search(parsed.haveQ)[0] || null) : null;
     selIdx = Math.min(selIdx, Math.max(0, hits.length - 1));
     showStrip();
@@ -331,7 +343,8 @@
   }
   function showStrip() {
     const ch = [];
-    if (parsed.n !== null) ch.push(`<span class="ch n">${fmt(parsed.n)}${parsed.unit ? ' ' + ({ belt: 'belts', lane: 'lanes', '/s': 'per second', '/min': 'per minute', labs: 'labs', spm: 'per minute', mw: 'MW' }[parsed.unit] || parsed.unit) : ''}</span>`);
+    const s = fmt(parsed.n) === '1' ? '' : 's';   // "1 belt", "2 belts"
+    if (parsed.n !== null) ch.push(`<span class="ch n">${fmt(parsed.n)}${parsed.unit ? ' ' + ({ belt: 'belt' + s, lane: 'lane' + s, '/s': 'per second', '/min': 'per minute', labs: 'lab' + s, spm: 'science per minute', mw: 'MW' }[parsed.unit] || parsed.unit) : ''}</span>`);
     if (parsed.wantQ !== null) ch.push(haveHit ? `<span class="ch">${ic(haveHit.kind === 'card' ? CARDS[haveHit.id].icon : haveHit.id, 'xs')}${esc(haveHit.name)}</span><span>→</span>` : `<span class="ch">?</span><span>→</span>`);
     strip.innerHTML = (ch.length ? `<span class="parse">${ch.join('')}</span>` : '') +
       (hits.length ? hits.map((e, i) => `<span class="hit ${i === selIdx ? 'sel' : ''}" data-i="${i}">${ic(e.kind === 'card' ? CARDS[e.id].icon : e.id, 'sm')}<span class="nm">${i === selIdx ? '<kbd>↵</kbd>' : ''}${esc(e.name)}</span></span>`).join('') : '<span class="sub">nothing called that</span>');
@@ -342,7 +355,9 @@
   function showPreview() {
     if (!hits.length) return;
     const e = hits[selIdx];
-    const spec = { n: parsed.n, unit: parsed.unit, have: haveHit && haveHit.kind === 'item' ? haveHit.id : null, layout: parsed.layout, haveQ: parsed.haveQ, wantQ: parsed.wantQ };
+    // on a card, the machine the query counts: the first match that card counts ("4 reactors": Nuclear reactor)
+    const machine = e.kind === 'card' ? (hits.find(h => h.kind === 'item' && MACHINE_CARD[h.id] === e.id) || {}).id || null : null;
+    const spec = { n: parsed.n, unit: parsed.unit, have: haveHit && haveHit.kind === 'item' ? haveHit.id : null, layout: parsed.layout, haveQ: parsed.haveQ, wantQ: parsed.wantQ, machine };
     preview = { kind: e.kind === 'card' ? 'c' : 'i', id: e.id, spec };
     render();
   }
@@ -352,7 +367,8 @@
     const hash = '#' + p.kind + '/' + p.id;
     if (p.kind === 'i' && cur && cur.id === p.id && cur.view) viewMem[cur.id] = cur.view;
     if (p.kind === 'i' && curRes && curRes.id === p.id && curRes.view) viewMem[curRes.id] = curRes.view;
-    if (p.kind === 'c' && p.id === 'oil' && curCard && curCard.id === 'oil' && curCard.view) { const st = cardState('oil'); st.dem = curCard.view.dem; st.anchor = curCard.view.anchor; }
+    if (p.kind === 'c' && p.id === 'oil' && curCard && curCard.id === 'oil' && curCard.view) { const st = cardState('oil'); st.dem = curCard.view.dem; st.anchor = curCard.view.anchor; st.anchorN = curCard.view.anchorN; }
+    else if (p.kind === 'c' && curCard && curCard.id === p.id && curCard.def) cardMem[p.id] = curCard.st;   // the count (and layout) the search set stays on the next redraw
     touch(p.kind + '/' + p.id);
     if (location.hash !== hash) { skipRender = true; location.hash = hash; }
     $('#back').style.visibility = 'visible';
@@ -589,10 +605,11 @@
   // the cards whose count goes into the ledger (labs, boilers, solar panels, reactor blocks in the card's layout) and the
   // count it goes on
   const CARD_ADD = ['science', 'steam', 'solar', 'nuclear'];
-  const cardUnitKey = id => id === 'nuclear' ? NUC_KEY(cardState('nuclear').layout) : CARD_UNIT[id];
-  const cardHave = id => CARD_ADD.includes(id) && unitN(cardUnitKey(id)) > 0 ? unitN(cardUnitKey(id)) : 0;
-  function cardFacBtn(id, n) {
-    const have = cardHave(id), st = cardState(id);
+  // st: the card's state as it is drawn (on Nuclear, its layout decides which line of the ledger it is)
+  const cardUnitKey = (id, st) => id === 'nuclear' ? NUC_KEY((st || cardState('nuclear')).layout) : CARD_UNIT[id];
+  const cardHave = (id, st) => CARD_ADD.includes(id) && unitN(cardUnitKey(id, st)) > 0 ? unitN(cardUnitKey(id, st)) : 0;
+  function cardFacBtn(id, n, st) {
+    st = st || cardState(id); const have = cardHave(id, st);
     if (have > 0 && near(n, have)) return `<button class="iconbtn sm infac" data-go="#c/factory" tabindex="-1" title="Open your factory">In your factory ✓</button>`;
     return `<button class="iconbtn sm${st.touched ? ' cta' : ''}" data-tofactory-card="${id}" tabindex="-1">${have > 0 ? 'Update in factory' : '+ Add to factory'}</button>`;
   }
@@ -818,7 +835,7 @@
   function refreshFacBtn() {
     const old = $('#main h1 .iconbtn.sm'); if (!old) return;
     const page = cur || curRes;
-    const html = page ? facBtn(page.id, page.scale, page.mode) : curCard && curCard.def && CARD_ADD.includes(curCard.id) ? cardFacBtn(curCard.id, cardCount(curCard.id, curCard.def, curCard.st.scale)) : null;
+    const html = page ? facBtn(page.id, page.scale, page.mode) : curCard && curCard.def && CARD_ADD.includes(curCard.id) ? cardFacBtn(curCard.id, cardCount(curCard.id, curCard.def, curCard.st.scale), curCard.st) : null;
     if (!html) return;
     const tmp = doc.createElement('span'); tmp.innerHTML = html; old.replaceWith(tmp.firstElementChild);
   }
@@ -940,7 +957,7 @@
     const tc = e.target.closest('[data-tofactory-card]');
     if (tc && curCard && curCard.def) {   // labs, boilers with their steam engines, solar panels or reactor blocks into the ledger
       const id = tc.dataset.tofactoryCard, n = cardCount(id, curCard.def, curCard.st.scale);
-      facUnits[cardUnitKey(id)] = n;
+      facUnits[cardUnitKey(id, curCard.st)] = n;
       if (id === 'steam') facUnits['steam-engine'] = n * FD.power.boiler.steam_per_s / FD.power.steam_engine.steam_per_s;
       cardState(id).touched = false; persist(); clearViews(); renderCard(id); return;
     }
@@ -1042,7 +1059,7 @@
       return;
     }
     if (key === 'sci:time' || key === 'sci:bonus') { const st = cardState('science'); st[key.slice(4)] = key === 'sci:time' ? 30 : 0; saveCard('science', st); if (cur) renderItem(cur.id); else renderCard('science'); return; }
-    if (key === 'layout' && curCard) { curCard.st.layout = '2x2'; saveCard(curCard.id, curCard.st); renderCard(curCard.id); return; }
+    if (key === 'layout' && curCard) { curCard.st.layout = nucHome(); saveCard(curCard.id, curCard.st); renderCard(curCard.id); return; }
   }
   document.getElementById('settings').addEventListener('click', e => {
     if (e.target.closest('[data-base-toggle]')) { baseOpen = !baseOpen; keepPlace = true; try { renderSettings(); } finally { keepPlace = false; } return; }
@@ -1097,7 +1114,7 @@
         { id: 'nuclear-reactor', k: 1, label: st.layout + ' blocks' }, { id: 'nuclear-reactor', k: L.reactors, fixed: true, label: 'Reactors' }, { k: L.mw, label: 'Electricity made', unit: 'MW', fixed: true, icon: 'small-electric-pole' }, { id: 'heat-exchanger', k: L.exchangers, fixed: true, label: 'Heat exchangers' }, { id: 'steam-turbine', k: L.turbines, fixed: true, label: 'Steam turbines' },
         { id: 'offshore-pump', k: L.pumps, fixed: true, label: 'Offshore pumps' }, { id: 'uranium-fuel-cell', k: L.cellsPerMin, label: 'Fuel cells used', unit: 'per minute', fixed: true },
         { id: 'centrifuge', k: cent, fixed: true, label: 'Centrifuges, without Kovarex' }, { id: 'electric-mining-drill', k: cent * (10 / 12) / (FD.machines['electric-mining-drill'].speed / 2 * mp), fixed: true, label: 'Drills on uranium ore, without Kovarex' }],
-        extra: `<label>Reactor layout <select data-layout tabindex="-1">${NUC_LAYOUTS.map(l => `<option ${l === st.layout ? 'selected' : ''}>${l}</option>`).join('')}</select>${undoBtn('layout', st.layout !== '2x2')}</label>` };
+        extra: `<label>Reactor layout <select data-layout tabindex="-1">${NUC_LAYOUTS.map(l => `<option ${l === st.layout ? 'selected' : ''}>${l}</option>`).join('')}</select>${undoBtn('layout', st.layout !== nucHome())}</label>` };
     }
     if (id === 'uranium') {
       const orePerDrill = FD.machines['electric-mining-drill'].speed / 2 * mp;
@@ -1188,6 +1205,7 @@
   const nucOf = l => { const [r, c] = l.split('x').map(Number); return Engine.nuclearLayout(r, c); };   // one block: reactors, MW, water, fuel cells
   const nucReactors = () => NUC_LAYOUTS.reduce((a, l) => a + nucN(l) * nucOf(l).reactors, 0);
   const nucMain = () => NUC_LAYOUTS.reduce((a, l) => nucN(l) > nucN(a) ? l : a, cardState('nuclear').layout || '2x2');   // the one with most blocks
+  const nucHome = () => NUC_LAYOUTS.reduce((a, l) => nucN(l) > nucN(a) ? l : a, '2x2');   // the Nuclear card's own: your factory's most-built layout, else 2x2
   const nucShown = new Set();   // layouts put on the nuclear row this visit that have no count yet
   const nucLines = () => { const s = NUC_LAYOUTS.filter(l => nucN(l) > 0 || nucShown.has(l)); return s.length ? s : [nucMain()]; };
   // which tab an item's row belongs in: by the machine that makes it (making boilers or labs is assembling; running them
@@ -2076,7 +2094,7 @@
         const pl = oilPlan(base, mode); key = box && pl[box] > 0 ? box : 'R';
         if (pl[key] > 0) { const f = n / pl[key]; d = { p: base.p * f, l: base.l * f, h: base.h * f }; }
       }
-      if (d) { dem = d; anchor = key; view = { dem: d, anchor }; if (!preview) { st.dem = d; st.anchor = anchor; st.anchorN = k ? null : n; } }
+      if (d) { dem = d; anchor = key; view = { dem: d, anchor, anchorN: k ? null : n }; if (!preview) { st.dem = d; st.anchor = anchor; st.anchorN = view.anchorN; } }
     }
     curCard = { id: 'oil', st, fields: [], view };
     const plan = oilPlan(dem, mode), changed = !!anchor;
@@ -2241,13 +2259,13 @@
     for (const [item, groups] of Object.entries(c.items)) entries.push(bpItemEntry(item, groups));
     for (const [u, n] of Object.entries(c.units)) entries.push({ kind: 'unit', id: u, tab: UNITS[u].tab, n });
     const inScope = t => tab === 'all' || t === tab;
-    const updated = [], pending = [], others = [];
-    let same = 0;   // rows already at the blueprint's counts
+    const updated = [], pending = [], others = [], matched = [];   // matched: rows already at the blueprint's counts
     for (const e of entries) {
       if (!inScope(e.tab)) others.push(e);
-      else if (e.kind === 'unit' ? unitN(e.id) > 0 : saved(chainMem[e.id])) { bpApply(e); if (bpChanged(e)) updated.push(e); else same++; }
+      else if (e.kind === 'unit' ? unitN(e.id) > 0 : saved(chainMem[e.id])) { bpApply(e); (bpChanged(e) ? updated : matched).push(e); }
       else pending.push(e);
     }
+    const same = matched.length;
     // what the blueprint does not say is asked here: furnaces and drills on Mining & smelting, refineries with no recipe on Oil
     const splits = {};
     if (Object.keys(c.furnaces).length || Object.keys(c.drills).length) {
@@ -2256,7 +2274,7 @@
     }
     if (c.refAsk) { if (inScope('oil')) splits.refineries = c.refAsk; else others.push({ kind: 'raw', id: 'oil-refinery', tab: 'oil', n: c.refAsk }); }
     if (updated.length) { persist(); clearViews(); }
-    bpImport = { tab, total: ents.length, updated, same, pending, others, splits: Object.keys(splits).length ? splits : null, skipped: c.skipped, unticked: new Set(), splitVals: {} };
+    bpImport = { tab, total: ents.length, updated, same, matched, pending, others, splits: Object.keys(splits).length ? splits : null, skipped: c.skipped, unticked: new Set(), splitVals: {} };
     renderFactory(true);
   }
   // Add: the ticked new rows, then the furnaces, drills and refineries as you split them
@@ -2275,10 +2293,11 @@
     // what you split goes under Updated when your factory had that row, Added when it is new, and nowhere when no count changed
     const upd = [], file = (e, had) => { if (bpChanged(e)) (had ? upd : added).push(e); };
     for (const [item, g] of Object.entries(groups)) { const e = bpItemEntry(item, g), had = saved(chainMem[item]); bpApply(e); file(e, had); }
-    // refineries given a processing join the ones the blueprint has on it, else they are its count
+    // refineries given a processing join the ones the blueprint has on it (also when those already matched your factory),
+    // else they are its count
     for (const [m, v] of Object.entries(refs)) {
-      const key = REF_KEY[m], e = b.updated.concat(added).find(x => x.kind === 'unit' && x.id === key);
-      if (e) { e.n += v; facUnits[key] = e.n; } else { const ne = { kind: 'unit', id: key, tab: 'oil', n: v }, had = unitN(key) > 0; bpApply(ne); file(ne, had); }
+      const key = REF_KEY[m], e = b.updated.concat(added, b.matched || []).find(x => x.kind === 'unit' && x.id === key);
+      if (e) { e.n += v; facUnits[key] = e.n; if ((b.matched || []).includes(e)) upd.push(e); } else { const ne = { kind: 'unit', id: key, tab: 'oil', n: v }, had = unitN(key) > 0; bpApply(ne); file(ne, had); }
     }
     persist(); clearViews();
     bpImport = { tab: b.tab, total: b.total, done: true, updated: b.updated.concat(upd), added, pending: [], others: b.others, splits: null, skipped: b.skipped };
@@ -2347,25 +2366,34 @@
     const st = preview ? Object.assign({}, cardState(id)) : cardState(id);
     const c = CARDS[id];
     if (id === 'reference') { renderReference(); return; }
-    if (spec && spec.layout && id === 'nuclear') { st.layout = spec.layout; st.touched = true; if (!preview) saveCard(id, st); }
+    if (spec && spec.layout && id === 'nuclear' && NUC_LAYOUTS.includes(spec.layout)) { st.layout = spec.layout; st.touched = true; if (!preview) saveCard(id, st); }   // a layout the ledger has a line for
+    else if (id === 'nuclear' && !st.touched) st.layout = nucHome();   // untouched, the card is your reactors: their layout
     const def = cardFields(id, st);
     const fields = def.fields;
     setBg(id);
-    if (spec && spec.n !== null && fields.length) {
-      const qs = words((spec.wantQ !== null && spec.haveQ) ? spec.haveQ : spec.haveQ || '');
+    if (spec && spec.n !== null && spec.unit === 'spm' && def.isScience) { st.scale = spec.n / 60 * st.time / (1 + st.bonus / 100); st.anchor = 'f0'; st.touched = true; }   // "60 spm": 60 of each pack a minute
+    else if (spec && spec.n !== null && fields.length) {
+      const qs = words(spec.haveQ || '');
+      const perS = ['belt', 'lane', '/s', '/min'].includes(spec.unit) ? unitToPerS(spec.n, spec.unit) : null;   // "1 belt of ore": an amount, for a field that is one
       let best = -1, bestSc = 0;
       fields.forEach((f, i) => {
-        if (f.fixed) return;
-        const fw = words((f.id ? nameOf(f.id) : '') + ' ' + (f.label || '') + ' ' + (f.id ? (ALIASES[f.id] || []).join(' ') : ''));
-        let sc = 0; for (const t of qs) if (fw.some(w => w.startsWith(t))) sc++;
+        // the field of the machine the query counts first, the words of its own label next; a count that is shown, not
+        // typed, is set only by naming its machine ("4 reactors": four reactors, not four blocks)
+        if (f.fixed && !(f.id && f.id === spec.machine && !f.unit)) return;
+        const fw = words((f.id ? nameOf(f.id) : '') + ' ' + (f.label || '') + ' ' + (f.id ? (ALIASES[f.id] || []).join(' ') : '')), lw = words(f.label || '');
+        let sc = f.id && f.id === spec.machine ? 10 : 0;
+        for (const t of qs) { if (fw.some(w => w.startsWith(t))) sc++; if (lw.some(w => w.startsWith(t))) sc += 0.5; }
         if (spec.unit === 'mw' && f.unit === 'MW') sc += 5;
         if (spec.unit === 'labs' && f.id === 'lab') sc += 5;
+        if (perS !== null && (f.flow || f.fluid)) sc += 5;
         if (sc > bestSc) { bestSc = sc; best = i; }
       });
       if (best < 0) best = fields.findIndex(f => !f.fixed);
-      if (best >= 0) { st.scale = spec.n / fields[best].k; st.anchor = 'f' + best; st.touched = true; if (!preview) saveCard(id, st); }
+      // an amount field takes the amount as typed in its box (the page's unit; fluids per second) unless the query names a unit
+      const f = fields[best], amount = f && (f.flow || f.fluid) ? (perS !== null ? perS : fromUnit(spec.n, !!f.fluid)) : spec.n;
+      if (best >= 0) { st.scale = amount / f.k; st.anchor = 'f' + (f.fixed ? fields.findIndex(x => !x.fixed) : best); st.touched = true; if (!preview) saveCard(id, st); }   // a shown count hands its ↺ to the card's box (reactors: the blocks)
     }
-    if (!(st.scale > 0) || !st.touched) st.scale = cardHave(id) || def.defaultScale;   // the ledger's count, else the card's usual start
+    if (!(st.scale > 0) || !st.touched) st.scale = cardHave(id, st) || def.defaultScale;   // the ledger's count, else the card's usual start
     if (def.isScience) { st.labs = st.scale; }
     curCard = { id, st, fields, defaultScale: def.defaultScale, def };
     const R = st.scale;
@@ -2392,7 +2420,7 @@
     } else {
       body = `${def.extra ? `<div class="settings" style="margin:0 0 8px">${def.extra}</div>` : ''}<div class="tbl two"><div class="th"></div><div class="th">How many</div>${fields.map(row).join('')}</div>`;
     }
-    $('#main').innerHTML = `<h1>${ic(c.icon, 'lg')}<span class="ttl">${esc(c.title)}${def.intro ? `<div class="sub">${def.intro}</div>` : ''}</span>${CARD_ADD.includes(id) ? cardFacBtn(id, cardCount(id, def, R)) : ''}</h1>
+    $('#main').innerHTML = `<h1>${ic(c.icon, 'lg')}<span class="ttl">${esc(c.title)}${def.intro ? `<div class="sub">${def.intro}</div>` : ''}</span>${CARD_ADD.includes(id) ? cardFacBtn(id, cardCount(id, def, R), st) : ''}</h1>
       ${body}`;
     doc.title = c.title + ' – Factorio Ratios';
   }
@@ -2401,7 +2429,7 @@
     inp.classList.remove('bad');
     const v = inp.dataset.kind === 'rate' ? fromUnit(v0, inp.dataset.fluid === '1') : v0;
     curCard.st.scale = v / parseFloat(inp.dataset.k);
-    const changed = !near(curCard.st.scale, cardHave(curCard.id) || curCard.defaultScale);   // a what-if; labs and boilers are saved on the ledger
+    const changed = !near(curCard.st.scale, cardHave(curCard.id, curCard.st) || curCard.defaultScale);   // a what-if; labs and boilers are saved on the ledger
     curCard.st.anchor = changed ? inp.dataset.path : null; curCard.st.touched = changed;
     if (curCard.id === 'science') curCard.st.labs = curCard.st.scale;
     showUndo(inp, changed); refreshFacBtn();
