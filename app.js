@@ -1586,7 +1586,6 @@
     const filtEmpty = facFilter === 'short' ? 'Nothing is short' + (wavedHere.length ? ' apart from what you dismissed.' : '.')
       : facFilter === 'ok' ? 'Nothing is fulfilled yet.' : 'Nothing is missing.';
     $('#main').innerHTML = `
-      <h1><span class="ttl">Your factory</span></h1>
       ${tabBar}${sum}
       <div class="tbl fac" id="tree">${th}${groups.map(g => g.join('')).join(line)}${groups.length ? line : ''}${facFilter ? (groups.length ? '' : `<div class="tr full"><div class="td"><span class="sub">${filtEmpty}</span></div></div>`) : addRowHtml()}</div>
       ${facFilter ? '' : bpHtml()}
