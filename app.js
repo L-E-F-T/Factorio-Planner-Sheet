@@ -43,6 +43,8 @@
   function exactText(x) { if (!isFinite(x) || x <= 0) return ''; const c = Math.ceil(x - 1e-9); return Math.abs(c - x) < 1e-9 ? '' : 'exactly ' + fmt(x); }
 
   const nameOf = id => (FD.items[id] && FD.items[id].name) || (FD.machines[id] && FD.machines[id].name) || (FD.recipes[id] && FD.recipes[id].name) || id;
+  // a machine beside a count or on a picker, short as the Your base strip has it: "Assembler 2", "Electric drill"
+  const mName = id => nameOf(id).replace('Assembling machine', 'Assembler').replace(' mining drill', ' drill');
   const iconFile = id => (FD.items[id] && FD.items[id].icon) || (FD.machines[id] && FD.machines[id].icon) || (FD.recipes[id] && FD.recipes[id].icon) || (FD.inserters[id] && FD.inserters[id].icon) || (FD.belts[id] && FD.belts[id].icon) || null;
   const BADGE = { 'assembling-machine-1': '1', 'assembling-machine-2': '2', 'assembling-machine-3': '3', 'stone-furnace': 'St', 'steel-furnace': 'S', 'electric-furnace': 'E', 'burner-mining-drill': 'B', 'electric-mining-drill': 'E' };
   const ic = (id, cls) => { const f = iconFile(id); return f ? `<img class="ic${cls ? ' ' + cls : ''}" src="icons/${f}" alt="" title="${esc(nameOf(id))}">` : ''; };
@@ -365,8 +367,17 @@
       if (pr && popEl) { const c = popCtx(); if (!c) return; c.st.overrides['r:' + popEl.dataset.path] = pr.dataset.pickR; saveChain(c.id, c.st); closePop(); rerender(); return; }
       const fm = e.target.closest('[data-fac-m]'); if (fm && popEl && popEl.dataset.facItem) { facSetMachine(popEl.dataset.facItem, fm.dataset.facM, null, popEl.dataset.part); return; }
       const fr = e.target.closest('[data-fac-r]'); if (fr && popEl && popEl.dataset.facItem) { facSetMachine(popEl.dataset.facItem, null, fr.dataset.facR, popEl.dataset.part); return; }
+      const fa = e.target.closest('[data-fac-also]'); if (fa && popEl && popEl.dataset.facItem) { facAddLine(popEl.dataset.facItem, popEl.dataset.recipe, fa.dataset.facAlso); return; }
       const rto = e.target.closest('[data-ref-to]'); if (rto && popEl && popEl.dataset.refFrom) { refMove(popEl.dataset.refFrom, rto.dataset.refTo); return; }
-      if (!e.target.closest('.pop') && !e.target.closest('[data-popover]') && !e.target.closest('[data-fac-pick]') && !e.target.closest('[data-ref-pick]')) closePop();
+      // the add row's picker: a recipe brings a machine that runs it
+      const ad = e.target.closest('[data-add-m],[data-add-r],[data-add-proc]');
+      if (ad && popEl && popEl.dataset.addPick && addSel) {
+        if (ad.dataset.addProc) addSel.proc = ad.dataset.addProc;
+        if (ad.dataset.addR) { addSel.recipe = ad.dataset.addR; const pm = addLine(addSel); if (pm) addSel.machine = pm.machine; }
+        if (ad.dataset.addM) addSel.machine = ad.dataset.addM;
+        closePop(); addRefresh(); return;
+      }
+      if (!e.target.closest('.pop') && !e.target.closest('[data-popover]') && !e.target.closest('[data-fac-pick]') && !e.target.closest('[data-ref-pick]') && !e.target.closest('[data-add-mpick]')) closePop();
     });
   }
   bindDoc(document);
@@ -414,11 +425,11 @@
 
   // ---------- item chain view (a table: Item | Machines making it | Amount) ----------
   function findNode(tree, item) { let found = null; Engine.walk(tree, n => { if (!found && n.item === item && n !== tree) found = n; }); return found; }
-  function supply(item, kRate) {
+  function supply(item, kRate, machine) {
     const res = FD.resources[item];
     const mp = 1 + S.mp / 100;
-    if (res && res.cat === 'basic-solid') {   // the drill chosen for this ore in your factory, else Your base's (fluid ores: electric only)
-      const pick = S.machineOf[item], id = res.fluid ? 'electric-mining-drill' : DRILLS.includes(pick) ? pick : S.drill, d = FD.machines[id];
+    if (res && res.cat === 'basic-solid') {   // the drill given (one line of a ledger row), else the one chosen for this ore in your factory, else Your base's (fluid ores: electric only)
+      const pick = DRILLS.includes(machine) ? machine : S.machineOf[item], id = res.fluid ? 'electric-mining-drill' : DRILLS.includes(pick) ? pick : S.drill, d = FD.machines[id];
       return { id, k: kRate / (d.speed / res.time * mp) };
     }
     if (item === 'crude-oil') return { id: 'pumpjack', k: kRate / (FD.resources['crude-oil'].amount * mp * S.jackYield), note: `at ${fmt(S.jackYield * 100)}% yield` };
@@ -436,7 +447,7 @@
   const undoBtn = (key, show) => `<button class="undo" data-undo="${esc(key)}" tabindex="-1" title="Undo" aria-label="Undo"${show ? '' : ' hidden'}>↺</button>`;
   const machCell = (path, k, R, machineId, pickable, note, focus, undo) =>
     `<div class="td mach" data-label="machines"><input class="num" inputmode="decimal" data-path="${esc(path)}" data-k="${k}" data-kind="mach" value="${fmtIn(k * R)}" aria-label="number of ${esc(nameOf(machineId))}"${focus ? ' data-focus="1"' : ''}>${undoBtn('scale', undo)}<span class="build" data-k="${k}" data-kind="build">${buildText(k * R)}</span>` +
-    (pickable ? `<button class="mbtn can" data-popover="${esc(path)}" tabindex="-1" title="Change machine">${icb(machineId)}<span class="mname">${esc(nameOf(machineId))}</span><span class="arr">▾</span></button>` : `<span class="mbtn">${icb(machineId)}<span class="mname">${esc(nameOf(machineId))}${note ? ' <span class="sub">' + esc(note) + '</span>' : ''}</span></span>`) + `</div>`;
+    (pickable ? `<button class="mbtn can" data-popover="${esc(path)}" tabindex="-1" title="Change machine">${icb(machineId)}<span class="mname">${esc(mName(machineId))}</span><span class="arr">▾</span></button>` : `<span class="mbtn">${icb(machineId)}<span class="mname">${esc(mName(machineId))}${note ? ' <span class="sub">' + esc(note) + '</span>' : ''}</span></span>`) + `</div>`;
   const amtCell = (kRate, R, fluid) => `<div class="td amt" data-label="${fluid ? 'amount' : esc(unitShort())}"><span class="rate" data-k="${kRate}" data-kind="rate" data-fluid="${fluid ? 1 : 0}">${amountText(kRate * R, fluid)}</span></div>`;
   const header = (first) => `<div class="th">${first}</div><div class="th">Machines</div><div class="th amth">Amount<span class="u">${esc(unitShort())}</span></div>`;
 
@@ -490,7 +501,7 @@
     const focusPath = mode === 'driven' ? tree.path : anchor.path;   // Enter lands on the top row, even when a component sizes the page
     $('#main').innerHTML = `
       <h1>${ic(id, 'lg')}<span class="ttl">${esc(nameOf(id))}${nick(id)}<div class="sub">${recipeLine}</div>${sized}</span>
-        ${facBtn(st, R, mode)}</h1>
+        ${facBtn(id, R, mode)}</h1>
       ${note}${bump}
       <div class="tbl" id="tree">${header('Item')}${rowHtml(tree, 0, R, fs, focusPath)}${labsRow}<div class="tr sep"><div class="td">needs</div></div>${tree.children.map(c => subtree(c, 1, R, fs, focusPath)).join('')}</div>
       <div class="summary" id="summary"><span class="lead">Whole chain:</span>${summaryHtml(tot, R)}</div>
@@ -506,10 +517,13 @@
     doc.title = `${nameOf(id)}${sub} – Factorio Ratios`;
     if (!preview && !keepPlace && fine() && doc.activeElement !== q) { const inp = $('#tree input.num[data-focus]') || $('#tree input.num'); if (inp) { inp.focus(); inp.select(); } }
   }
-  // the button that puts a page's number into the ledger: add, update, or (when it already matches) a link to the ledger
-  function facBtn(st, R, mode) {
-    const inFac = st.touched && st.scale > 0;
-    if (inFac && near(R, st.scale)) return `<button class="iconbtn sm infac" data-go="#c/factory" tabindex="-1" title="Open your factory">In your factory ✓</button>`;
+  // the page's top row as a line of your factory: its machine and recipe (null: no machine, as for a rocket launch)
+  const pageLine = () => cur ? (cur.tree.machine ? { recipe: cur.tree.recipe, machine: cur.tree.machine } : null) : curRes ? (s => s && { recipe: null, machine: s.id })(supply(curRes.id, 1)) : null;
+  // the button that puts a page's number into the ledger as the item's total (the line on the page's machine takes what the
+  // row's other lines do not make): Add, Update, or, when it matches, a link to the ledger
+  function facBtn(id, R, mode) {
+    const st = chainMem[id], inFac = saved(st);
+    if (mode === 'own' || (inFac && near(R, st.scale))) return `<button class="iconbtn sm infac" data-go="#c/factory" tabindex="-1" title="Open your factory">In your factory ✓</button>`;
     return `<button class="iconbtn sm${mode === 'view' ? ' cta' : ''}" data-tofactory tabindex="-1">${inFac ? 'Update in factory' : '+ Add to factory'}</button>`;
   }
   // the same for a card's count (labs, or boilers): the ledger's number against what the card shows now
@@ -534,13 +548,17 @@
   }
   // a saved number in words: "8 × Assembling machine 2" (short) or "8 × Assembling machine 2 making iron gear wheels"
   function savedText(item, rate, sentence) {
-    const fl = isFluid(item);
+    const fl = isFluid(item), parts = partsOf(item);
+    if (parts && near(rate, chainMem[item].scale)) {   // your factory's own number, on more than one machine: each line's
+      const s = parts.filter(q => q.scale > 0).map(q => { const pm = partMachine(item, q); return pm ? `${fmt(q.scale * pm.k)} × ${mName(pm.machine)}` : ''; }).filter(Boolean).join(' and ');
+      return sentence ? `${s} ${crafted(item) ? 'making' : 'mining'} ${nameOf(item).toLowerCase()}` : s;
+    }
     if (!isResource(item) && Engine.byProduct[item]) {
       const t = Engine.build(item, S, chainState(item).overrides);
-      if (t.kMach > 0) { const s = `${fmt(t.kMach * rate)} × ${nameOf(t.machine)}`; return sentence ? `${s} making ${nameOf(item).toLowerCase()}` : s; }
+      if (t.kMach > 0) { const s = `${fmt(t.kMach * rate)} × ${mName(t.machine)}`; return sentence ? `${s} making ${nameOf(item).toLowerCase()}` : s; }
     }
     const sup = supply(item, 1);   // a resource counts in drills (or pumps), like everything else counts in machines
-    if (sup) { const s = `${fmt(sup.k * rate)} × ${nameOf(sup.id)}`; return sentence ? `${s} ${fl ? 'pumping' : 'mining'} ${nameOf(item).toLowerCase()}` : s; }
+    if (sup) { const s = `${fmt(sup.k * rate)} × ${mName(sup.id)}`; return sentence ? `${s} ${fl ? 'pumping' : 'mining'} ${nameOf(item).toLowerCase()}` : s; }
     const v = toUnit(rate, fl), s = `${fmt(v)} ${fl ? 'per second' : unitWord(v)}`;
     return sentence ? `${s} of ${nameOf(item).toLowerCase()}` : s;
   }
@@ -598,7 +616,7 @@
     const intro = [sup ? `One ${esc(nameOf(sup.id).toLowerCase())} gives ${fmt(1 / sup.k)} per second${!fluid && S.mp ? ' at +' + S.mp + '% mining productivity' : ''}.` : '', products.length ? 'Each item below uses all of it.' : ''].filter(Boolean).join(' ');
     $('#main').innerHTML = `
       <h1>${ic(id, 'lg')}<span class="ttl">${esc(nameOf(id))}${intro ? `<div class="sub">${intro}</div>` : ''}</span>
-        ${facBtn(st, Rs, mode)}</h1>
+        ${facBtn(id, Rs, mode)}</h1>
       <div class="tbl" id="tree">${header('Item')}${topRow}${blockHtml}</div>
       ${further}`;
     doc.title = `${nameOf(id)}${mode !== 'default' ? ' · ' + savedText(id, Rs) : ''} – Factorio Ratios`;
@@ -727,7 +745,7 @@
   function refreshFacBtn() {
     const old = $('#main h1 .iconbtn.sm'); if (!old) return;
     const page = cur || curRes;
-    const html = page ? facBtn(page.st, page.scale, page.mode) : curCard && curCard.def && ['science', 'steam'].includes(curCard.id) ? cardFacBtn(curCard.id, cardCount(curCard.id, curCard.def, curCard.st.scale)) : null;
+    const html = page ? facBtn(page.id, page.scale, page.mode) : curCard && curCard.def && ['science', 'steam'].includes(curCard.id) ? cardFacBtn(curCard.id, cardCount(curCard.id, curCard.def, curCard.st.scale)) : null;
     if (!html) return;
     const tmp = doc.createElement('span'); tmp.innerHTML = html; old.replaceWith(tmp.firstElementChild);
   }
@@ -756,7 +774,7 @@
     closePop();
     const r = FD.recipes[n.recipe];
     const needsFluid = r.cat === 'crafting-with-fluid';
-    const opts = n.machineChoices.map(m => `<button data-pick-m="${m}" class="${m === n.machine ? 'on' : ''}" ${needsFluid && m === 'assembling-machine-1' ? 'disabled title="needs a fluid input: Assembler 2 or 3"' : ''} tabindex="-1">${icb(m)}<span>${esc(nameOf(m).replace('Assembling machine', 'Assembler'))}</span></button>`).join('');
+    const opts = n.machineChoices.map(m => `<button data-pick-m="${m}" class="${m === n.machine ? 'on' : ''}" ${needsFluid && m === 'assembling-machine-1' ? 'disabled title="needs a fluid input: Assembler 2 or 3"' : ''} tabindex="-1">${icb(m)}<span>${esc(mName(m))}</span></button>`).join('');
     const recs = n.recipeChoices.length > 1 ? n.recipeChoices.map(rid => `<button data-pick-r="${rid}" class="${rid === n.recipe ? 'on' : ''}" tabindex="-1">${ic(rid, 'sm')}<span>${esc(FD.recipes[rid].name)}</span></button>`).join('') : '';
     const global = ctx.st.overrides['m:' + n.path] ? `<button data-pick-m="" tabindex="-1"><span>same as<br>the rest</span></button>` : '';
     popEl = doc.createElement('div'); popEl.className = 'pop'; popEl.innerHTML = `<span class="lead">Make ${esc(nameOf(n.item))} in:</span>` + opts + global + (recs ? `<span class="lead">using recipe:</span>` + recs : '');
@@ -790,6 +808,7 @@
       return;
     }
     const inp = e.target.closest('input.num[data-k]');
+    if (e.target.id === 'addn') { e.target.dataset.typed = '1'; return; }   // the add row keeps what you typed when its machine changes
     if (e.target.id === 'addq') { addQuery(e.target.value); return; }
     const oi = e.target.closest('input.num[data-oil]'); if (oi) { onOilInput(oi); return; }
     if (inp) { if (cur || curRes) onBoxInput(inp); else if (curCard && curCard.id === 'factory') onFactoryInput(inp); else if (curCard) onCardInput(inp); return; }
@@ -832,12 +851,17 @@
       return;
     }
     const tf = e.target.closest('[data-tofactory]');
-    if (tf) {   // the page's number into the ledger, made in the machine the page shows
+    if (tf) {   // the page's number is the item's total: the line on the page's machine and recipe takes what the row's other
+      // lines do not make, or the row becomes that one line when they make that much already
       const page = cur || curRes; if (!page) return;
-      const st = page.st, mid = cur ? cur.tree.machine : (supply(page.id, 1) || {}).id, im = itemMachine(page.id);
-      if (mid && im && im.options.includes(mid)) machineOf[page.id] = mid;
-      delete st.parts;   // the page's one recipe replaces a split
-      st.scale = page.scale; st.anchor = { path: page.id, kind: 'mach' }; st.touched = true; saveChain(page.id, st); delete viewMem[page.id]; clearViews(); rerender(); return;
+      const pl = pageLine(), id = page.id;
+      if (pl && itemMachine(id)) {
+        const others = linesOf(id).filter(l => !sameLine(l, pl.recipe, pl.machine)).reduce((a, l) => a + (l.scale > 0 ? l.scale : 0), 0);
+        if (page.scale - others > 1e-9) facPutLine(id, pl.recipe, pl.machine, page.scale - others);
+        else { const st = chainState(id); st.parts = [{ recipe: pl.recipe || null, machine: pl.machine, scale: page.scale }]; st.anchor = { path: id, kind: 'mach' }; facPartsSettled(id, st); }
+      }
+      else { const st = chainState(id); delete st.parts; st.scale = page.scale; st.anchor = { path: id, kind: 'mach' }; st.touched = true; }
+      persist(); delete viewMem[page.id]; clearViews(); rerender(); return;
     }
     const tc = e.target.closest('[data-tofactory-card]');
     if (tc && curCard && curCard.def) {   // labs, or boilers with their steam engines, into the ledger
@@ -881,6 +905,7 @@
     const radd = e.target.closest('[data-ref-add]'); if (radd) { refAddLine(); return; }
     const rxx = e.target.closest('[data-ref-x]'); if (rxx) { refDropLine(rxx.dataset.refX); return; }
     if (e.target.closest('[data-add-close]')) { addClose(); return; }
+    const amp = e.target.closest('[data-add-mpick]'); if (amp) { if (popEl && popEl.dataset.addPick) closePop(); else openAddPick(amp); return; }
     const ap = e.target.closest('[data-add-pick]'); if (ap) { addPick(ap.dataset.addPick); return; }
     if (e.target.closest('[data-add]')) { addItem(); return; }
     const of = e.target.closest('[data-open-f]'); if (of) { const i = of.dataset.openF; if (facOpen.has(i)) facOpen.delete(i); else facOpen.add(i); renderFactory(true); return; }
@@ -1023,6 +1048,7 @@
   // liquefaction (coal, steam and some of its own heavy oil into all three oils)
   const OIL_PROC = { basic: 'basic-oil-processing', advanced: 'advanced-oil-processing', coal: 'coal-liquefaction' };
   const OIL_PROC_NAME = { basic: 'basic processing', advanced: 'advanced processing', coal: 'coal liquefaction' };
+  const PROC_SHORT = { basic: 'Basic', advanced: 'Advanced', coal: 'Coal liquefaction' };   // beside "Oil refinery" on a picker
   const oilProcOf = st => st.coal ? 'coal' : st.basic ? 'basic' : 'advanced';
   const oilModeOf = m => m === true ? 'basic' : m === 'basic' || m === 'coal' ? m : 'advanced';   // also takes true/false for Basic
   // what boilers can burn, and what yours do (saved with the factory; coal until you pick another)
@@ -1084,27 +1110,57 @@
   }
   // an entry is "N × that machine": pin the machine, so a later Your base change does not change what you have
   function pin(id) { const m = itemMachine(id); if (m && m.options.length > 1 && !machineOf[id]) machineOf[id] = m.machine; }
-  // a row split across recipes (solid fuel from two oils, say): one part per recipe, each with its machine and how much
-  // it makes; the row's number is their sum, and the first part is the row's own machine and recipe
+  // A row can hold lines on different machines or recipes (gears in assembler 1 and 2, solid fuel from two oils, iron ore
+  // under burner and electric drills): one part per line, each with its machine, recipe and how much it makes. The row's
+  // number is their sum, and the first line is the row's own machine and recipe.
   const partsOf = id => { const st = chainMem[id]; return st && st.parts && st.parts.length > 1 ? st.parts : null; };
   const partsTotal = st => st.parts.reduce((a, p) => a + (p.scale > 0 ? p.scale : 0), 0);
   const sWith = (id, machine, recipe) => Object.assign(Object.create(S), { machineOf: Object.assign({}, machineOf, machine ? { [id]: machine } : {}), recipeOf: Object.assign({}, recipeOf, recipe ? { [id]: recipe } : {}) });
-  function partMachine(id, p) { const t = Engine.build(id, sWith(id, p.machine, p.recipe), {}); return { machine: t.machine, k: t.kMach, options: t.machineChoices, recipe: t.recipe, recipes: t.recipeChoices, tree: t }; }
-  // a row's machine count and its machine (a picker when there is a choice). A split row has a line per part, each with
-  // its own count, picker and ×; a row with more recipes than it uses offers another
+  const crafted = id => !isResource(id) && !!Engine.byProduct[id] && !Engine.LEAVES.has(id);   // else mined or pumped
+  // one line's machine: machines per 1 unit/s, and the choices for it (a mined line: its drill)
+  function partMachine(id, p) {
+    if (!crafted(id)) { const s = supply(id, 1, p.machine), res = FD.resources[id]; return s && { machine: s.id, k: s.k, options: res && res.cat === 'basic-solid' && !res.fluid ? DRILLS : [s.id], recipe: null, recipes: [] }; }
+    const t = Engine.build(id, sWith(id, p.machine, p.recipe), {});
+    return { machine: t.machine, k: t.kMach, options: t.machineChoices, recipe: t.recipe, recipes: t.recipeChoices, tree: t };
+  }
+  // a row's lines in your factory ({ recipe, machine, scale }): its parts, or its one machine; none when it is not entered
+  function linesOf(id) {
+    const p = partsOf(id); if (p) return p;
+    const st = chainMem[id], im = itemMachine(id);
+    return saved(st) && im ? [{ recipe: im.recipe || null, machine: im.machine, scale: st.scale }] : [];
+  }
+  const sameLine = (l, recipe, machine) => l.machine === machine && (l.recipe || null) === (recipe || null);
+  // a line into your factory: it replaces the line on the same machine and recipe, or goes under the row's other lines
+  function facPutLine(id, recipe, machine, rate) {
+    const st = chainState(id), lines = linesOf(id).filter(l => l.scale > 0 || sameLine(l, recipe, machine)).map(l => Object.assign({}, l)), i = lines.findIndex(l => sameLine(l, recipe, machine));   // emptied lines go
+    if (i >= 0) lines[i].scale = rate; else lines.push({ recipe: recipe || null, machine, scale: rate });
+    st.parts = lines; st.anchor = { path: id, kind: 'mach' };
+    facPartsSettled(id, st); chainMem[id] = st;
+  }
+  // the recipes a row does not use yet (lines on another machine come from the add row, a page or a blueprint)
+  const freeRecipes = (id, im) => { const used = new Set((partsOf(id) || [{ recipe: im.recipe }]).map(l => l.recipe)); return (im.recipes || []).filter(r => !used.has(r)); };
+  // a row's machine count and its machine (a picker when there is a choice). A row on more than one machine or recipe has
+  // a line for each, with its own count, picker and ×; a row with a recipe it does not use yet offers another
+  // what a line's picker shows: its machine (and recipe, small, when the item has more than one), or, for an item made in
+  // one machine with more than one recipe (solid fuel), the recipe itself
+  const lineLabel = im => {
+    const recs = (im.recipes || []).length > 1, rname = recs ? esc(FD.recipes[im.recipe].name) : '';
+    return im.options.length < 2 && recs ? `${ic(im.recipe)}<span class="mname">${rname}</span>` : `${icb(im.machine)}<span class="mname">${esc(mName(im.machine))}${recs ? ` <small>· ${rname}</small>` : ''}</span>`;
+  };
   const facOne = (i, k, v, im, part, many) => {
     const choice = im.options.length > 1 || (im.recipes || []).length > 1, pa = part === undefined ? '' : ` data-part="${part}"`;
-    const rec = (im.recipes || []).length > 1 ? ` <small>· ${esc(FD.recipes[im.recipe].name)}</small>` : '';
     return `<input class="num" inputmode="decimal" data-path="${i}"${pa} data-k="${k}" data-kind="mach" value="${v ? fmtIn(v) : ''}" placeholder="0" aria-label="number of ${esc(nameOf(im.machine))} making ${esc(nameOf(i))}">` +
-      (choice ? `<button class="mbtn can" data-fac-pick="${i}"${pa} tabindex="-1" title="Change machine${rec ? ' or recipe' : ''}">${icb(im.machine)}<span class="mname">${esc(nameOf(im.machine))}${rec}</span><span class="arr">▾</span></button>` : `<span class="mbtn">${icb(im.machine)}<span class="mname">${esc(nameOf(im.machine))}</span></span>`) +
-      (many ? `<button class="partx" data-part-x="${i}"${pa} tabindex="-1" title="Remove this recipe" aria-label="Remove this recipe">×</button>` : '');
+      (choice ? `<button class="mbtn can" data-fac-pick="${i}"${pa} tabindex="-1" title="Change machine${(im.recipes || []).length > 1 ? ' or recipe' : ''}">${lineLabel(im)}<span class="arr">▾</span></button>` : `<span class="mbtn">${lineLabel(im)}</span>`) +
+      (many ? `<button class="partx" data-part-x="${i}"${pa} tabindex="-1" title="Remove" aria-label="Remove these machines">×</button>` : '');
   };
   const facBox = (i, k, v, im) => {
-    const parts = partsOf(i), more = (im.recipes || []).length > (parts ? parts.length : 1) ? `<button class="addpart" data-add-part="${i}" tabindex="-1">+ another recipe</button>` : '';
+    const parts = partsOf(i), more = freeRecipes(i, im).length ? `<button class="addpart" data-add-part="${i}" tabindex="-1">+ another recipe</button>` : '';
     if (!parts) return `<div class="td mach" data-label="machines">${facOne(i, k, v, im)}${more}</div>`;
     return `<div class="td mach parts" data-label="machines">${parts.map((p, j) => { const pm = partMachine(i, p); return `<div class="part">${facOne(i, pm.k, p.scale > 0 ? p.scale * pm.k : null, pm, j, true)}</div>`; }).join('')}${more}</div>`;
   };
 
+  // the drills (or pumps) on a mined row, a [machine, how many] for each of its lines
+  const minedRuns = (id, rate) => (partsOf(id) || [{ machine: null, scale: rate }]).map(q => { const s = supply(id, 1, q.machine); return s && [s.id, s.k * (q.scale > 0 ? q.scale : 0)]; }).filter(Boolean);
   // have: item -> units/s your machines make. uses: item -> what your machines consume of it, by producer.
   function factoryModel() {
     const have = {}, uses = {}, trees = {}, runsOf = {};
@@ -1120,7 +1176,7 @@
     // burner drills and stone or steel furnaces burn coal
     const coalPerKw = 1 / (FD.items.coal.fuel * 1000);
     const burn = (machine, count, by) => { const m = FD.machines[machine]; if (m && m.burner && count > 0) push('coal', { by, rate: m.kw * coalPerKw * count, machines: count, machine, fuel: true }); };
-    for (const [p, rate] of Object.entries(have)) { const r = runsOf[p]; if (r) for (const [t, x] of r) burn(t.machine, t.kMach * x, p); else { const s = supply(p, 1); if (s) burn(s.id, s.k * rate, p); } }
+    for (const [p, rate] of Object.entries(have)) { const r = runsOf[p]; if (r) for (const [t, x] of r) burn(t.machine, t.kMach * x, p); else for (const [m, n] of minedRuns(p, rate)) burn(m, n, p); }
     // ores mined with a fluid (uranium ore takes sulfuric acid) use it per ore mined, not for what mining productivity adds
     for (const [p, rate] of Object.entries(have)) { const res = FD.resources[p], s = res && res.fluid && supply(p, 1); if (s) push(res.fluid[0], { by: p, rate: rate / (1 + S.mp / 100) * res.fluid[1], machines: s.k * rate, machine: s.id }); }
     const unitUse = (id, rate, extra) => Object.assign({ by: id, label: UNITS[id].name, go: UNITS[id].go, rate, machines: unitN(id), machine: UNITS[id].machine || id }, extra);
@@ -1162,7 +1218,7 @@
       const m = FD.machines[machine], kw = machine === 'lab' ? LAB_KW : m && !m.burner ? m.kw + (m.drain || 0) : 0;
       if (kw > 0 && count > 0) { power.used += kw * count / 1000; power.parts.push({ by, label, go, machines: count, machine, mw: kw * count / 1000 }); }
     };
-    for (const [p, rate] of Object.entries(have)) { const r = runsOf[p]; if (r) for (const [t, x] of r) draw(t.machine, t.kMach * x, p); else { const s = supply(p, 1); if (s) draw(s.id, s.k * rate, p); } }
+    for (const [p, rate] of Object.entries(have)) { const r = runsOf[p]; if (r) for (const [t, x] of r) draw(t.machine, t.kMach * x, p); else for (const [m, n] of minedRuns(p, rate)) draw(m, n, p); }
     if (unitN('lab')) draw('lab', unitN('lab'), 'lab', 'Labs', '#c/science');
     if (N.r) draw('oil-refinery', N.r, 'refinery', 'Oil refineries', '#c/oil');
     if (N.a && !basic) draw('chemical-plant', N.a, 'heavy-oil-cracking', 'Heavy oil cracking', '#c/oil');   // on Basic there is nothing to crack
@@ -1254,6 +1310,7 @@
 
   function renderFactory(fromInput, topOnly) {
     cur = null; curRes = null; curCard = { id: 'factory', st: {}, fields: [] };
+    closePop();   // a picker belongs to the rows it was opened on
     // arriving on the page (a Your base change redraws in place and keeps them): no kept rows, Put back or filter yet
     if (!fromInput && !keepPlace) { facKeep.clear(); for (const k of Object.keys(facRemoved)) delete facRemoved[k]; facFilter = null; facFiltSeen.clear(); refShown.clear(); }
     const { have, uses, runsOf, ids, power, steam, oil, sci } = factoryModel();
@@ -1283,7 +1340,7 @@
       if (!made && !used) return empty;
       const bal = made - used, isShort = bal < 0 && !near(bal, 0), v = Math.abs(bal), pct = used > 0 ? Math.min(100, made / used * 100) : 100;
       // how many machines close a gap: on a short row the gap, on a row with nothing entered all that is used
-      const add = n => k > 0 && machine ? `<small>add ${fmt(Math.ceil(n * k - 1e-9))} × ${esc(nameOf(machine))}</small>` : '';
+      const add = n => k > 0 && machine ? `<small>add ${fmt(Math.ceil(n * k - 1e-9))} × ${esc(mName(machine))}</small>` : '';
       if (!made) return { st: 'none', miss: 0, html: cell('none', 'not entered' + add(used), 0, 'nothing making it is entered') };
       const tip = !used ? 'nothing uses it' : `${fmt(made / used * 100)}% of what your factory uses`;
       if (isShort) return { st: 'short', miss: v, html: cell('short', word(v) + ' short' + add(v), pct, tip) };
@@ -1303,7 +1360,7 @@
     const flowRows = (makers, users, fluid, amt) => {
       const a = amt || (v => amountText(v, fluid)), cap = w => capOf(w, fluid || !!amt);   // an amount given its own unit (MW) says it itself
       const line = (u, mk) => { const go = u.go || '#i/' + u.by, nm = u.label || nameOf(u.by);
-        return `<div class="tr cons ${mk ? 'makes' : 'uses'}"><div class="td item" style="--d:1"><span class="exp none"></span><span class="side">${mk ? 'made by' : 'used by'}</span>${ic(iconOf(u.by), 'sm')}<span class="nmtxt"><a class="lnk" href="${go}" data-go="${go}" title="Open ${esc(nm)}">${esc(nm)}</a>${u.fuel ? ' <span class="sub">fuel</span>' : ''}</span></div><div class="td mach" data-label="machines">${u.machine ? `${fmt(u.machines)} × ${esc(nameOf(u.machine))}` : esc(u.what || 'rocket launches')}</div><div class="td amt"${mk ? ` data-label="${cap('makes')}"` : ''}>${mk ? a(u.rate) : ''}</div><div class="td amt"${mk ? '' : ` data-label="${cap('uses')}"`}>${mk ? '' : a(u.rate)}</div><div class="td amt"></div></div>`; };
+        return `<div class="tr cons ${mk ? 'makes' : 'uses'}"><div class="td item" style="--d:1"><span class="exp none"></span><span class="side">${mk ? 'made by' : 'used by'}</span>${ic(iconOf(u.by), 'sm')}<span class="nmtxt"><a class="lnk" href="${go}" data-go="${go}" title="Open ${esc(nm)}">${esc(nm)}</a>${u.fuel ? ' <span class="sub">fuel</span>' : ''}</span></div><div class="td mach" data-label="machines">${u.machine ? `${fmt(u.machines)} × ${esc(mName(u.machine))}` : esc(u.what || 'rocket launches')}</div><div class="td amt"${mk ? ` data-label="${cap('makes')}"` : ''}>${mk ? a(u.rate) : ''}</div><div class="td amt"${mk ? '' : ` data-label="${cap('uses')}"`}>${mk ? '' : a(u.rate)}</div><div class="td amt"></div></div>`; };
       return makers.map(u => line(u, true)).join('') + users.slice().sort((x, y) => y.rate - x.rate).map(u => line(u, false)).join('');
     };
     const showUnit = id => (id === 'refinery' ? refAll() : unitN(id)) > 0 || facKeep.has('unit:' + id) || STARTER_UNITS.includes(id);
@@ -1355,7 +1412,7 @@
     const andJoin = l => l.length > 1 ? l.slice(0, -1).join(', ') + ' and ' + l[l.length - 1] : l.join('');
     // what your factory needs of a refinery or cracking row, in grey: idle (and why), not entered, too few, or enough
     const unitNeed = (id, needN, run) => {
-      const hv = unitN(id), add = n => `add ${fmt(Math.ceil(n - 1e-9))} × ${esc(nameOf(UNITS[id].machine))}`, cell = (cls, txt, pct) => cellOf(cls, txt, pct, '', '');
+      const hv = unitN(id), add = n => `add ${fmt(Math.ceil(n - 1e-9))} × ${esc(mName(UNITS[id].machine))}`, cell = (cls, txt, pct) => cellOf(cls, txt, pct, '', '');
       if (!(hv > 0) && !(needN > 1e-9)) return empty;
       if (!(needN > 1e-9)) return { st: null, html: cell('none', `idle<small>${basic ? 'nothing to crack on basic' : 'no cracking needed'}</small>`, null) };
       if (!(hv > 0)) return { st: null, html: cell('none', `not entered<small>needs ${fmt(needN)}: ${add(needN)}</small>`, 0) };
@@ -1378,7 +1435,7 @@
       const u = UNITS.refinery, shown = Object.keys(OIL_PROC).filter(m => N.rm[m] > 0 || refShown.has(m));
       if (!shown.length) shown.push(mode);
       const many = shown.length > 1;
-      const lines = shown.map(m => `<div class="part"><input class="num" inputmode="decimal" data-path="unit:refinery" data-proc="${m}" data-k="1" data-kind="mach" value="${N.rm[m] ? fmtIn(N.rm[m]) : ''}" placeholder="0" aria-label="oil refineries on ${OIL_PROC_NAME[m]}"><button class="mbtn can" data-ref-pick="${m}" tabindex="-1" title="Change processing">${ic('oil-refinery')}<span class="mname">Oil refinery <small>· ${{ basic: 'Basic', advanced: 'Advanced', coal: 'Coal liquefaction' }[m]}</small></span><span class="arr">▾</span></button>${many ? `<button class="partx" data-ref-x="${m}" tabindex="-1" title="Remove this processing" aria-label="Remove this processing">×</button>` : ''}</div>`).join('');
+      const lines = shown.map(m => `<div class="part"><input class="num" inputmode="decimal" data-path="unit:refinery" data-proc="${m}" data-k="1" data-kind="mach" value="${N.rm[m] ? fmtIn(N.rm[m]) : ''}" placeholder="0" aria-label="oil refineries on ${OIL_PROC_NAME[m]}"><button class="mbtn can" data-ref-pick="${m}" tabindex="-1" title="Change processing">${ic(OIL_PROC[m])}<span class="mname">${PROC_SHORT[m]}</span><span class="arr">▾</span></button>${many ? `<button class="partx" data-ref-x="${m}" tabindex="-1" title="Remove this processing" aria-label="Remove this processing">×</button>` : ''}</div>`).join('');
       const more = shown.length < 3 ? `<button class="addpart" data-ref-add tabindex="-1">+ another processing</button>` : '';
       return `<div class="tr${N.r ? ' product' : ''}" data-fac="unit:refinery"><div class="td item" style="--d:0"><span class="exp none"></span>${ic(u.icon)}<span class="nmtxt"><a class="lnk" href="${u.go}" data-go="${u.go}" title="Open ${esc(u.name)}">${esc(u.name)}</a>${rmBtn('unit:refinery', u.name, N.r > 0)}</span></div><div class="td mach${many ? ' parts' : ''}" data-label="machines">${lines}${more}</div><div class="td amt"></div><div class="td amt"></div>${bal.html}</div>`;
     };
@@ -1445,8 +1502,9 @@
       const page = isResource(i) || (FD.items[i] && Engine.byProduct[i] && !Engine.LEAVES.has(i)) ? '#i/' + i : CARD_FEED[i] ? '#c/' + CARD_FEED[i].card : null;
       const link = page ? `<a class="lnk" href="${page}" data-go="${page}" title="Open ${esc(nameOf(i))}">${esc(nameOf(i))}</a>` : `<b>${esc(nameOf(i))}</b>`;
       // what makes it: your machines (each part of a split row), the drills or pumps on a resource, or the amount you typed
-      const makers = runsOf[i] ? runsOf[i].map(([t, r]) => ({ by: i, label: partsOf(i) ? FD.recipes[t.recipe].name : nameOf(i), go: page || '#i/' + i, rate: r, machines: t.kMach * r, machine: t.machine }))
-        : made ? [(() => { const s = supply(i, 1); return { by: i, label: nameOf(i), go: page || '#i/' + i, rate: made, machines: s ? s.k * made : 0, machine: s ? s.id : null, what: s ? '' : originText(i) || 'what you entered' }; })()] : [];
+      const recs = new Set((partsOf(i) || []).map(q => q.recipe));   // lines on different recipes are named by their recipe
+      const makers = runsOf[i] ? runsOf[i].map(([t, r]) => ({ by: i, label: recs.size > 1 ? FD.recipes[t.recipe].name : nameOf(i), go: page || '#i/' + i, rate: r, machines: t.kMach * r, machine: t.machine }))
+        : made ? (partsOf(i) || [{ machine: null, scale: made }]).filter(q => q.scale > 0).map(q => { const s = supply(i, 1, q.machine); return { by: i, label: nameOf(i), go: page || '#i/' + i, rate: q.scale, machines: s ? s.k * q.scale : 0, machine: s ? s.id : null, what: s ? '' : originText(i) || 'what you entered' }; }) : [];
       const rowHtml = (`<div class="tr${made ? ' product' : ''}" data-fac="${i}"><div class="td item" style="--d:0">${expBtn(i, list.length || makers.length > 1, 'what makes and uses ' + nameOf(i))}${ic(i)}<span class="nmtxt">${link}${nick(i)}${i === 'crude-oil' ? yieldLine() : ''}${rmBtn(i, nameOf(i), made > 0)}</span></div>${mach}${makes}<div class="td amt" data-label="${capOf('uses', fluid)}">${used ? amountText(used, fluid) : '<span class="sub">–</span>'}</div>${b.html}</div>` + (facOpen.has(i) ? flowRows(makers, list, fluid) : ''));
       (i === 'crude-oil' ? oilFirst : body[tab]).push(rowHtml);
       if (i === 'coal' || i === 'water') shared[i] = rowHtml;
@@ -1506,16 +1564,53 @@
     doc.title = 'Your factory – Factorio Ratios';
   }
 
-  // the dashed "add" row at the bottom of a tab: name, then how many, then Enter or Add
-  let addSel = null;   // { kind: 'item' | 'unit', id }
+  // the dashed "add" row at the bottom of a tab: name, then how many and on what (machine and recipe, or the refineries'
+  // processing), then Enter or Add. It replaces the line on the same machine and recipe (the button reads Update), else
+  // the row gets a line of its own
+  let addSel = null;   // { kind: 'item' | 'unit', id, machine, recipe, proc }
   const addName = s => s.kind === 'unit' ? UNITS[s.id].name : nameOf(s.id);
   const addIcon = s => s.kind === 'unit' ? UNITS[s.id].icon : s.id;
+  // the line the add row would make: its machine, machines per 1 unit/s and the choices (null: typed as an amount)
+  const addLine = s => s.kind === 'item' && itemMachine(s.id) ? partMachine(s.id, { recipe: s.recipe, machine: s.machine }) : null;
   function addMachineHtml(s) {
-    if (s.kind === 'unit') { const m = UNITS[s.id].machine || s.id; return `${ic(m)}<span class="mname">${esc(nameOf(m))}</span>`; }
-    const im = itemMachine(s.id);
-    return im ? `${icb(im.machine)}<span class="mname">${esc(nameOf(im.machine))}</span>` : '<span class="sub">amount per second</span>';
+    if (s.kind === 'unit') {
+      if (s.id === 'refinery') return `<button class="mbtn can" data-add-mpick tabindex="-1" title="Change processing">${ic(OIL_PROC[s.proc])}<span class="mname">${PROC_SHORT[s.proc]}</span><span class="arr">▾</span></button>`;
+      const m = UNITS[s.id].machine || s.id; return `<span class="mbtn">${ic(m)}<span class="mname">${esc(mName(m))}</span></span>`;
+    }
+    const pm = addLine(s); if (!pm) return '<span class="sub">amount per second</span>';
+    return pm.options.length > 1 || pm.recipes.length > 1 ? `<button class="mbtn can" data-add-mpick tabindex="-1" title="Change machine${pm.recipes.length > 1 ? ' or recipe' : ''}">${lineLabel(pm)}<span class="arr">▾</span></button>`
+      : `<span class="mbtn">${lineLabel(pm)}</span>`;
   }
-  const addRowHtml = () => `<div class="tr add"><div class="td item" style="--d:0"><span class="exp none"></span>${addSel ? ic(addIcon(addSel)) : ''}<input class="txt" id="addq" placeholder="${esc(ADD_HINT[facTab])}" autocomplete="off" spellcheck="false" aria-label="what to add" value="${addSel ? esc(addName(addSel)) : ''}"></div><div class="td mach" data-label="how many"><input class="num" id="addn" inputmode="decimal" placeholder="1" aria-label="how many"><span class="mbtn" id="addm">${addSel ? addMachineHtml(addSel) : ''}</span></div><div class="td amt"></div><div class="td amt"></div><div class="td amt"><button class="iconbtn sm" data-add tabindex="-1">Add</button></div></div><div class="tr add-hits"><div class="td" id="addhits"></div></div>`;
+  // what your factory has of that line now: machines (a unit's count), or the amount per second of a row typed as one
+  function addCount(s) {
+    if (s.kind === 'unit') return s.id === 'refinery' ? refN(s.proc) : unitN(s.id);
+    const pm = addLine(s), st = chainMem[s.id];
+    if (!pm) return saved(st) ? st.scale : 0;
+    const l = linesOf(s.id).find(x => sameLine(x, pm.recipe, pm.machine));
+    return l && l.scale > 0 ? l.scale * pm.k : 0;
+  }
+  // Update when that line is in your factory already (its count is replaced), else Add
+  const addVerb = s => s && addCount(s) > 0 ? 'Update' : 'Add';
+  // after a pick or a new machine: the row's icon, the picker, Add or Update, and on Update the count it would replace
+  // in the box (unless you typed one), so Enter keeps it and typing replaces it
+  function addRefresh() {
+    const i = $('#addi'), m = $('#addm'), g = $('#addgo'), n = $('#addn');
+    if (i) i.innerHTML = addSel ? ic(addIcon(addSel)) : '';
+    if (m) m.innerHTML = addSel ? addMachineHtml(addSel) : '';
+    if (g) g.textContent = addVerb(addSel);
+    if (n && !n.dataset.typed) { const c = addSel ? addCount(addSel) : 0; n.value = c > 0 ? fmtIn(c) : ''; }
+  }
+  const addRowHtml = () => `<div class="tr add"><div class="td item" style="--d:0"><span class="exp none"></span><span id="addi">${addSel ? ic(addIcon(addSel)) : ''}</span><input class="txt" id="addq" placeholder="${esc(ADD_HINT[facTab])}" autocomplete="off" spellcheck="false" aria-label="what to add" value="${addSel ? esc(addName(addSel)) : ''}"></div><div class="td mach" data-label="how many"><input class="num" id="addn" inputmode="decimal" placeholder="1" aria-label="how many"><span id="addm">${addSel ? addMachineHtml(addSel) : ''}</span></div><div class="td amt"></div><div class="td amt"></div><div class="td amt"><button class="iconbtn sm" id="addgo" data-add tabindex="-1">${addVerb(addSel)}</button></div></div><div class="tr add-hits"><div class="td" id="addhits"></div></div>`;
+  // the add row's picker: an item's machine and recipe, or the refineries' processing
+  function openAddPick(btn) {
+    closePop(); if (!addSel) return;
+    const pm = addLine(addSel);
+    const html = addSel.kind === 'unit' ? `<span class="lead">These refineries run:</span>` + Object.keys(OIL_PROC).map(m => `<button data-add-proc="${m}" class="${m === addSel.proc ? 'on' : ''}" tabindex="-1">${ic(OIL_PROC[m], 'sm')}<span>${esc(FD.recipes[OIL_PROC[m]].name)}</span></button>`).join('')
+      : pm ? machinePickHtml(addSel.id, pm, 'data-add-m', 'data-add-r') : '';
+    if (!html) return;
+    popEl = doc.createElement('div'); popEl.className = 'pop'; popEl.innerHTML = html; popEl.dataset.addPick = '1';
+    doc.body.appendChild(popEl); placePop(btn);
+  }
   // what a tab's add row offers: only what belongs in that tab (Everything: anything)
   function addCandidates(tab) {
     const out = [], seen = new Set();
@@ -1552,7 +1647,7 @@
   }
   function addQuery(text) {
     const h = $('#addhits'); if (!h) return;
-    addSel = null; const m = $('#addm'); if (m) m.innerHTML = '';
+    addSel = null; addRefresh();
     const t = text.trim(), whole = !t, list = whole ? addList() : addSearch(text);
     const tabName = tb => FAC_TABS.find(x => x[0] === tb)[1], where = facTab === 'all' ? '' : ' in ' + tabName(facTab);
     const chip = (e, sub) => `<button class="chip2" data-add-pick="${e.kind}:${e.id}" tabindex="-1">${ic(e.kind === 'unit' ? UNITS[e.id].icon : e.id, 'sm')}${esc(e.name)}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</button>`;
@@ -1564,10 +1659,13 @@
   }
   function addClose() { const h = $('#addhits'); if (h) { h.innerHTML = ''; h.classList.remove('all'); } }
   function addPick(key) {
-    const i = key.indexOf(':'); addSel = { kind: key.slice(0, i), id: key.slice(i + 1) };
-    const q2 = $('#addq'), m = $('#addm'), n = $('#addn'), h = $('#addhits');
+    // it starts on the row's own machine and recipe (or Your base's), refineries on the processing you have most of
+    const i = key.indexOf(':'), kind = key.slice(0, i), id = key.slice(i + 1), im = kind === 'item' ? itemMachine(id) : null;
+    addSel = { kind, id, machine: im ? im.machine : null, recipe: im ? im.recipe || null : null, proc: id === 'refinery' ? refMain() : null };
+    const q2 = $('#addq'), n = $('#addn'), h = $('#addhits');
     if (q2) q2.value = addName(addSel);
-    if (m) m.innerHTML = addMachineHtml(addSel);
+    if (n) delete n.dataset.typed;
+    addRefresh();
     if (h) h.innerHTML = '';
     if (n) { n.focus(); n.select(); }
   }
@@ -1581,16 +1679,18 @@
     const nEl = $('#addn'), text = ((nEl || {}).value || '').trim() || '1';
     if (addSel.kind === 'unit') {
       const v = parseFloat(text); if (!(v > 0)) { if (nEl) nEl.classList.add('bad'); return; }
-      facUnits[addSel.id === 'refinery' ? REF_KEY[refMain()] : addSel.id] = v; persist(); clearViews();   // refineries: on the processing you have most of
+      facUnits[addSel.id === 'refinery' ? REF_KEY[addSel.proc] : addSel.id] = v;   // refineries: on the processing picked
+      // with one processing on the refinery row, it is also the one the Oil page plans with (as refMove keeps it)
+      if (addSel.id === 'refinery' && refLines().length <= 1) { const o = cardState('oil'); o.basic = addSel.proc === 'basic'; o.coal = addSel.proc === 'coal'; saveCard('oil', o); }
+      persist(); clearViews();
     } else {
-      const id = addSel.id, im = itemMachine(id), p = parseBox(text, 'mach', isFluid(id));
+      const id = addSel.id, pm = addLine(addSel), p = parseBox(text, 'mach', isFluid(id));
       if (!p) { if (nEl) nEl.classList.add('bad'); return; }
-      const rate = p.kind === 'rate' ? p.perS : im ? p.v / im.k : p.v;   // "8" machines, or "2 lanes" / "15/s"; no machine: units per second
+      const rate = p.kind === 'rate' ? p.perS : pm ? p.v / pm.k : p.v;   // "8" machines, or "2 lanes" / "15/s"; no machine: units per second
       if (!(rate > 0)) return;
-      pin(id);
-      const st = chainState(id); if (partsOf(id)) { st.parts[0].scale = rate; st.scale = partsTotal(st); } else st.scale = rate;   // a split row: its first part
-      st.anchor = { path: id, kind: 'mach' }; st.touched = true;
-      saveChain(id, st); clearViews();
+      if (pm) facPutLine(id, pm.recipe, pm.machine, rate);   // the line on that machine and recipe, or a new one
+      else { const st = chainState(id); st.scale = rate; st.anchor = { path: id, kind: 'mach' }; st.touched = true; chainMem[id] = st; }
+      persist(); clearViews();
     }
     addSel = null; renderFactory(true);
     const q2 = $('#addq'); if (q2 && fine()) q2.focus();   // on a phone that would bring the keyboard and the list back over the ledger
@@ -1623,14 +1723,19 @@
     if (again) { again.value = text; restoringFocus = true; again.focus(); restoringFocus = false; if (orig !== undefined) again.dataset.orig = orig; try { again.setSelectionRange(sel[0], sel[1]); } catch (e) { } }
   }
   // the machine (and recipe) picker on a ledger row
+  // a picker's choices: the machines for the line's recipe, then the recipes; mAttr and rAttr name what a click sets
+  const machinePickHtml = (id, im, mAttr, rAttr) =>
+    (im.options.length > 1 ? `<span class="lead">${esc(nameOf(id))} is ${crafted(id) ? 'made in' : 'mined by'}:</span>` + im.options.map(m => `<button ${mAttr}="${m}" class="${m === im.machine ? 'on' : ''}" tabindex="-1">${icb(m)}<span>${esc(mName(m))}</span></button>`).join('') : '') +
+    ((im.recipes || []).length > 1 ? `<span class="lead">using recipe:</span>` + im.recipes.map(rid => `<button ${rAttr}="${rid}" class="${rid === im.recipe ? 'on' : ''}" tabindex="-1">${ic(rid, 'sm')}<span>${esc(FD.recipes[rid].name)}</span></button>`).join('') : '');
   function openFacPick(btn, id) {
     closePop();
     const parts = partsOf(id), j = btn.dataset.part === undefined ? null : Number(btn.dataset.part);
     const im = parts && j !== null ? partMachine(id, parts[j]) : itemMachine(id); if (!im) return;
-    const opts = im.options.length > 1 ? `<span class="lead">${esc(nameOf(id))} is made in:</span>` + im.options.map(m => `<button data-fac-m="${m}" class="${m === im.machine ? 'on' : ''}" tabindex="-1">${icb(m)}<span>${esc(nameOf(m).replace('Assembling machine', 'Assembler'))}</span></button>`).join('') : '';
-    const recs = (im.recipes || []).length > 1 ? `<span class="lead">using recipe:</span>` + im.recipes.map(rid => `<button data-fac-r="${rid}" class="${rid === im.recipe ? 'on' : ''}" tabindex="-1">${ic(rid, 'sm')}<span>${esc(FD.recipes[rid].name)}</span></button>`).join('') : '';
-    popEl = doc.createElement('div'); popEl.className = 'pop'; popEl.innerHTML = opts + recs;
-    popEl.dataset.facItem = id; if (j !== null) popEl.dataset.part = j;
+    // under the choices, the machines no line of this row is on yet: a click adds a line on one, at 0
+    const lines = parts || [{ recipe: im.recipe || null, machine: im.machine }], also = im.options.filter(m => !lines.some(l => sameLine(l, im.recipe || null, m)));
+    popEl = doc.createElement('div'); popEl.className = 'pop';
+    popEl.innerHTML = machinePickHtml(id, im, 'data-fac-m', 'data-fac-r') + (also.length ? `<span class="lead">Also ${crafted(id) ? 'in' : 'by'}:</span>` + also.map(m => `<button data-fac-also="${m}" tabindex="-1">${icb(m)}<span>${esc(mName(m))}</span></button>`).join('') : '');
+    popEl.dataset.facItem = id; popEl.dataset.recipe = im.recipe || ''; if (j !== null) popEl.dataset.part = j;
     doc.body.appendChild(popEl);
     placePop(btn);
   }
@@ -1681,17 +1786,21 @@
   // after parts change: the first part is the row's machine and recipe, the row's number is their sum, and a row left with
   // one part is a plain row again
   function facPartsSettled(id, st) {
-    const q = st.parts[0];
-    if (q) { machineOf[id] = q.machine; recipeOf[id] = q.recipe; }
+    const q = st.parts[0], pm = q && partMachine(id, q);
+    if (q) {   // pinned only where there is a choice, as pin() does
+      if (pm && pm.options.length > 1) machineOf[id] = q.machine; else delete machineOf[id];
+      if (q.recipe && (Engine.byProduct[id] || []).length > 1) recipeOf[id] = q.recipe; else delete recipeOf[id];
+    }
     if (st.parts.length < 2) { st.scale = q ? q.scale : null; delete st.parts; } else st.scale = partsTotal(st);
     st.touched = st.scale > 0; if (!st.touched) facKeep.add(id);
   }
-  // another recipe on a row: a part at 0 for the next recipe it does not use yet
-  function facAddPart(id) {
+  // another recipe on a row: a line at 0 for the next recipe it does not use yet
+  function facAddPart(id) { const im = itemMachine(id), next = im && freeRecipes(id, im)[0]; if (next) facAddLine(id, next, partMachine(id, { recipe: next }).machine); }
+  // a new line on a row, at 0, on that machine and recipe ("Also in" on a picker, + another recipe), its box ready to type in
+  function facAddLine(id, recipe, machine) {
     const st = chainState(id), im = itemMachine(id); if (!im) return;
-    if (!st.parts || st.parts.length < 2) st.parts = [{ recipe: im.recipe, machine: im.machine, scale: saved(st) ? st.scale : 0 }];
-    const next = (im.recipes || []).find(r => !st.parts.some(p => p.recipe === r)); if (!next) return;
-    st.parts.push({ recipe: next, machine: partMachine(id, { recipe: next }).machine, scale: 0 });
+    if (!st.parts || st.parts.length < 2) st.parts = [{ recipe: im.recipe || null, machine: im.machine, scale: saved(st) ? st.scale : 0 }];
+    st.parts.push({ recipe: recipe || null, machine, scale: 0 });
     facPartsSettled(id, st); chainMem[id] = st; persist(); renderFactory(true);
     const box = $(`#main input.num[data-path="${id}"][data-part="${st.parts.length - 1}"]`); if (box && fine()) box.focus();
   }
@@ -1711,9 +1820,9 @@
     else if (key.startsWith('unit:')) { const id = key.slice(5); was.n = facUnits[id]; was.txt = `${fmt(was.n)} × ${nameOf(UNITS[id].machine || id)}`; facUnits[id] = 0; }
     else {
       const st = chainState(key), im = itemMachine(key), fl = isFluid(key);
-      const parts = partsOf(key), each = parts && parts.filter(p => p.scale > 0).map(p => { const pm = partMachine(key, p); return `${fmt(p.scale * pm.k)} × ${nameOf(pm.machine)}`; });
+      const parts = partsOf(key), each = parts && parts.filter(p => p.scale > 0).map(p => { const pm = partMachine(key, p); return `${fmt(p.scale * pm.k)} × ${mName(pm.machine)}`; });
       Object.assign(was, { scale: st.scale, anchor: st.anchor, machine: machineOf[key], recipe: recipeOf[key], parts: parts ? parts.map(p => Object.assign({}, p)) : null,
-        txt: each ? each.join(' and ') : im ? `${fmt(st.scale * im.k)} × ${nameOf(im.machine)}` : `${fmt(toUnit(st.scale, fl))} ${fl ? 'per second' : unitWord(toUnit(st.scale, fl))}` });
+        txt: each ? each.join(' and ') : im ? `${fmt(st.scale * im.k)} × ${mName(im.machine)}` : `${fmt(toUnit(st.scale, fl))} ${fl ? 'per second' : unitWord(toUnit(st.scale, fl))}` });
       st.scale = null; st.anchor = null; st.touched = false; delete st.parts; delete machineOf[key]; delete recipeOf[key];
     }
     facRemoved[key] = was; facDismiss.delete(key); facKeep.add(key);
@@ -1762,7 +1871,7 @@
   // instead (the ledger keeps what is mined per second, so it is scaled)
   function rescaleMined(f, onlyCrude) {
     if (!(f > 0) || near(f, 1)) return;
-    for (const [id, st] of Object.entries(chainMem)) { const res = FD.resources[id]; if (saved(st) && res && (id === 'crude-oil' || (!onlyCrude && res.cat === 'basic-solid'))) st.scale *= f; }
+    for (const [id, st] of Object.entries(chainMem)) { const res = FD.resources[id]; if (saved(st) && res && (id === 'crude-oil' || (!onlyCrude && res.cat === 'basic-solid'))) { st.scale *= f; for (const q of st.parts || []) q.scale *= f; } }
     persist();
   }
   // the crude oil row's yield box: the % the game shows on an oil field
@@ -1865,9 +1974,11 @@
   }
 
   // ---------- blueprint import: fill the ledger from a blueprint string ----------
-  // Each import overwrites the counts of what the blueprint holds and leaves other rows alone. On a tab it only touches
-  // that tab's rows (the rest is listed); rows already in the ledger update at once, new ones wait for a tick and Add.
-  // Furnaces and drills do not record what they smelt or mine, so you split them. Modules and beacons are ignored.
+  // Each import overwrites the counts of what the blueprint holds and leaves the rest alone: an item gets a line for each
+  // machine and recipe it is made on, replacing the line on the same machine and recipe. On a tab it only touches that
+  // tab's rows (the rest is listed); rows already in the ledger update at once, new ones wait for a tick and Add. What a
+  // blueprint does not say, you say: what furnaces smelt, what drills mine, and which processing refineries with no
+  // recipe run. Modules and beacons are ignored.
   let bpImport = null;   // the result of the last import: { tab, total, updated, pending, others, splits, skipped, done, error, unticked, splitVals }
   let bpDraft = '';      // a string pasted into the import box but not imported yet
   async function bpDecode(str) {
@@ -1902,28 +2013,15 @@
     const res = FD.resources[item];   // a drill on an ore
     return res && FD.machines[machine] ? n * FD.machines[machine].speed / res.time * (1 + S.mp / 100) : 0;
   }
-  // one ledger entry for an item from its machines: the machine with the most wins (ties: the faster), and the others
-  // count as the same output in that machine, so what the item makes stays exact
+  // one ledger entry for an item from its machines: a line for each machine and recipe, the one with the most machines
+  // first (on a new row, that is the row's own machine)
   function bpItemEntry(item, groups) {   // groups: { 'machine|recipe': n }
-    let rate = 0; const byM = {}, byR = {};
-    for (const [key, n] of Object.entries(groups)) {
-      const [m, r] = key.split('|');
-      rate += bpRate(item, m, r || null, n); byM[m] = (byM[m] || 0) + n; if (r) byR[r] = (byR[r] || 0) + n;
-    }
-    const speed = m => (FD.machines[m] && FD.machines[m].speed) || 0;
-    const machine = Object.keys(byM).sort((a, b) => byM[b] - byM[a] || speed(b) - speed(a))[0];
-    const recipe = Object.keys(byR).sort((a, b) => byR[b] - byR[a])[0] || null;
-    const one = bpRate(item, machine, recipe, 1);
-    // made with more than one recipe (solid fuel from two oils): a part per recipe, each on its most used machine
-    const recs = Object.keys(byR), parts = recs.length > 1 ? recs.sort((a, b) => byR[b] - byR[a]).map(r => {
-      const g = Object.entries(groups).filter(([key]) => key.split('|')[1] === r), byMr = {};
-      for (const [key, n] of g) byMr[key.split('|')[0]] = (byMr[key.split('|')[0]] || 0) + n;
-      return { recipe: r, machine: Object.keys(byMr).sort((a, b) => byMr[b] - byMr[a] || speed(b) - speed(a))[0], scale: g.reduce((a, [key, n]) => a + bpRate(item, key.split('|')[0], r, n), 0) };
-    }) : null;
-    return { kind: 'item', id: item, tab: tabOf(item), machine, recipe, rate, count: one > 0 ? rate / one : 0, parts };
+    const lines = Object.entries(groups).map(([key, n]) => { const [m, r] = key.split('|'); return { recipe: r || null, machine: m, scale: bpRate(item, m, r || null, n), n }; }).sort((a, b) => b.n - a.n);
+    return { kind: 'item', id: item, tab: tabOf(item), lines };
   }
   function bpCount(entities) {
-    const items = {}, units = {}, furnaces = {}, drills = {}, skipped = {}, oilMode = { basic: 0, advanced: 0, coal: 0 };
+    const items = {}, units = {}, furnaces = {}, drills = {}, skipped = {};
+    let refAsk = 0;   // refineries with no recipe set
     const add = (o, k, n) => { o[k] = (o[k] || 0) + (n || 1); };
     for (const e of entities) {
       const n = e.name, r = e.recipe, rec = r && FD.recipes[r];
@@ -1932,6 +2030,7 @@
         const om = Object.keys(OIL_PROC).find(m => OIL_PROC[m] === r);
         if (om) add(units, REF_KEY[om]);   // each processing's refineries count on their own
         else if (rec) add(skipped, rec.name);
+        else refAsk++;
       }
       else if (n === 'chemical-plant' && (r === 'heavy-oil-cracking' || r === 'light-oil-cracking')) add(units, r);
       else if (BP_CRAFTERS.has(n) && rec) {
@@ -1939,23 +2038,24 @@
         if (item && FD.items[item] && Engine.byProduct[item] && !Engine.LEAVES.has(item)) add(items[item] = items[item] || {}, n + '|' + r);
         else add(skipped, rec.name);
       }
+      else if (BP_CRAFTERS.has(n)) add(skipped, `${mName(n)} with no recipe`);
       else if (n === 'pumpjack') add(items['crude-oil'] = items['crude-oil'] || {}, 'pumpjack|');
       else if (n === 'offshore-pump') add(items.water = items.water || {}, 'offshore-pump|');
       else if (BP_FURNACES.includes(n)) add(furnaces, n);
       else if (DRILLS.includes(n)) add(drills, n);
     }
-    return { items, units, furnaces, drills, skipped, oilMode };
+    return { items, units, furnaces, drills, skipped, refAsk };
   }
-  // write one entry into the ledger, pinning its machine (and recipe, when the item has a choice)
+  // whether writing an entry changed a count (bpApply notes what each one was)
+  const bpChanged = e => e.kind === 'unit' ? !near(e.before || 0, e.n) : e.lines.some(l => !near(l.before || 0, l.n));
+  // write one entry into the ledger: a unit's count, or each of an item's lines (with the count it replaces)
   function bpApply(e) {
     if (e.kind === 'unit') { e.before = unitN(e.id); facUnits[e.id] = e.n; return; }
-    const st = chainState(e.id), im0 = itemMachine(e.id);
-    e.before = saved(st) && im0 ? st.scale * im0.k : 0;
-    if (e.recipe && (Engine.byProduct[e.id] || []).length > 1) recipeOf[e.id] = e.recipe;
-    const opts = e.recipe ? Engine.machineOptions(FD.recipes[e.recipe]) : FD.resources[e.id] && FD.resources[e.id].cat === 'basic-solid' ? DRILLS : [];
-    if (opts.length > 1 && opts.includes(e.machine)) machineOf[e.id] = e.machine;
-    if (e.parts) { st.parts = e.parts.map(p => Object.assign({}, p)); recipeOf[e.id] = e.parts[0].recipe; machineOf[e.id] = e.parts[0].machine; } else delete st.parts;
-    st.scale = e.rate; st.anchor = { path: e.id, kind: 'mach' }; st.touched = true; chainMem[e.id] = st;
+    for (const l of e.lines) {
+      const old = linesOf(e.id).find(x => sameLine(x, l.recipe, l.machine)), pm = old && partMachine(e.id, old);
+      l.before = pm ? old.scale * pm.k : 0;
+      facPutLine(e.id, l.recipe, l.machine, l.scale);
+    }
   }
   async function bpRun(str) {
     const tab = facTab;
@@ -1969,33 +2069,46 @@
     for (const [u, n] of Object.entries(c.units)) entries.push({ kind: 'unit', id: u, tab: UNITS[u].tab, n });
     const inScope = t => tab === 'all' || t === tab;
     const updated = [], pending = [], others = [];
+    let same = 0;   // rows already at the blueprint's counts
     for (const e of entries) {
       if (!inScope(e.tab)) others.push(e);
-      else if (e.kind === 'unit' ? unitN(e.id) > 0 : saved(chainMem[e.id])) { bpApply(e); updated.push(e); }
+      else if (e.kind === 'unit' ? unitN(e.id) > 0 : saved(chainMem[e.id])) { bpApply(e); if (bpChanged(e)) updated.push(e); else same++; }
       else pending.push(e);
     }
-    const hasSplit = Object.keys(c.furnaces).length || Object.keys(c.drills).length;
-    let splits = null;
-    if (hasSplit && inScope('mining')) splits = { furnaces: c.furnaces, drills: c.drills };
-    else if (hasSplit) for (const [m, n] of Object.entries(Object.assign({}, c.furnaces, c.drills))) others.push({ kind: 'raw', id: m, tab: 'mining', n });
+    // what the blueprint does not say is asked here: furnaces and drills on Mining & smelting, refineries with no recipe on Oil
+    const splits = {};
+    if (Object.keys(c.furnaces).length || Object.keys(c.drills).length) {
+      if (inScope('mining')) Object.assign(splits, { furnaces: c.furnaces, drills: c.drills });
+      else for (const [m, n] of Object.entries(Object.assign({}, c.furnaces, c.drills))) others.push({ kind: 'raw', id: m, tab: 'mining', n });
+    }
+    if (c.refAsk) { if (inScope('oil')) splits.refineries = c.refAsk; else others.push({ kind: 'raw', id: 'oil-refinery', tab: 'oil', n: c.refAsk }); }
     if (updated.length) { persist(); clearViews(); }
-    bpImport = { tab, total: ents.length, updated, pending, others, splits, skipped: c.skipped, unticked: new Set(), splitVals: {} };
+    bpImport = { tab, total: ents.length, updated, same, pending, others, splits: Object.keys(splits).length ? splits : null, skipped: c.skipped, unticked: new Set(), splitVals: {} };
     renderFactory(true);
   }
-  // Add: the ticked new rows, and the furnaces and drills as you split them
+  // Add: the ticked new rows, then the furnaces, drills and refineries as you split them
   function bpConfirm() {
     const b = bpImport; if (!b || b.done || b.error) return;
     const added = [], root = $('#main');
     for (const cb of root.querySelectorAll('input[data-bp-add]')) if (cb.checked) { const e = b.pending[Number(cb.dataset.bpAdd)]; bpApply(e); added.push(e); }
-    const groups = {};
+    const groups = {}, refs = {};
     for (const inp of root.querySelectorAll('input[data-bp-split]')) {
       const v = parseFloat(inp.value); if (!(v > 0)) continue;
-      const [m, item] = inp.dataset.bpSplit.split('|'), rid = FD.resources[item] ? '' : Engine.byProduct[item][0];
-      const g = groups[item] = groups[item] || {}; g[m + '|' + rid] = (g[m + '|' + rid] || 0) + v;
+      const [m, item] = inp.dataset.bpSplit.split('|');
+      if (m === 'ref') { refs[item] = (refs[item] || 0) + v; continue; }   // refineries with no recipe: item is the processing
+      const rid = FD.resources[item] ? '' : Engine.byProduct[item][0], g = groups[item] = groups[item] || {};
+      g[m + '|' + rid] = (g[m + '|' + rid] || 0) + v;
     }
-    for (const [item, g] of Object.entries(groups)) { const e = bpItemEntry(item, g); bpApply(e); added.push(e); }
+    // what you split goes under Updated when your factory had that row, Added when it is new, and nowhere when no count changed
+    const upd = [], file = (e, had) => { if (bpChanged(e)) (had ? upd : added).push(e); };
+    for (const [item, g] of Object.entries(groups)) { const e = bpItemEntry(item, g), had = saved(chainMem[item]); bpApply(e); file(e, had); }
+    // refineries given a processing join the ones the blueprint has on it, else they are its count
+    for (const [m, v] of Object.entries(refs)) {
+      const key = REF_KEY[m], e = b.updated.concat(added).find(x => x.kind === 'unit' && x.id === key);
+      if (e) { e.n += v; facUnits[key] = e.n; } else { const ne = { kind: 'unit', id: key, tab: 'oil', n: v }, had = unitN(key) > 0; bpApply(ne); file(ne, had); }
+    }
     persist(); clearViews();
-    bpImport = { tab: b.tab, total: b.total, done: true, updated: b.updated, added, pending: [], others: b.others, splits: null, skipped: b.skipped };
+    bpImport = { tab: b.tab, total: b.total, done: true, updated: b.updated.concat(upd), added, pending: [], others: b.others, splits: null, skipped: b.skipped };
     renderFactory(true);
   }
   // a furnace or drill line of an import: how many of its machines you have not given an item yet, counted down as you type
@@ -2011,17 +2124,25 @@
     const b = bpImport && bpImport.tab === facTab ? bpImport : null;
     if (!b) return box;
     if (b.error) return `<div class="bp-panel"><span class="bp-err">${esc(b.error)}</span> <button class="iconbtn sm" data-bp-close tabindex="-1">OK</button></div>` + box;
-    const name = e => e.kind === 'unit' ? UNITS[e.id].name : nameOf(e.id), icon = e => e.kind === 'unit' ? UNITS[e.id].icon : e.id;
-    const what = e => e.kind === 'unit' || e.kind === 'raw' ? fmt(e.n) : e.parts ? e.parts.map(p => `${fmt(p.scale * partMachine(e.id, p).k)} × ${nameOf(p.machine)} (${FD.recipes[p.recipe].name})`).join(' + ') : `${fmt(e.count)} × ${nameOf(e.machine)}`;
-    const chip = (e, extra) => `<span class="chip2 static">${ic(icon(e), 'sm')}${esc(name(e))}<span class="sub">${esc(what(e))}${extra || ''}</span></span>`;
-    const parts = [`<div class="lead">${b.done ? 'Added.' : `${fmt(b.total)} entities in the blueprint.`}</div>`];
-    if (b.updated.length) parts.push(`<div class="bp-row"><span class="lead">Updated:</span>${b.updated.map(e => chip(e, e.before ? ` (was ${fmt(e.before)})` : '')).join('')}</div>`);
+    const proc = id => Object.keys(REF_KEY).find(p => REF_KEY[p] === id);   // a refinery count's processing
+    const name = e => e.kind === 'unit' ? (proc(e.id) ? `Oil refineries · ${PROC_SHORT[proc(e.id)]}` : UNITS[e.id].name) : nameOf(e.id), icon = e => e.kind === 'unit' ? UNITS[e.id].icon : e.id;
+    // what an entry holds: a count, or "N × machine" for each line (its recipe when the item has more than one), each with
+    // the count it replaced when that changed; a chip with more than one line has a line for each
+    const recTxt = (e, l) => l.recipe && (Engine.byProduct[e.id] || []).length > 1 ? ` (${FD.recipes[l.recipe].name})` : '';
+    const wasTxt = (was, before, n) => was && before && !near(before, n) ? ` (was ${fmt(before)})` : '';
+    const what = (e, was) => e.kind === 'unit' || e.kind === 'raw' ? [fmt(e.n) + wasTxt(was, e.before, e.n)] : e.lines.map(l => `${fmt(l.n)} × ${mName(l.machine)}${recTxt(e, l)}${wasTxt(was, l.before, l.n)}`);
+    const sub = (e, was) => { const w = what(e, was); return w.length > 1 ? w.map(x => `<span class="bl">${esc(x)}</span>`).join('') : esc(w[0]); };
+    const many = e => e.kind === 'item' && e.lines.length > 1 ? ' lines' : '';
+    const chip = (e, was) => `<span class="chip2 static${many(e)}">${ic(icon(e), 'sm')}${esc(name(e))}<span class="sub">${sub(e, was)}</span></span>`;
+    const listed = b.updated.length || (b.added && b.added.length) || (!b.done && (b.pending.length || b.splits)) || b.others.length;
+    const parts = listed ? [] : [`<div class="lead">${b.done ? 'Nothing changed.' : b.same ? 'Your factory already matches it.' : 'No machines the ledger counts.'}</div>`];
+    if (b.updated.length) parts.push(`<div class="bp-row"><span class="lead">Updated:</span>${b.updated.map(e => chip(e, true)).join('')}</div>`);
     if (b.added && b.added.length) parts.push(`<div class="bp-row"><span class="lead">Added:</span>${b.added.map(e => chip(e)).join('')}</div>`);
-    if (!b.done && b.pending.length) parts.push(`<div class="bp-row"><span class="lead">Not in your factory yet:</span>${b.pending.map((e, i) => `<label class="chip2 bp-pick"><input type="checkbox" data-bp-add="${i}"${b.unticked && b.unticked.has(i) ? '' : ' checked'} tabindex="-1">${ic(icon(e), 'sm')}${esc(name(e))}<span class="sub">${esc(what(e))}${b.tab === 'all' ? ' · ' + esc(tabName(e.tab)) : ''}</span></label>`).join('')}</div>`);
+    if (!b.done && b.pending.length) parts.push(`<div class="bp-row"><span class="lead">Not in your factory yet:</span>${b.pending.map((e, i) => `<label class="chip2 bp-pick${many(e)}"><input type="checkbox" data-bp-add="${i}"${b.unticked && b.unticked.has(i) ? '' : ' checked'} tabindex="-1">${ic(icon(e), 'sm')}${esc(name(e))}<span class="sub">${sub(e)}${b.tab === 'all' ? ' · ' + esc(tabName(e.tab)) : ''}</span></label>`).join('')}</div>`);
     if (!b.done && b.splits) {
       // furnaces and drills: you say what they make; starts from how your ledger splits that machine today
       const pre = (m, targets, n) => {
-        const cur = targets.map(i => { const st = chainMem[i], im = itemMachine(i); return saved(st) && im && im.machine === m ? st.scale * im.k : 0; }), tot = cur.reduce((a, v) => a + v, 0);
+        const cur = targets.map(i => { const l = linesOf(i).find(x => x.machine === m), pm = l && partMachine(i, l); return pm ? l.scale * pm.k : 0; }), tot = cur.reduce((a, v) => a + v, 0);
         if (!(tot > 0)) return targets.map(() => '');
         const raw = cur.map(v => v / tot * n), whole = raw.map(Math.floor); let left = n - whole.reduce((a, v) => a + v, 0);
         raw.map((v, i) => [v - whole[i], i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (left > 0) { whole[i]++; left--; } });
@@ -2029,19 +2150,21 @@
       };
       const split = (m, n, targets, verb) => {
         const p = pre(m, targets, n), vals = targets.map((i, j) => b.splitVals && (m + '|' + i) in b.splitVals ? b.splitVals[m + '|' + i] : p[j]);
-        return `<div class="bp-split" data-bp-total="${n}"><span class="lead">${fmt(n)} × ${esc(nameOf(m))} ${verb}:</span>${bpLeft(n, vals)}${targets.map((i, j) => `<label>${ic(i, 'xs')}<span>${esc(nameOf(i))}</span><input class="num" inputmode="decimal" data-bp-split="${m}|${i}" value="${esc(vals[j])}" placeholder="0" aria-label="${esc(nameOf(m))} on ${esc(nameOf(i))}" tabindex="-1"></label>`).join('')}</div>`;
+        return `<div class="bp-split" data-bp-total="${n}"><span class="lead">${fmt(n)} × ${esc(mName(m))} ${verb}:</span>${bpLeft(n, vals)}${targets.map((i, j) => `<label>${ic(i, 'xs')}<span>${esc(nameOf(i))}</span><input class="num" inputmode="decimal" data-bp-split="${m}|${i}" value="${esc(vals[j])}" placeholder="0" aria-label="${esc(nameOf(m))} on ${esc(nameOf(i))}" tabindex="-1"></label>`).join('')}</div>`;
       };
-      for (const [m, n] of Object.entries(b.splits.furnaces)) parts.push(split(m, n, SMELTED, 'make'));
-      for (const [m, n] of Object.entries(b.splits.drills)) parts.push(split(m, n, m === 'burner-mining-drill' ? ORES.filter(o => !FD.resources[o].fluid) : ORES, 'mine'));
+      for (const [m, n] of Object.entries(b.splits.furnaces || {})) parts.push(split(m, n, SMELTED, 'make'));
+      for (const [m, n] of Object.entries(b.splits.drills || {})) parts.push(split(m, n, m === 'burner-mining-drill' ? ORES.filter(o => !FD.resources[o].fluid) : ORES, 'mine'));
+      // refineries with no recipe: which processing they run
+      const rn = b.splits.refineries;
+      if (rn) { const vals = Object.keys(OIL_PROC).map(m => b.splitVals && ('ref|' + m) in b.splitVals ? b.splitVals['ref|' + m] : '');
+        parts.push(`<div class="bp-split" data-bp-total="${rn}"><span class="lead">${fmt(rn)} × Oil refinery (no recipe) run:</span>${bpLeft(rn, vals)}${Object.keys(OIL_PROC).map((m, j) => `<label>${ic(OIL_PROC[m], 'xs')}<span>${esc(PROC_SHORT[m])}</span><input class="num" inputmode="decimal" data-bp-split="ref|${m}" value="${esc(vals[j])}" placeholder="0" aria-label="oil refineries on ${OIL_PROC_NAME[m]}" tabindex="-1"></label>`).join('')}</div>`); }
     }
-    if (b.others.length) {   // an import on a tab only adds that tab's machines: the rest, by the tab they go on, and how to add them
-      for (const t of FAC_ORDER) { const list = b.others.filter(e => e.tab === t); if (list.length) parts.push(`<div class="bp-row"><span class="lead">For the ${esc(tabName(t))} tab:</span>${list.map(e => chip(e)).join('')}</div>`); }
-      parts.push(`<div class="bp-row sub">Import there or on Everything to add them.</div>`);
-    }
+    // an import on a tab only adds that tab's machines: the rest, by the tab they go on
+    for (const t of FAC_ORDER) { const list = b.others.filter(e => e.tab === t); if (list.length) parts.push(`<div class="bp-row"><span class="lead">For the ${esc(tabName(t))} tab:</span>${list.map(e => chip(e)).join('')}</div>`); }
     const sk = Object.entries(b.skipped || {});
     if (sk.length) parts.push(`<div class="bp-row sub">Not counted: ${sk.map(([k, n]) => `${fmt(n)} × ${esc(k)}`).join(', ')}</div>`);
     const ask = !b.done && (b.pending.length || b.splits);
-    parts.push(`<div class="bp-row">${ask ? '<button class="iconbtn sm cta" data-bp-confirm tabindex="-1">Add ticked</button>' : ''}<button class="iconbtn sm" data-bp-close tabindex="-1">${ask ? 'Skip' : 'Done'}</button></div>`);
+    parts.push(`<div class="bp-row">${ask ? '<button class="iconbtn sm cta" data-bp-confirm tabindex="-1">Add</button>' : ''}<button class="iconbtn sm" data-bp-close tabindex="-1">${ask ? 'Skip' : 'Done'}</button></div>`);
     return `<div class="bp-panel">${parts.join('')}</div>`;
   }
 

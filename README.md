@@ -93,19 +93,22 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
   (drills on iron, copper, coal and stone, the smelting, gears, cable, circuits, boilers, steam engines, labs,
   red and green science). Each tab's dashed row at the bottom adds more, and only offers what belongs there:
   click it for the list of everything that tab can hold (Everything lists all of it, grouped by tab), or type
-  to narrow it; pick one, type how many, Enter adds it. A tab shows a red count when something in it is short.
+  to narrow it; pick one, type how many, Enter adds it. Once picked, its machine is a picker (assembler tier,
+  furnace, drill, recipe, or the refineries' processing): if your factory has that item on that machine already,
+  the button reads **Update**, the box shows the count you have, and what you type replaces it; otherwise
+  **Add** puts it in as a line of its own. A tab shows a red count when something in it is short.
   * **Import a blueprint**: paste a blueprint or blueprint book string into the box under a tab and press
     Import. It counts the assemblers, chemical plants, refineries, labs, boilers, steam engines, solar panels,
     pumpjacks and offshore pumps in it (books inside books too) and overwrites those counts. Rows already in
-    your ledger update at once; new ones are listed with a tick box and added when you press Add ticked.
-    Furnaces and drills do not record what they smelt or mine, so the import asks how to split them; each
-    line counts down how many of its machines are still unassigned as you type (red if you give out too
-    many). When one
-    item is made in mixed tiers, the tier with the most machines wins and the rest count as the same output
-    in it. On a tab, the import only touches that tab: the rest is listed as "Not added here", by the tab
-    it goes on, so import on that tab or on Everything to add it; on Everything it covers all of them.
-    Refineries are counted on each processing they run, and an item made with more than one recipe (solid
-    fuel from two oils) keeps a line per recipe. Modules and beacons are ignored.
+    your ledger update at once; new ones are listed with a tick box and added when you press Add.
+    What a blueprint does not say, the import asks: what furnaces smelt, what drills mine, and which
+    processing refineries with no recipe run; each line counts down how many of its machines are still
+    unassigned as you type (red if you give out too many). Assemblers with no recipe are listed as not
+    counted. An item made on more than one machine or recipe (gears in assembler 1 and 2, solid fuel from
+    two oils) gets a line for each, and each replaces only the line on the same machine and recipe. On a tab,
+    the import only touches that tab: the rest is listed by the tab it goes on, so import on that tab or on
+    Everything to add it; on Everything it covers all of them. Refineries are counted on each processing they
+    run. Modules and beacons are ignored.
   * An item row has the machines making it, what they make, what the rest of your factory uses, and what is
     left over: "short" in red, with how many machines close the gap, or "fulfilled" in green, with how much
     is left over. The bar under it fills as what you make covers what your factory uses: full once it is
@@ -116,8 +119,13 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     machines to add, the same as a short row. **▸** opens a row: what makes it ("made by", with the
     amount under Makes) and what uses it ("used by", biggest first, with the amount under Uses), each with
     its machines, so you can see where a shortage comes from.
-  * An item with more than one recipe (solid fuel) has **+ another recipe** on its row: each recipe gets a
-    line of its own, with its own count and machine, and the row adds them up. × takes a line off.
+  * A row can have a line per machine and recipe: gears in assembler 1 and 2, iron plate in stone and steel
+    furnaces, iron ore under burner and electric drills. Each line has its own count, picker and ×, and the row
+    adds them up; switching a line to a machine another line uses joins the two. A line's picker lists, under
+    its choices, the machines the row is not on yet (**Also in**): pick one for a new line there. Lines also
+    come from the add row, a page's Add to factory or a blueprint; an item with more than one recipe (solid
+    fuel) also has **+ another recipe** on its row. A line stays until its × takes it off, so after upgrading
+    machines in game, take the old tier's line off (or set it to 0).
   * **The top of each tab** counts what is short, what is used but not entered (rows marked "not entered")
     and what is fulfilled; a count of 0 is left out, except short. Click a count to see only those rows
     (dismissed shortages stay out of **short**, as they do out of its count): a row you change meanwhile
@@ -177,7 +185,8 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
   under the title saying which; labs and boilers at their ledger counts) and whatever you type there is a
   what-if for this visit only. A small ↺ appears beside any box you changed and drops the what-if. To keep a
   scenario, press **+ Add to factory** at the top of the page (it reads **Update in factory** when the item is
-  already there at a different number, and **In your factory** when it matches). Things in your factory
+  already there at a different number, and **In your factory** when it matches). The page's number is the
+  item's total: the line on the page's machine takes what the item's other lines do not make. Things in your factory
   carry a gold border on the home screen.
 * **Memory** lives in this browser, and only here: nothing is stored on the server, so on a hosted copy every
   visitor has their own memory and nobody else's changes can reach yours. The browser keeps the memory per

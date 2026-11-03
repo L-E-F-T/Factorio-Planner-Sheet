@@ -109,9 +109,17 @@ h3{font-size:13px;color:var(--faint);margin:12px 0 4px;font-weight:600}
 .rm{position:relative;display:block;margin:2px 0 0 -6px;height:22px;padding:0 6px;border:0;border-radius:var(--r);background:transparent;color:var(--faint);font:12px var(--sans);cursor:pointer}
 .rm:hover{background:#2a292a;color:var(--fg)}
 .rm.back{color:var(--accent2)}
-/* a row split across recipes: a line per part (its count, machine and ×), and "+ another recipe" under them */
+/* a row on more than one machine or recipe: a line for each (its count, machine and ×, a rule between them), then
+   "+ another recipe" or "+ another processing"; where the cell is too narrow for a line, its picker goes under its count */
 .td.mach.parts{flex-wrap:wrap;row-gap:6px}
+.td.mach.parts > .part + .part{border-top:1px solid var(--line);padding-top:6px}
+.tbl.fac .td.mach{container-type:inline-size}
 .part{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 100%}
+.part > .partx{margin-left:auto}
+@container (max-width:300px){
+  .part{flex-wrap:wrap;row-gap:2px}
+  .part > .mbtn{order:1;flex:1 1 100%}
+}
 .partx{flex:none;width:26px;height:26px;border:0;border-radius:50%;background:transparent;color:var(--faint);font-size:16px;line-height:1;padding:0;cursor:pointer}
 .partx:hover{background:#2a292a;color:var(--fg)}
 .addpart{flex:none;height:24px;padding:0 6px;border:0;border-radius:var(--r);background:transparent;color:var(--faint);font:12px var(--sans);cursor:pointer;white-space:nowrap;align-self:flex-start}
@@ -129,7 +137,7 @@ input.num.bad{border-color:var(--bad)}
 .build:empty{display:none}
 .unit{font-size:13px;color:var(--muted);white-space:nowrap}
 .big{font:22px var(--mono);color:var(--fg);padding:0 4px}
-.mbtn{display:inline-flex;align-items:center;gap:6px;padding:3px 6px;border:1px solid transparent;border-radius:var(--r);background:transparent;color:var(--fg);font-size:14px;min-height:44px;min-width:0}
+.mbtn{display:inline-flex;align-items:center;gap:6px;padding:3px 6px;border:1px solid transparent;border-radius:var(--r);background:transparent;color:var(--fg);font-size:14px;min-height:44px;min-width:0;text-align:left}
 .mbtn .mname{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mbtn.can{border-color:var(--line);background:#141314}
 .mbtn.can:hover{border-color:var(--accent)}
@@ -140,7 +148,7 @@ input.num.bad{border-color:var(--bad)}
 .summary .s{display:inline-flex;align-items:center;gap:4px;background:#141314;border:1px solid var(--line);border-radius:999px;padding:2px 8px 2px 3px;color:var(--muted)}
 .summary .s b{font-family:var(--mono);color:var(--fg);font-weight:500}
 /* the factory ledger: Item | machines | makes | uses | left over, with a meter under the balance */
-.tbl.fac{grid-template-columns:minmax(150px,1.1fr) minmax(240px,1fr) repeat(3,minmax(104px,.5fr))}
+.tbl.fac{grid-template-columns:minmax(150px,.9fr) minmax(260px,1.4fr) repeat(3,minmax(104px,.5fr))}
 .tbl.fac .mbtn .mname{white-space:normal;line-height:1.15}
 .tr.cons .td{background:#2b2a2b;min-height:40px;font-size:13px;color:var(--muted)}
 .tr.cons .td.amt{font-size:15px}
@@ -197,12 +205,17 @@ input.num::placeholder{color:var(--faint)}
 .bp-left.over{color:var(--bad);border-color:#7a3a33}
 .bp-err{color:var(--bad)}
 .chip2.static{cursor:default}
+/* an import entry on more than one machine: its lines under its name, one to a line */
+.chip2.lines{flex-wrap:wrap;border-radius:var(--r)}
+.chip2.lines .sub{flex:1 1 100%;padding-left:30px}
+.chip2 .bl{display:block}
 .chip2.bp-pick{cursor:pointer}
 .chip2.bp-pick input{margin:0 2px 0 4px}
 /* the "Add an item" row: a dashed outline at the bottom of the ledger */
 .tr.add .td{background:transparent;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);border-color:#5a5859}
 .tr.add .td:first-child{border-left:1px dashed #5a5859}
 .tr.add .td:last-child{border-right:1px dashed #5a5859}
+#addm,#addi{display:contents}
 input.txt{flex:1;min-width:0;height:40px;padding:0 10px;font:15px var(--sans);background:#141314;border:1px solid var(--line);border-radius:var(--r);color:var(--fg);outline:none}
 input.txt:focus{border-color:var(--accent)}
 input.txt::placeholder{color:var(--faint)}
@@ -252,7 +265,7 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
 /* small desktop windows: the ledger's five columns, narrower, so they still fit; a machine picker moves under its box
    when its name would not fit beside it; amounts and their units may take two lines */
 @media (min-width:701px) and (max-width:1000px){
-  .tbl.fac{grid-template-columns:minmax(200px,1fr) minmax(210px,1fr) repeat(3,minmax(84px,.5fr))}
+  .tbl.fac{grid-template-columns:minmax(150px,.8fr) minmax(210px,1.2fr) repeat(3,minmax(84px,.5fr))}
   .tbl.fac input.num{width:76px}
   .tbl.fac .td.item .nmtxt{overflow-wrap:break-word;hyphens:auto}
   .tbl.fac .td.item b,.tbl.fac .td.item .lnk{font-size:15px}
@@ -367,6 +380,7 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   .td.item .sub .seg,.td.item .sub select,.td.item .sub input{position:relative}
   input.yld{height:36px;font-size:16px;width:66px}
   .partx{width:36px;height:36px;font-size:18px}
+  .part{gap:12px}
   .addpart{height:34px;padding:0 8px}
 }
 </style>
