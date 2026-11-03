@@ -1532,10 +1532,13 @@
     const useSub = k => { if (!(fac[k] > 0)) return ''; const names = [...new Set(F.by[k].map(u => (u.label || nameOf(u.by)).toLowerCase()))]; return `your factory uses ${fmt(fac[k])} per second: ${esc(names.join(', '))}`; };
     const vs = k => { if (!hasFac || !changed || !(fac[k] > 0)) return ''; const d = dem[k] - fac[k]; if (Math.abs(d) < 1e-6 * Math.max(1, fac[k])) return ''; return d < 0 ? `<span class="vs short">${fmt(-d)} short</span>` : `<span class="vs spare">fulfilled, ${fmt(d)} left over</span>`; };
     const prods = (basic ? ['p'] : ['p', 'l', 'h']).map(k => row(k, OIL_ITEM[k], nameOf(OIL_ITEM[k]) + ' made', useSub(k), dem[k], 'per second', 'product', vs(k))).join('');
-    const mach = [row('R', 'oil-refinery', 'Oil refineries', basic ? 'basic processing' : 'advanced processing', plan.R)];
-    if (!basic) mach.push(row('Hc', 'heavy-oil-cracking', 'Chemical plants cracking heavy oil', 'heavy oil into light oil', plan.Hc), row('Lc', 'light-oil-cracking', 'Chemical plants cracking light oil', 'light oil into petroleum gas', plan.Lc));
-    mach.push(row('crude', 'crude-oil', 'Crude oil used', '', plan.crude, 'per second'), row('jacks', 'pumpjack', 'Pumpjacks', `at 100% yield, ${fmt(10 * (1 + S.mp / 100))} crude oil per second each`, plan.jacks));
-    if (!basic) mach.push(row('water', 'water', 'Water used', '', plan.water, 'per second'), row('pumps', 'offshore-pump', 'Offshore pumps', '', plan.pumps));
+    // beside each machine, how many your factory has, to compare with what this takes
+    const machinesOf = id => { const m = itemMachine(id), s = chainMem[id]; return m && saved(s) ? s.scale * m.k : 0; };
+    const haveTxt = n => n > 0 ? ` · ${fmt(n)} in your factory` : '';
+    const mach = [row('R', 'oil-refinery', 'Oil refineries', (basic ? 'basic processing' : 'advanced processing') + haveTxt(unitN('refinery')), plan.R)];
+    if (!basic) mach.push(row('Hc', 'heavy-oil-cracking', 'Chemical plants cracking heavy oil', 'heavy oil into light oil' + haveTxt(unitN('heavy-oil-cracking')), plan.Hc), row('Lc', 'light-oil-cracking', 'Chemical plants cracking light oil', 'light oil into petroleum gas' + haveTxt(unitN('light-oil-cracking')), plan.Lc));
+    mach.push(row('crude', 'crude-oil', 'Crude oil used', '', plan.crude, 'per second'), row('jacks', 'pumpjack', 'Pumpjacks', `at 100% yield, ${fmt(10 * (1 + S.mp / 100))} crude oil per second each${haveTxt(machinesOf('crude-oil'))}`, plan.jacks));
+    if (!basic) mach.push(row('water', 'water', 'Water used', '', plan.water, 'per second'), row('pumps', 'offshore-pump', 'Offshore pumps', haveTxt(machinesOf('water')).replace(/^ · /, ''), plan.pumps));
     mach.push(row(null, 'small-electric-pole', 'Electricity', 'refineries, cracking plants and pumpjacks', plan.mw, 'MW'));
     const notes = [];
     if (!basic) {
