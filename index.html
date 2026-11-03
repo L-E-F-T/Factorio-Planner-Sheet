@@ -272,11 +272,12 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
    the ring holds works */
 #tour{position:fixed;inset:0;z-index:30;pointer-events:none}
 #tour .tb{position:fixed;pointer-events:auto}
-#tour .ring{position:fixed;border:2px solid #ececec;border-radius:8px;box-shadow:0 0 0 200vmax rgba(12,11,12,.62),0 0 0 4px rgba(236,236,236,.14);pointer-events:none}
-/* a new step: the ring glows out once, so the eye finds it */
-#tour .ring.pulse{animation:tourpulse .9s ease-out 1}
-@keyframes tourpulse{0%{box-shadow:0 0 0 200vmax rgba(12,11,12,.62),0 0 0 0 rgba(255,206,107,.55)}100%{box-shadow:0 0 0 200vmax rgba(12,11,12,.62),0 0 0 14px rgba(255,206,107,0)}}
-@media (prefers-reduced-motion:reduce){#tour .ring.pulse{animation:none}}
+#tour .ring{position:fixed;border:2px solid var(--fg);border-radius:8px;box-shadow:0 0 0 200vmax rgba(12,11,12,.62),0 0 0 4px rgba(255,230,192,.14);pointer-events:none}
+/* a new step: a gold outline glows out of the ring once, so the eye finds it (only the small outline moves) */
+#tour .ring::after{content:"";position:absolute;inset:-3px;border:2px solid var(--accent2);border-radius:inherit;opacity:0;pointer-events:none}
+#tour .ring.pulse::after{animation:tourpulse .9s ease-out 1}
+@keyframes tourpulse{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(1.04)}}
+@media (prefers-reduced-motion:reduce){#tour .ring.pulse::after{animation:none}}
 #tour .ring.none{left:50%;top:50%;width:0;height:0;border:0}
 #tour .tcard{position:fixed;pointer-events:auto;width:min(380px,calc(100vw - 24px));background:var(--panel);border:1px solid #6b696b;border-radius:var(--r);padding:8px 12px 12px;box-shadow:0 12px 32px rgba(0,0,0,.65)}
 #tour .tstep{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);letter-spacing:.02em}
@@ -285,16 +286,19 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
 #tour .tprog{height:3px;margin:-8px -12px 8px;background:#262526;border-radius:var(--r) var(--r) 0 0;overflow:hidden}
 #tour .tprog i{display:block;height:100%;background:var(--accent2);transition:width .25s ease}
 #tour .tprog.full i{background:var(--ok)}
-#tour .tx{margin-left:auto;width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:var(--muted);font-size:20px;line-height:1;padding:0}
-#tour .tx:hover{background:#2a292a;color:var(--fg)}
+#tour .tx{margin:-4px -8px -4px auto;width:40px;height:40px;border:0;border-radius:50%;background:transparent;color:var(--muted);font-size:20px;line-height:1;padding:0}
+@media (hover:hover){#tour .tx:hover{background:#2a292a;color:var(--fg)}}
+#tour .tcard:focus{outline:none}
+#tour button{touch-action:manipulation}
 #tour .ttext{margin:2px 0 12px;font-size:15px;line-height:1.45}
 #tour .tnav{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center}
 #tour .chaps{display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex:1 1 100%;margin-bottom:4px}
+#tour .chaps .lead{flex:1 1 100%;margin:0}
 #tour .chaps .done{border-color:#3f5a35}
 #tour .chaps .ok{color:var(--ok);margin-left:2px}
 /* the step's main button, filled the way a picked tab is */
 #tour .tnav .cta{background:#4a3a1d;color:var(--fg);box-shadow:inset 0 0 0 1px var(--accent)}
-#tour .tnav .cta:hover{background:#5a4623}
+@media (hover:hover){#tour .tnav .cta:hover{background:#5a4623}}
 #tour button:disabled{opacity:.4;cursor:default}
 #tour button:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
 .tourq{display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;flex:none;color:var(--muted)}
@@ -431,12 +435,19 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   #q{flex-basis:100%;order:9}
   #tourbtn{margin-left:auto}
 }
-/* the tour's card on a narrow screen: a sheet along the bottom; while a page box has the keyboard up, only its buttons */
+/* the tour's card on a narrow screen: a sheet along the bottom; while a page box has the keyboard up, the step's words
+   (a little smaller) and its buttons, without the title row */
 @media (max-width:700px){
   #tour .tcard{left:0;right:0;bottom:0;top:auto;width:auto;max-height:50vh;overflow-y:auto;border-width:1px 0 0;border-radius:12px 12px 0 0;padding:6px 14px calc(12px + env(safe-area-inset-bottom))}
   #tour .ttext{font-size:15px;line-height:1.5;margin-bottom:14px}
   #tour .tprog{margin:-6px -14px 8px;border-radius:12px 12px 0 0}
-  #tour .tcard.mini .ttext,#tour .tcard.mini .chaps{display:none}
+  /* the sheet stands apart from the page's cards: a lighter panel with its shadow cast upward; the ring's corners match it */
+  #tour .tcard{background:var(--panel2);box-shadow:0 -8px 24px rgba(0,0,0,.5);overscroll-behavior:contain;max-height:50svh}
+  #tour .ring{border-radius:12px}
+  /* Defaults unfolded during the tutorial fits between the top of the screen and the sheet */
+  body.touring #settings.open{max-height:calc(100svh - var(--tsheet, 180px) - 114px)}
+  #tour .tcard.mini .tstep,#tour .tcard.mini .chaps{display:none}
+  #tour .tcard.mini .ttext{font-size:14px;line-height:1.4;margin:0 0 8px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}
   body.touring main{padding-bottom:60vh}
 }
 @media (max-width:380px){

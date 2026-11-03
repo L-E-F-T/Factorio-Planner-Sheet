@@ -290,7 +290,7 @@
   let skipRender = false;
   function go(hash) { if (location.hash === hash) render(); else if (tour) { history.replaceState(null, '', hash); render(); } else location.hash = hash; }   // the tour leaves no history behind
   window.addEventListener('hashchange', () => {
-    if (tour) { tour.from.hash = location.hash; tourEnd(); return; }   // the browser's Back during the tutorial ends it, on the page Back went to
+    if (tour) { tour.from.href = location.href; tourEnd(); return; }   // the browser's Back during the tutorial ends it, on the page Back went to
     if (skipRender) { skipRender = false; return; } preview = null; render();
   });
   const route = () => { const [kind, id] = location.hash.replace(/^#\/?/, '').split('/'); return { kind: kind || 'home', id }; };
@@ -428,7 +428,7 @@
     else if (e.key === 'Tab' && preview) { commitPreview(false); }
   });
   strip.addEventListener('mousedown', e => { const h = e.target.closest('.hit'); if (h) { e.preventDefault(); selIdx = Number(h.dataset.i); if (hits[selIdx] && hits[selIdx].kind === 'tour') { tourStart(true); return; } showStrip(); showPreview(); commitPreview(false); if (!fine()) q.blur(); } });
-  function back() { if (route().kind === 'home') return; if (history.length > 1) history.back(); else go('#'); }
+  function back() { if (tour || route().kind === 'home') return; if (history.length > 1) history.back(); else go('#'); }
 
   function bindDoc(d) {
     d.addEventListener('keydown', e => {
@@ -1914,7 +1914,7 @@
     }
     const nEl = $('#addn'), text = ((nEl || {}).value || '').trim() || '1';
     if (addSel.kind === 'unit') {
-      const v = parseFloat(text); if (!(v > 0)) { if (nEl) nEl.classList.add('bad'); return; }
+      const v = parseFloat(text); if (!(v > 0) || !isFinite(v) || v > 1e7) { if (nEl) nEl.classList.add('bad'); return; }
       facUnits[addSel.id === 'refinery' ? REF_KEY[addSel.proc] : addSel.id === 'nuclear' ? NUC_KEY(addSel.layout) : addSel.id] = v;   // refineries on the processing picked, reactor blocks on the layout
       // with one processing on the refinery row, it is also the one the Oil page plans with (as refMove keeps it)
       if (addSel.id === 'refinery' && refLines().length <= 1) { const o = cardState('oil'); o.basic = addSel.proc === 'basic'; o.coal = addSel.proc === 'coal'; saveCard('oil', o); }
@@ -2330,13 +2330,13 @@
     bpDraft = '';
     // the tutorial started or ended while the string was being read: nothing is imported, and the string goes back in the
     // box of the factory it was meant for (yours, once the tutorial is over)
-    const moved = () => { if (tour === t0) return false; if (tour) tour.from.visit.bpDraft = str; else { bpDraft = str; if (curCard && curCard.id === 'factory') renderFactory(true); } return true; };
+    const moved = () => { if (tour === t0) return false; if (!t0) tour.from.visit.bpDraft = str; return true; };   // one started inside the tutorial is dropped
     const redraw = () => { if (curCard && curCard.id === 'factory') renderFactory(true); };   // unless you have gone to another page meanwhile
     let obj;
-    try { obj = await bpDecode(str); } catch (err) { if (moved()) return; bpImport = { tab, error: err.message }; redraw(); return; }
+    try { obj = await bpDecode(str); } catch (err) { if (moved()) return; bpDraft = str; bpImport = { tab, error: err.message }; redraw(); return; }   // the string stays in the box to fix
     if (moved()) return;
     const ents = bpEntities(obj);
-    if (!ents.length) { bpImport = { tab, error: 'That blueprint has no machines in it.' }; redraw(); return; }
+    if (!ents.length) { bpDraft = str; bpImport = { tab, error: 'That blueprint has no machines in it.' }; redraw(); return; }
     const c = bpCount(ents), entries = [];
     for (const [item, groups] of Object.entries(c.items)) entries.push(bpItemEntry(item, groups));
     for (const [u, n] of Object.entries(c.units)) entries.push({ kind: 'unit', id: u, tab: UNITS[u].tab, n });
@@ -2507,7 +2507,7 @@
     doc.title = c.title + ' – Factorio Ratios';
   }
   function onCardInput(inp) {
-    const v0 = parseFloat(inp.value); if (!(v0 > 0)) { inp.classList.add('bad'); return; }
+    const v0 = parseFloat(inp.value); if (!(v0 > 0) || !isFinite(v0) || v0 > 1e7) { inp.classList.add('bad'); return; }
     inp.classList.remove('bad');
     const v = inp.dataset.kind === 'rate' ? fromUnit(v0, inp.dataset.fluid === '1') : v0;
     curCard.st.scale = v / parseFloat(inp.dataset.k);
@@ -2585,12 +2585,32 @@
     }
     loadMem(m);
   }
+  const bpCopy = b => b && typeof structuredClone === 'function' ? structuredClone(b) : b;
+  // your factory as this page holds it, which is more than what is saved (a row emptied to 0 keeps its machine while you
+  // are here), and Defaults
+  function facState() {
+    const { machineOf: m, recipeOf: r, ...base } = S;
+    return { chains: Object.fromEntries(Object.entries(chainMem).map(([k, v]) => [k, { scale: v.scale, anchor: v.anchor && Object.assign({}, v.anchor), touched: v.touched, parts: v.parts && v.parts.map(x => Object.assign({}, x)) }])),
+      machines: Object.assign({}, machineOf), recipes: Object.assign({}, recipeOf), units: Object.assign({}, facUnits), dismissed: [...facDismiss], S: base,
+      cards: Object.fromEntries(Object.entries(cardMem).map(([k, v]) => [k, { time: v.time, bonus: v.bonus, basic: v.basic, coal: v.coal, yield: v.yield, fuel: v.fuel }])) };
+  }
+  function putFac(f) {
+    modelMemo = null;
+    for (const st of Object.values(chainMem)) { st.scale = null; st.anchor = null; st.touched = false; delete st.parts; }
+    for (const [k, v] of Object.entries(f.chains)) { const st = chainState(k); Object.assign(st, { scale: v.scale, anchor: v.anchor, touched: v.touched }); if (v.parts) st.parts = v.parts; }
+    for (const [to, from] of [[machineOf, f.machines], [recipeOf, f.recipes], [facUnits, f.units]]) { for (const k of Object.keys(to)) delete to[k]; Object.assign(to, from); }
+    facDismiss.clear(); for (const d of f.dismissed) facDismiss.add(d);
+    for (const [k, st] of Object.entries(cardMem)) Object.assign(st, f.cards[k] || { time: CARD_DEF.time, bonus: CARD_DEF.bonus, basic: CARD_DEF.basic, coal: CARD_DEF.coal, yield: CARD_DEF.yield, fuel: CARD_DEF.fuel });
+    Object.assign(S, f.S);
+  }
+  const rawSaved = () => { try { return localStorage.getItem('fr:mem') + '|' + localStorage.getItem('fr:settings'); } catch (e) { return null; } };
   // what this visit has open, picked or typed besides your factory: put aside while the tutorial runs
   function visitState() {
     return { view: Object.assign({}, viewMem), chains: Object.fromEntries(Object.entries(chainMem).map(([k, v]) => [k, { overrides: Object.assign({}, v.overrides), open: (v.open || []).slice() }])),
       cards: Object.fromEntries(Object.entries(cardMem).map(([k, v]) => [k, { scale: v.scale, anchor: v.anchor, touched: v.touched, layout: v.layout, labs: v.labs, dem: v.dem, anchorN: v.anchorN }])),
       facOpen: [...facOpen], facKeep: [...facKeep], facFiltSeen: [...facFiltSeen], refShown: [...refShown], nucShown: [...nucShown], facRemoved: Object.assign({}, facRemoved),
-      facFilter, addSel: addSel && Object.assign({}, addSel), bpImport, bpDraft, facTab, baseOpen, q: q.value, selIdx, previewing: !!preview };
+      facFilter, addSel: addSel && Object.assign({}, addSel), bpImport: bpCopy(bpImport), bpDraft, facTab, baseOpen, q: q.value, selIdx, previewing: !!preview,
+      addText: ($('#addq') || {}).value || '', addOpen: !!$('#addhits .chip2'), addN: (n => n && n.dataset.typed ? n.value : '')($('#addn')) };
   }
   function clearVisit() {
     closePop();
@@ -2609,7 +2629,7 @@
     for (const [k, c] of Object.entries(v.cards)) Object.assign(cardState(k), c);
     for (const [s, l] of [[facOpen, v.facOpen], [facKeep, v.facKeep], [facFiltSeen, v.facFiltSeen], [refShown, v.refShown], [nucShown, v.nucShown]]) l.forEach(x => s.add(x));
     Object.assign(facRemoved, v.facRemoved);
-    ({ facFilter, bpImport, bpDraft, facTab, baseOpen } = v); addSel = v.addSel && Object.assign({}, v.addSel);
+    ({ facFilter, bpDraft, facTab, baseOpen } = v); addSel = v.addSel && Object.assign({}, v.addSel); bpImport = bpCopy(v.bpImport);
   }
   // what the steps look at: the app's own rows, boxes and buttons
   const $$ = s => [...doc.querySelectorAll(s)];
@@ -2645,17 +2665,21 @@
       Object.assign({}, HOME, { target: () => $('#settings'), try: true, show: () => { if (matchMedia('(max-width:900px)').matches && !baseOpen) { baseOpen = true; renderSettings(); } },
         text: 'Defaults sets the tier of the assemblers, furnaces, drills and belts that every page uses. Set them to what you have built in your game.' }),
       Object.assign({}, HOME, { target: () => [q, strip], auto: true, focus: () => q, show: () => { if (baseOpen) { baseOpen = false; renderSettings(); } },
-        done: () => !!cur && !preview && /^#i\//.test(location.hash), text: 'Type the name of something you want to make, like green circuit, then press Enter to open its page.' }),
+        done: () => !!cur && !preview && /^#i\//.test(location.hash),
+        text: () => !HOME.at() && !preview && !(cur && /^#i\//.test(location.hash)) ? 'That one isn\'t made in a machine, so it has a different kind of page. Type something like green circuit, then press Enter.' : 'Type the name of something you want to make, like green circuit, then press Enter to open its page.' }),
       Object.assign({}, ITEM, { target: () => $('#main h1'), show: () => { if (q.value && !preview) { q.value = ''; hits = []; strip.hidden = true; strip.innerHTML = ''; } },   // the search is done: its box and suggestions give the room back
         text: 'This is the page for the item you searched for. Under its name is the recipe from the game.' }),
-      Object.assign({}, ITEM, { target: () => $('#tree .tr.product'), focus: () => $('#tree .tr.product input.num'), done: () => !!(cur && viewMem[cur.id]),
+      Object.assign({}, ITEM, { target: () => $('#tree .tr.product'), focus: () => $('#tree .tr.product input.num'), typing: true, done: () => !!(cur && viewMem[cur.id]),
         text: 'The top row is the item itself. Type how many machines you want making it, and every ingredient below changes to match.' }),
-      Object.assign({}, ITEM, { target: () => $('#tree .tr.product .mbtn.can'), auto: true, done: () => !!(cur && cur.st.overrides['l:' + cur.tree.path]),
-        text: 'Click the machine and pick a different one, like a faster assembler. The counts change to match.' }),
+      Object.assign({}, ITEM, { target: () => $('#tree .tr.product .mbtn.can'), auto: true, done: () => !!(cur && (cur.st.overrides['l:' + cur.tree.path] || cur.st.overrides['r:' + cur.tree.path])),
+        text: () => { const n = cur && cur.tree; if (!n || !$('#tree .tr.product .mbtn.can')) return 'This item is made in only one kind of machine, so there is nothing to pick here.';
+          if (n.machineChoices.length < 2) return 'Click the recipe and pick a different one. The counts change to match.';
+          const m = n.machine || '', kind = /furnace/.test(m) ? 'furnace' : /assembling/.test(m) ? 'assembler' : /drill/.test(m) ? 'drill' : 'machine';
+          return `Click the machine and pick a different one, like a faster ${kind}. The counts change to match.`; } }),
       Object.assign({}, ITEM, { target: () => $('#tree .tr[data-path$=">iron-plate"]') || $('#tree .tr[data-path*=">"]'), try: true,
         text: () => `Pages use the same machines as your factory${ironTwo() ? ', so iron plate is made in both stone and steel furnaces here' : ''}. + adds another kind of machine, × removes one, and ▸ shows what a row needs.` }),
       Object.assign({}, ITEM, { target: topBtn, auto: true, done: onFactory,
-        text: () => onFactory() ? 'This item is in your factory now.' : `Changes on an item page aren't saved. Click ${btnName()} to put the top row's machines in your factory.` }),
+        text: () => onFactory() || !ITEM.at() ? 'This item is in your factory now.' : `Changes on an item page aren't saved. Click ${btnName()} to put the top row's machines in your factory.` }),
     ] },
     factory: { name: 'Your factory', steps: [
       toStep('#fac', FACTORY.at, 'Click Factory to open your factory.', { opener: true }),
@@ -2663,43 +2687,43 @@
         text: 'This is a sample factory. Your own is saved in this browser and comes back when the tutorial ends. The tabs sort the rows by the kind of machine that makes them. Click Mining & smelting.' }),
       Object.assign({}, FACTORY, { target: () => facRow('coal'), show: coalInView,
         text: 'Each row compares Supply, what your machines make, with Demand, what the rest of your factory uses. Red means short and says how many machines to add, green means fulfilled, and grey means nothing makes it yet.' }),
-      Object.assign({}, FACTORY, { target: () => $('#main .fac-sum'), show: coalInView, auto: true, done: () => facFilter === 'short',
+      Object.assign({}, FACTORY, { target: () => $$('#main .fac-sum > .s'), show: coalInView, auto: true, done: () => facFilter === 'short',
         text: () => `These count the rows that are short, missing or fulfilled. Click ${shortBtn() ? shortBtn().textContent.trim() : 'short'} to see only what is short.` }),
       Object.assign({}, FACTORY, { target: () => facRow('coal'), show: coalInView, auto: true, done: () => facOpen.has('coal'),
         text: 'Coal is short. Click ▸ on Coal to see what makes it and what uses it.' }),
       Object.assign({}, FACTORY, { target: () => withCons('coal'), show: coalInView, try: true,
         text: () => { const top = $('#tree .tr.cons.uses .nmtxt .lnk'); return `The made by lines add up to Supply and the used by lines add up to Demand, biggest first, so you can see where a shortage comes from.${top ? ` Here ${top.textContent.trim()} use${/s$/.test(top.textContent.trim()) ? '' : 's'} the most.` : ''}`; } }),
-      Object.assign({}, FACTORY, { target: () => { const r = facRow('coal'); return r ? [r.querySelector('input.num'), r.querySelector('.td.amt.bal')] : []; }, show: coalInView, focus: () => facRow('coal') && facRow('coal').querySelector('input.num'),
-        mark: () => (chainMem.coal || {}).scale, done: m => (chainMem.coal || {}).scale !== m, text: 'Type how many drills you have on coal. The bar on the right fills up as Supply catches up with Demand.' }),
-      Object.assign({}, FACTORY, { target: () => [$('#tree .tr.add'), $('#tree .tr.add-hits')], show: () => { if (facFilter) facTabTo(facTab); }, auto: true, done: () => !!addSel,
+      Object.assign({}, FACTORY, { target: () => { const r = facRow('coal'); return r ? [r.querySelector('input.num'), r.querySelector('.td.amt.bal')] : []; }, show: coalInView, focus: () => facRow('coal') && facRow('coal').querySelector('input.num'), typing: true,
+        mark: () => (chainMem.coal || {}).scale, done: m => (chainMem.coal || {}).scale !== m, text: () => `Type how many drills you have on coal. The bar ${tourSheet() ? 'under the numbers' : 'on the right'} fills up as Supply catches up with Demand.` }),
+      Object.assign({}, FACTORY, { target: () => [$('#tree .tr.add'), $('#tree .tr.add-hits')], show: () => { if (facFilter) facTabTo(facTab); }, auto: true, mark: () => (tour.addBase = addsMade), done: m => !!addSel || addsMade > m,
         text: 'To add an item, click this box and pick one from the list.' }),
-      Object.assign({}, FACTORY, { target: () => [$('#tree .tr.add'), $('#tree .tr.add-hits')], auto: true, mark: () => addsMade, done: m => addsMade > m,
+      Object.assign({}, FACTORY, { target: () => [$('#tree .tr.add'), $('#tree .tr.add-hits')], auto: true, focus: () => $('#addn'), keep: () => $('#addgo'), done: () => addsMade > (tour.addBase || 0),
         text: 'Type how many you have. If the machine has a ▾, click it to pick the one that makes it. Then click Add to put it in your factory.' }),
-      Object.assign({}, FACTORY, { target: () => $('#main .bp'), show: () => { addClose(); if (!bpImport && !bpDraft) { bpDraft = TOUR_BP; renderFactory(true); } }, auto: true, done: () => !!bpImport && bpImport.tab === facTab && !bpImport.error,
+      Object.assign({}, FACTORY, { target: () => [$('#main .bp-panel'), $('#main .bp')], skipIf: () => !!bpImport && !!bpImport.error, show: () => { addClose(); if (!bpImport && !bpDraft) { bpDraft = TOUR_BP; renderFactory(true); } }, auto: true, done: () => !!bpImport && bpImport.tab === facTab && !bpImport.error,
         text: 'You can also paste a blueprint string here to add its machines. This one has 8 steel furnaces and 6 electric drills. Click Import.' }),
-      Object.assign({}, FACTORY, { target: () => $('#main .bp-panel'), auto: true, done: () => !bpImport || !!bpImport.done,
+      Object.assign({}, FACTORY, { target: () => $('#main .bp-panel'), keep: () => $('#main [data-bp-confirm]') || $('#main [data-bp-close]'), auto: true, done: () => !bpImport || !!bpImport.done || !!bpImport.error,
         text: 'A blueprint doesn\'t say what each furnace smelts or what each drill mines, so you split them between the items here. It starts with how your factory splits them now. Then click Add.' }),
     ] },
     power: { name: 'Power', steps: [
       toStep('#home', HOME.at, 'Click Home to go to the home page.', { opener: true }),
       Object.assign(toStep('#main .card[data-go="#c/steam"]', CARD('steam').at, 'The cards at the top work out power, mining, oil and science. Click Steam power.'), HOME),
-      Object.assign({}, CARD('steam'), { target: () => [0, 1, 2, 3].map(i => $(`#main .tbl.two .tr[data-path="f${i}"]`)), focus: () => $('#main input.num[data-path="f0"]'), done: () => !!cardState('steam').touched,
+      Object.assign({}, CARD('steam'), { target: () => [0, 1, 2, 3].map(i => $(`#main .tbl.two .tr[data-path="f${i}"]`)), focus: () => $('#main input.num[data-path="f0"]'), typing: true, done: () => !!cardState('steam').touched,
         text: 'Type a number in any box, like how many boilers you have, and the rest change to match.' }),
       Object.assign({}, CARD('steam'), { target: topBtn, auto: true, done: onFactory,
-        text: () => onFactory() ? 'These boilers are in your factory now.' : `Click ${btnName()} to put these boilers and steam engines in your factory.` }),
+        text: () => onFactory() || !CARD('steam').at() ? 'These boilers are in your factory now.' : `Click ${btnName()} to put these boilers and steam engines in your factory.` }),
       Object.assign(toStep('#home', HOME.at, 'Click Home to go back to the cards.'), CARD('steam')),
       Object.assign(toStep('#main .card[data-go="#c/solar"]', CARD('solar').at, 'Click Solar power.'), HOME),
       Object.assign({}, CARD('solar'), { target: topBtn, auto: true, done: onFactory,
-        text: () => onFactory() ? 'These solar panels are in your factory now.' : `Solar panels need accumulators to keep the power on at night, and this card counts both. Click ${btnName()} to put these solar panels in your factory.` }),
+        text: () => onFactory() || !CARD('solar').at() ? 'These solar panels are in your factory now.' : `Solar panels need accumulators to keep the power on at night, and this card counts both. Click ${btnName()} to put these solar panels in your factory.` }),
       Object.assign(toStep('#home', HOME.at, 'Click Home again.'), CARD('solar')),
       Object.assign(toStep('#main .card[data-go="#c/nuclear"]', CARD('nuclear').at, 'Click Nuclear power.'), HOME),
-      Object.assign({}, CARD('nuclear'), { target: () => $('#main .settings'), auto: true, mark: () => cardState('nuclear').layout, done: m => cardState('nuclear').layout !== m,
+      Object.assign({}, CARD('nuclear'), { target: () => $('#main .settings'), auto: true, pick: true, mark: () => cardState('nuclear').layout, done: m => cardState('nuclear').layout !== m,
         text: 'Pick how your reactors are laid out. Reactors next to each other make more heat, so the layout changes how much power you get.' }),
       Object.assign({}, CARD('nuclear'), { target: topBtn, auto: true, done: onFactory,
-        text: () => onFactory() ? 'These reactors are in your factory now.' : `Click ${btnName()} to put these reactors in your factory.` }),
+        text: () => onFactory() || !CARD('nuclear').at() ? 'These reactors are in your factory now.' : `Click ${btnName()} to put these reactors in your factory.` }),
       Object.assign(toStep('#main h1 .iconbtn.sm.infac', FACTORY.at, 'Click In your factory to open your factory.'), CARD('nuclear')),
       Object.assign(toStep('#main [data-fac-tab="power"]', () => FACTORY.at() && facTab === 'power', 'Click Power.'), FACTORY),
-      Object.assign({}, FACTORY, { target: () => facRow('unit:boiler'), show: () => facTabTo('power'), auto: true, mark: () => boilerFuel(), done: m => boilerFuel() !== m,
+      Object.assign({}, FACTORY, { target: () => facRow('unit:boiler'), show: () => facTabTo('power'), auto: true, pick: true, mark: () => boilerFuel(), done: m => boilerFuel() !== m,
         text: 'Pick the fuel your boilers burn. What they burn is counted on that fuel\'s row.' }),
       Object.assign({}, FACTORY, { target: () => [facRow('steam'), facRow('power')], show: () => facTabTo('power'), try: true,
         text: 'Steam and Electricity add up what your boilers, engines, solar panels and reactors make, against what your machines use.' }),
@@ -2707,17 +2731,17 @@
     oil: { name: 'Oil', steps: [
       toStep('#home', HOME.at, 'Click Home to go to the home page.', { opener: true }),
       Object.assign(toStep('#main .card[data-go="#c/oil"]', CARD('oil').at, 'Click Oil processing.'), HOME),
-      Object.assign({}, CARD('oil'), { target: () => $('#main .settings'), auto: true, mark: () => oilProcOf(cardState('oil')), done: m => oilProcOf(cardState('oil')) !== m,
+      Object.assign({}, CARD('oil'), { target: () => $('#main .settings'), auto: true, pick: true, mark: () => oilProcOf(cardState('oil')), done: m => oilProcOf(cardState('oil')) !== m,
         text: 'Pick how your refineries process oil: basic, advanced, or coal liquefaction.' }),
-      Object.assign({}, CARD('oil'), { target: () => $('#main .tbl.two .tr.product'), focus: () => $('#main input.num[data-oil="R"]'), done: () => !!cardState('oil').dem,
-        text: 'Type how many refineries you want. The cracking, the pumpjacks and the oil they make change to match.' }),
+      Object.assign({}, CARD('oil'), { target: () => $('#main .tbl.two .tr.product'), focus: () => $('#main input.num[data-oil="R"]'), typing: true, done: () => !!cardState('oil').dem,
+        text: () => { const m = oilProcOf(cardState('oil')); return `Type how many refineries you want. ${m === 'basic' ? 'The pumpjacks and the petroleum gas they make' : m === 'coal' ? 'The cracking, the coal, the boilers and the oil they make' : 'The cracking, the pumpjacks and the oil they make'} change to match.`; } }),
       Object.assign({}, CARD('oil'), { target: afterLine, try: true,
         text: 'This is the oil they make. Under each name is how much of it your factory uses.' }),
       Object.assign({}, CARD('oil'), { target: topBtn, auto: true, done: onFactory,
-        text: () => onFactory() ? 'These refineries are in your factory now.' : `Click ${btnName()} to put these refineries, the cracking and the pumpjacks in your factory.` }),
+        text: () => { if (onFactory() || !CARD('oil').at()) return 'These refineries are in your factory now.'; const m = oilProcOf(cardState('oil')); return `Click ${btnName()} to put ${m === 'basic' ? 'these refineries and the pumpjacks' : m === 'coal' ? 'these refineries and the cracking' : 'these refineries, the cracking and the pumpjacks'} in your factory.`; } }),
       Object.assign(toStep('#main h1 .iconbtn.sm.infac', FACTORY.at, 'Click In your factory to open your factory.'), CARD('oil')),
       Object.assign(toStep('#main [data-fac-tab="oil"]', () => FACTORY.at() && facTab === 'oil', 'Click Oil & chemicals.'), FACTORY),
-      Object.assign({}, FACTORY, { target: () => facRow('crude-oil'), show: () => facTabTo('oil'), focus: () => $('#main input.yld'), mark: () => cardState('oil').yield, done: m => { const y = $('#main input.yld'); return cardState('oil').yield !== m || (!!y && parseFloat(y.value) > 0 && parseFloat(y.value) !== m); },
+      Object.assign({}, FACTORY, { target: () => facRow('crude-oil'), show: () => facTabTo('oil'), focus: () => $('#main input.yld'), typing: true, mark: () => cardState('oil').yield, done: m => { const y = $('#main input.yld'), v = y ? parseFloat(y.value) : NaN; return cardState('oil').yield !== m || (v > 0 && isFinite(v) && v <= 1e6 && v !== m); },
         text: 'Type your oil field\'s yield in the % yield box. The game shows it when you hover over the oil.' }),
       Object.assign({}, FACTORY, { target: () => facRow('unit:refinery'), show: () => facTabTo('oil'), try: true,
         text: 'This row shows how many refineries your factory needs and how busy they are. If an oil has nowhere to go, it backs up and stops them.' }),
@@ -2731,10 +2755,12 @@
   const tourStep = () => !tour.part ? TOUR_INTRO : tour.i >= tourList().length ? TOUR_END : tourList()[tour.i];
   // what a step rings, with a picker you opened inside the ring (it opens outside it)
   const tourTargets = step => { const els = step.target ? [].concat(step.target()).filter(el => el && el.isConnected) : []; if (els.length && popEl && popEl.isConnected) els.push(popEl); return els; };
-  const tourText = step => typeof step.text === 'function' ? step.text() : step.text;
+  const tourText = step => { const t = typeof step.text === 'function' ? step.text() : step.text; return fine() ? t : t.replace(/\bClick\b/g, 'Tap').replace(/\bclick\b/g, 'tap').replace(/press Enter/g, 'tap Go'); };   // on a touch screen you tap
   // Next is there on a step that only points, and on one you act on once you have done it (or when what it rings is
   // not on the page, so you are never stuck)
-  const tourCanNext = step => !step.done || step.done(tour.mark) || !tourTargets(step).length;
+  // (pick: what is picked already is an answer too; typing: anything sensible typed into the box counts, even the
+  // number it showed; skipIf: when what it waits for cannot happen, as an import that failed)
+  const tourCanNext = step => !step.done || step.done(tour.mark) || !tourTargets(step).length || !!step.pick || (!!step.typing && tour.typed) || (!!step.skipIf && step.skipIf());
   // what a step rings, as one rectangle on screen (a row above 700 px has no box of its own: its cells have)
   function tourRect(els) {
     let r = null;
@@ -2749,7 +2775,7 @@
     if (!fine()) q.blur();
     closePop();
     const w = doc.defaultView || window;
-    tour = { part: null, i: 0, item: null, busy: false, wasDone: false, mark: null, snaps: {}, done: new Set(store.get('tutorial', [])), from: { hash: location.hash, y: w.scrollY, visit: visitState() } };
+    tour = { part: null, i: 0, item: null, busy: false, wasDone: false, mark: null, snaps: {}, done: new Set(store.get('tutorial', [])), from: { href: location.href, y: w.scrollY, visit: visitState(), fac: facState(), raw: rawSaved() } };
     store.off = true;
     tourEl = doc.createElement('div'); tourEl.id = 'tour';
     tourEl.innerHTML = '<div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="ring none"></div>'
@@ -2760,7 +2786,11 @@
     w.addEventListener('keydown', tourKey, true);
     w.addEventListener('scroll', tourSoon, true);
     w.addEventListener('resize', tourSoon);
+    if (w.visualViewport) { w.visualViewport.addEventListener('resize', tourSoon); w.visualViewport.addEventListener('scroll', tourSoon); }   // a phone's keyboard
     for (const ev of TOUR_EVENTS) doc.addEventListener(ev, tourSoon);   // anything you do can be what a step waits for
+    doc.addEventListener('input', tourInput, true);
+    w.addEventListener('mousedown', tourGuard, true); w.addEventListener('click', tourGuard, true);
+    w.addEventListener('pagehide', tourHide); w.addEventListener('popstate', tourPop);
     doc.addEventListener('focusin', tourFocus);
     tourObs = new MutationObserver(tourSoon);
     tourObs.observe($('#main'), { childList: true, subtree: true }); tourObs.observe($('header'), { childList: true, subtree: true }); tourObs.observe(doc.body, { childList: true });
@@ -2785,6 +2815,7 @@
   // the last step you saw before this one, as it was then, or past a part's first step to the first card.
   function tourEnter(i, dir) {
     const list = tourList();
+    consUnarm();   // a - clicked once on the step before lets go
     if (dir < 0) {
       while (i >= 0 && !tour.snaps[i]) i--;
       if (i < 0) { tour.part = null; tour.i = 0; tourShowCard(); return; }
@@ -2802,14 +2833,15 @@
         const want = typeof step.page === 'function' ? step.page() : step.page;
         preview = null; history.replaceState(null, '', want === '#' ? location.pathname + location.search : want); render();
       }
-      if (cur && !preview && !tour.item) tour.item = cur.id;   // the item you typed, kept for the rest of the part
-      if (step.end) { tour.done.add(tour.part); store.set('tutorial', [...tour.done]); } else tour.snaps[i] = tourSnap();   // the parts you have done are remembered in this browser
+      if (step.at === ITEM.at && cur && !preview && !tour.item) tour.item = cur.id;   // the item you searched for, kept for the rest of the part
+      if (step.end) { tour.done.add(tour.part); for (const k of store.get('tutorial', [])) tour.done.add(k); store.set('tutorial', [...tour.done]); } else tour.snaps[i] = tourSnap();   // the parts you have done are remembered in this browser
       tourArrive(step);
     } finally { tour.busy = false; }
     tourShowCard();
   }
   // a step being shown: what it opens, and where what it asks for stands now
   function tourArrive(step) {
+    tour.typed = false;
     if (step.show) step.show();
     tour.mark = step.mark ? step.mark() : null;
     tour.wasDone = !!(step.done && step.done(tour.mark));
@@ -2820,12 +2852,13 @@
     const step = tourStep(), w = doc.defaultView || window;
     tourCard(step); tourMini();   // the sheet at the size it will have, before it is measured
     const els = tourTargets(step), r = tourRect(els);
-    tourIntoView(els, r); tour.ringH = r ? r.bottom - r.top : 0;
+    tourIntoView(els, r, step.keep && step.keep()); tour.ringH = r ? r.bottom - r.top : 0;
     tour.busy = true; try { tourDraw(); } finally { tour.busy = false; }
     const ring = tourEl.querySelector('.ring'); ring.classList.remove('pulse'); void ring.offsetWidth; if (r) ring.classList.add('pulse');   // a new step: the ring glows out once
-    const box = step.focus && fine() ? step.focus() : null;
-    if (box) { box.focus({ preventScroll: true }); if (box.select) box.select(); }
-    else (tourEl.querySelector('.tnav .cta:not([hidden])') || tourEl.querySelector('.tcard')).focus({ preventScroll: true });
+    const box = step.focus ? step.focus() : null, a = doc.activeElement;   // with a mouse the box to type in gets the focus; on a phone it stays where you put it, keyboard and all
+    const typingHere = !!a && !!a.matches && a.matches('input,textarea,select') && els.some(el => el.contains(a));
+    if (box) { if (fine()) { box.focus({ preventScroll: true }); if (box.select) box.select(); } }
+    else if (!(typingHere && !fine())) (tourEl.querySelector('.tnav .cta:not([hidden])') || tourEl.querySelector('.tcard')).focus({ preventScroll: true });
   }
   function tourCard(step) {
     const c = tourEl.querySelector('.tcard'), list = tourList(), counted = list.filter(s => !s.opener);
@@ -2844,17 +2877,22 @@
   }
   // what a step rings brought between the header and the sheet (what is in the header is always in sight): true if it
   // scrolled
-  function tourIntoView(els, r) {
+  function tourIntoView(els, r, keep) {
     if (!r || els.every(el => el.closest('header'))) return false;
-    const w = doc.defaultView || window, top = $('header').getBoundingClientRect().bottom + 10, bottom = w.innerHeight - (tourSheet() ? tourEl.querySelector('.tcard').offsetHeight : 0) - 10;
-    if (r.top >= top && r.bottom <= bottom) return false;
-    w.scrollBy(0, r.bottom - r.top > bottom - top || r.top < top ? r.top - top : r.bottom - bottom);
+    const w = doc.defaultView || window, top = $('header').getBoundingClientRect().bottom + 10, bottom = tourVisBottom() - (tourSheet() ? tourEl.querySelector('.tcard').offsetHeight : 0) - 10;
+    let dy = r.top >= top && r.bottom <= bottom ? 0 : r.bottom - r.top > bottom - top || r.top < top ? r.top - top : r.bottom - bottom;
+    const kb = keep && keep.getBoundingClientRect();   // a ring taller than the room: its button to go on stays in sight
+    if (kb && kb.height && kb.bottom - dy > bottom) dy = kb.bottom - bottom;
+    if (!dy) return false;
+    w.scrollBy(0, dy);
     return true;
   }
+  // the bottom of what you can see: above a phone's keyboard, where the browser only shrinks the visual viewport
+  const tourVisBottom = () => { const w = doc.defaultView || window, vv = w.visualViewport; return vv ? Math.min(w.innerHeight, vv.offsetTop + vv.height) : w.innerHeight; };
   // the next part you have not done
   const tourNextPart = () => Object.keys(TOUR_PARTS).find(k => k !== tour.part && !tour.done.has(k));
   // while a phone's keyboard is up for a box on the page, the sheet folds to its buttons
-  const tourMini = () => { const a = doc.activeElement; tourEl.querySelector('.tcard').classList.toggle('mini', !fine() && !!a && !!a.matches && a.matches('input,textarea') && !a.closest('#tour')); };
+  const tourMini = () => { const a = doc.activeElement, w = doc.defaultView || window, up = w.innerHeight - tourVisBottom() > 120; tourEl.querySelector('.tcard').classList.toggle('mini', !fine() && (up || (!!a && !!a.matches && a.matches('input,textarea') && !a.closest('#tour')))); };
   // the keyboard stays where you can act: on the card, or in what a step lets you use; Tab past the ring comes back
   function tourFocus(e) {
     const t = e.target, step = tour && tourStep();
@@ -2862,6 +2900,24 @@
     if ((step.try || step.done) && tourTargets(step).some(el => el.contains(t))) return;
     const c = tourEl.querySelector('.tnav .cta:not([hidden])') || tourEl.querySelector('.tcard'); if (c) c.focus({ preventScroll: true });
   }
+  // inside the ring only what the step rings can be used: the ring is one box, and can take in other things (the header's
+  // buttons beside the suggestions, a row that scrolled under the header)
+  function tourGuard(e) {
+    const t = e.target;
+    if (!tour || !t || !t.closest || t.closest('#tour')) return;
+    const step = tourStep();
+    if ((step.try || step.done) && tourTargets(step).some(el => el.contains(t))) return;
+    e.preventDefault(); e.stopPropagation();
+  }
+  // a box a typing step waits on: anything sensible typed there counts, even the number it already showed
+  function tourInput(e) {
+    const step = tour && tourStep();
+    if (step && step.typing && tourTargets(step).some(el => el.contains(e.target))) { const v = parseFloat(e.target.value); tour.typed = v > 0 && isFinite(v) && v <= 1e7; }
+  }
+  // leaving or reloading the page: its address goes back to yours, so a reload opens your page
+  const tourHide = () => { if (tour) try { history.replaceState(null, '', tour.from.href); } catch (e) { } };
+  // the browser's Back to a page of the same address: the tutorial ends there, as on any other Back
+  const tourPop = () => { if (tour) { tour.from.href = location.href; tourEnd(); } };
   // redraw on the next frame (or shortly, where frames are held back)
   const tourSoon = () => {
     if (!tour || tourRaf) return;
@@ -2881,18 +2937,24 @@
     const els = tourTargets(step), r0 = tourRect(els), w = doc.defaultView || window, vw = doc.documentElement.clientWidth, vh = w.innerHeight;
     // what it rings grew (a list or picker you opened, rows you unfolded): bring it into sight again
     const rh = r0 ? r0.bottom - r0.top : 0, grew = rh > (tour.ringH || 0) + 8; tour.ringH = rh;
-    if (grew && tourIntoView(els, r0)) { tourSoon(); return; }
+    if (grew && tourIntoView(els, r0, step.keep && step.keep())) { tourSoon(); return; }
     const [t, b, l, rt, lid] = tourEl.querySelectorAll('.tb'), ring = tourEl.querySelector('.ring'), card = tourEl.querySelector('.tcard');
     const box = (el, x, y, bw, bh) => Object.assign(el.style, { left: x + 'px', top: y + 'px', width: Math.max(0, bw) + 'px', height: Math.max(0, bh) + 'px' });
     tourMini();
     if (!r0) { ring.className = 'ring none'; ring.removeAttribute('style'); box(t, 0, 0, vw, vh); for (const x of [b, l, rt, lid]) box(x, 0, 0, 0, 0); }
     else {
       const p = 6, r = { left: Math.max(0, r0.left - p), top: Math.max(0, r0.top - p), right: Math.min(vw, r0.right + p), bottom: Math.min(vh, r0.bottom + p) };
+      if (!els.some(el => el.closest('header'))) r.top = Math.max(r.top, $('header').getBoundingClientRect().bottom);   // what scrolls under the header is not in the ring
+      r.bottom = Math.max(r.bottom, r.top);
       ring.className = ring.classList.contains('pulse') ? 'ring pulse' : 'ring'; box(ring, r.left, r.top, r.right - r.left, r.bottom - r.top);
       box(t, 0, 0, vw, r.top); box(b, 0, r.bottom, vw, vh - r.bottom); box(l, 0, r.top, r.left, r.bottom - r.top); box(rt, r.right, r.top, vw - r.right, r.bottom - r.top);
       if (step.try || step.done) box(lid, 0, 0, 0, 0); else box(lid, r.left, r.top, r.right - r.left, r.bottom - r.top);
     }
-    if (tourSheet()) { card.style.left = card.style.top = ''; return; }
+    if (tourSheet()) {   // on the keyboard when one is up; its height for the Defaults panel above it
+      card.style.left = card.style.top = ''; card.style.bottom = Math.max(0, w.innerHeight - tourVisBottom()) + 'px';
+      doc.body.style.setProperty('--tsheet', card.offsetHeight + 'px'); return;
+    }
+    card.style.bottom = '';
     const cw = card.offsetWidth, ch = card.offsetHeight, m = 12, g = 6 + m;
     const cx = v => Math.max(m, Math.min(v, vw - cw - m)), cy = v => Math.max(m, Math.min(v, vh - ch - m));
     let x, y;
@@ -2948,18 +3010,31 @@
     if (tourRaf) cancelAnimationFrame(tourRaf); tourRaf = 0;
     tourObs.disconnect(); tourObs = null; if (tourSize) { tourSize.disconnect(); tourSize = null; }
     w.removeEventListener('keydown', tourKey, true); w.removeEventListener('scroll', tourSoon, true); w.removeEventListener('resize', tourSoon);
+    if (w.visualViewport) { w.visualViewport.removeEventListener('resize', tourSoon); w.visualViewport.removeEventListener('scroll', tourSoon); }
+    doc.body.style.removeProperty('--tsheet');
     for (const ev of TOUR_EVENTS) doc.removeEventListener(ev, tourSoon);
+    doc.removeEventListener('input', tourInput, true);
+    w.removeEventListener('mousedown', tourGuard, true); w.removeEventListener('click', tourGuard, true);
+    w.removeEventListener('pagehide', tourHide); w.removeEventListener('popstate', tourPop);
     doc.removeEventListener('focusin', tourFocus);
     tourEl.remove(); tourEl = null; doc.body.classList.remove('touring');
     // your own factory and Defaults as they are saved now, then what this visit had, on the page you were on
     store.off = false;
     clearVisit();
-    loadMem(store.get('mem', {}));
-    Object.assign(S, fresh(), store.get('settings', {})); if (!['lane', 'belt', 's', 'min'].includes(S.rateUnit)) S.rateUnit = 'lane';
+    const raw = rawSaved();
+    if (raw === null || raw === from.raw) putFac(from.fac);   // as this page had it (also when storage cannot be read)
+    else { loadMem(store.get('mem', {})); Object.assign(S, fresh(), store.get('settings', {})); if (!['lane', 'belt', 's', 'min'].includes(S.rateUnit)) S.rateUnit = 'lane'; }   // another tab saved meanwhile
     putVisit(from.visit);
-    if (location.hash !== from.hash) history.replaceState(null, '', from.hash || location.pathname + location.search);
+    if (location.href !== from.href) history.replaceState(null, '', from.href);
     keepPlace = true;
-    try { renderSettings(); render(); if (from.visit.q) { q.value = from.visit.q; if (from.visit.previewing) { selIdx = from.visit.selIdx; runSearch(); } } } finally { keepPlace = false; }   // a search you had opened stays opened, not a preview again
+    try {
+      renderSettings(); render();
+      const v = from.visit;
+      if (v.q) { q.value = v.q; selIdx = v.selIdx || 0; runSearch(); if (!v.previewing && preview) { preview = null; render(); } }   // its suggestions again; a preview only if one was showing
+      const aq = $('#addq'), an = $('#addn');   // the add row as you left it
+      if (v.addSel) addRefresh(); else if (aq && v.addText) { aq.value = v.addText; if (v.addOpen) addQuery(v.addText); }
+      if (an && v.addN) { an.value = v.addN; an.dataset.typed = '1'; }
+    } finally { keepPlace = false; }   // a search you had opened stays opened, not a preview again
     w.scrollTo(0, from.y);
     if (fine()) q.focus();
   }
