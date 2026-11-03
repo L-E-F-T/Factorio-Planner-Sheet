@@ -98,7 +98,8 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
   typing brings up Next), so every page change is one you make; a step that only points something out has
   Next. Back puts the step before it back as it was. Nothing of your factory or Defaults is saved while it
   runs, and they come back, with the page you were on, when it ends (Done, ×, or Esc once there is nothing
-  else for Esc to undo). → or Enter goes on where there is a Next, ← goes back.
+  else for Esc to undo) or when the page is reloaded while it runs. → or Enter goes on where there is a
+  Next, ← goes back.
 * **Raw resources** (stone, iron ore, copper ore, coal, wood, water) have a page of their own. The first row
   is the supply: drills on one side, amount on the other. Every item below it is sized as if all of that
   supply went to it, with its other ingredients under it, so changing any box moves the whole page. Links

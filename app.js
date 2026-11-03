@@ -2777,6 +2777,7 @@
     const w = doc.defaultView || window;
     tour = { part: null, i: 0, item: null, busy: false, wasDone: false, mark: null, snaps: {}, done: new Set(store.get('tutorial', [])), from: { href: location.href, y: w.scrollY, visit: visitState(), fac: facState(), raw: rawSaved() } };
     store.off = true;
+    try { sessionStorage.setItem('fr:tour', JSON.stringify({ href: location.href, y: w.scrollY })); } catch (e) { }   // a reload while it runs opens your page again (see boot)
     tourEl = doc.createElement('div'); tourEl.id = 'tour';
     tourEl.innerHTML = '<div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="tb"></div><div class="ring none"></div>'
       + '<div class="tcard" role="dialog" aria-label="Tutorial" tabindex="-1"><div class="tprog"><i></i></div><div class="tstep"><span class="tpos"></span><button class="tx" data-tour="end" title="Close the tutorial (Esc)" aria-label="Close the tutorial">×</button></div><p class="ttext" aria-live="polite"></p><div class="tnav"></div></div>';
@@ -2790,7 +2791,7 @@
     for (const ev of TOUR_EVENTS) doc.addEventListener(ev, tourSoon);   // anything you do can be what a step waits for
     doc.addEventListener('input', tourInput, true);
     w.addEventListener('mousedown', tourGuard, true); w.addEventListener('click', tourGuard, true);
-    w.addEventListener('pagehide', tourHide); w.addEventListener('popstate', tourPop);
+    w.addEventListener('pagehide', tourHide); w.addEventListener('pageshow', tourShow); w.addEventListener('popstate', tourPop);
     doc.addEventListener('focusin', tourFocus);
     tourObs = new MutationObserver(tourSoon);
     tourObs.observe($('#main'), { childList: true, subtree: true }); tourObs.observe($('header'), { childList: true, subtree: true }); tourObs.observe(doc.body, { childList: true });
@@ -2914,8 +2915,10 @@
     const step = tour && tourStep();
     if (step && step.typing && tourTargets(step).some(el => el.contains(e.target))) { const v = parseFloat(e.target.value); tour.typed = v > 0 && isFinite(v) && v <= 1e7; }
   }
-  // leaving or reloading the page: its address goes back to yours, so a reload opens your page
-  const tourHide = () => { if (tour) try { history.replaceState(null, '', tour.from.href); } catch (e) { } };
+  // leaving the page: its place in your history goes back to your page's address (a reload is put right at boot)
+  const tourHide = () => { if (tour) try { tour.here = location.href; history.replaceState(null, '', tour.from.href); } catch (e) { } };
+  // coming back to it as it was left (the browser kept it, tutorial and all): the address of the page it shows again
+  const tourShow = e => { if (tour && e.persisted && tour.here) try { history.replaceState(null, '', tour.here); } catch (err) { } };
   // the browser's Back to a page of the same address: the tutorial ends there, as on any other Back
   const tourPop = () => { if (tour) { tour.from.href = location.href; tourEnd(); } };
   // redraw on the next frame (or shortly, where frames are held back)
@@ -3007,6 +3010,7 @@
     if (!tour) return;
     const from = tour.from, w = doc.defaultView || window;
     tour = null;
+    try { sessionStorage.removeItem('fr:tour'); } catch (e) { }
     if (tourRaf) cancelAnimationFrame(tourRaf); tourRaf = 0;
     tourObs.disconnect(); tourObs = null; if (tourSize) { tourSize.disconnect(); tourSize = null; }
     w.removeEventListener('keydown', tourKey, true); w.removeEventListener('scroll', tourSoon, true); w.removeEventListener('resize', tourSoon);
@@ -3015,7 +3019,7 @@
     for (const ev of TOUR_EVENTS) doc.removeEventListener(ev, tourSoon);
     doc.removeEventListener('input', tourInput, true);
     w.removeEventListener('mousedown', tourGuard, true); w.removeEventListener('click', tourGuard, true);
-    w.removeEventListener('pagehide', tourHide); w.removeEventListener('popstate', tourPop);
+    w.removeEventListener('pagehide', tourHide); w.removeEventListener('pageshow', tourShow); w.removeEventListener('popstate', tourPop);
     doc.removeEventListener('focusin', tourFocus);
     tourEl.remove(); tourEl = null; doc.body.classList.remove('touring');
     // your own factory and Defaults as they are saved now, then what this visit had, on the page you were on
@@ -3057,7 +3061,17 @@
     if (e.key !== 'fr:mem') { Object.assign(S, fresh(), v); if (!['lane', 'belt', 's', 'min'].includes(S.rateUnit)) S.rateUnit = 'lane'; }
     keepPlace = true; try { renderSettings(); render(); } finally { keepPlace = false; }
   });
+  // reloaded (or left and come back to) while the tutorial was open: the page you opened it on, where you were on it,
+  // not the tutorial's page (its sample was never saved, so your own factory is what loads)
+  let tourLeft = null;
+  try { tourLeft = JSON.parse(sessionStorage.getItem('fr:tour')); sessionStorage.removeItem('fr:tour'); } catch (e) { }
+  if (!(tourLeft && typeof tourLeft.href === 'string')) tourLeft = null;
+  if (tourLeft) try { const u = new URL(tourLeft.href); if (u.origin === location.origin && u.pathname === location.pathname && u.href !== location.href) history.replaceState(null, '', u.href); } catch (e) { }
   renderSettings();
   render();   // the root URL is always the home screen; a chain is only restored when its own #i/... address is opened
+  if (tourLeft) {   // and again once the browser has put back the place it had on the tutorial's page
+    const y = +tourLeft.y || 0, put = () => window.scrollTo(0, y);
+    put(); if (document.readyState === 'complete') setTimeout(put); else window.addEventListener('load', () => setTimeout(put), { once: true });
+  }
   if (fine()) { q.focus(); }
 })();
