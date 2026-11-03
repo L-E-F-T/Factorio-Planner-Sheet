@@ -108,8 +108,8 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     the import only touches that tab: the rest is listed by the tab it goes on, so import on that tab or on
     Everything to add it; on Everything it covers all of them. Refineries are counted on each processing they
     run. Modules and beacons are ignored.
-  * An item row has the machines making it, what they make (**Outputting**), what the rest of your factory
-    uses (**Inputting**), and the verdict: "short" in red, with how many machines close the gap, or
+  * An item row has the machines making it, what they make (**Supply**), what the rest of your factory
+    uses (**Demand**), and the verdict: "short" in red, with how many machines close the gap, or
     "fulfilled" in green, with how much is left over. The bar under it fills as what you make covers what
     your factory uses: full once it is fulfilled. Water and crude oil are counted in offshore pumps and
     pumpjacks. Type into any box and the page recounts as you type; empty or 0 takes the item out.
@@ -117,7 +117,7 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     the row stays until you leave the page, with **Put back** to bring it back as it was.
     Anything your machines use that you have not entered shows grey as "missing", with how many
     machines to add, the same as a short row. **▸** opens a row: what makes it ("made by", with the
-    amount under Outputting) and what uses it ("used by", biggest first, with the amount under Inputting),
+    amount under Supply) and what uses it ("used by", biggest first, with the amount under Demand),
     each with its machines, so you can see where a shortage comes from.
   * A row can have a line per machine and recipe: gears in assembler 1 and 2, iron plate in stone and steel
     furnaces, iron ore under burner and electric drills. Each line has its own count, picker and ×, and the row

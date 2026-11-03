@@ -1354,7 +1354,7 @@
     // fills as what you have covers what is needed, and is full once it is enough (no bar: nothing is needed)
     const cellOf = (cls, txt, pct, tip, label = '') => `<div class="td amt bal"${label ? ` data-label="${label}"` : ''}><span class="${cls}">${txt}</span>${pct === null ? '' : `<span class="meter${cls === 'spare' ? '' : ' ' + cls}"${tip ? ` title="${esc(tip)}"` : ''}><i style="width:${pct}%"></i></span>`}</div>`;
     const cell = cellOf;
-    const empty = { st: null, miss: 0, html: `<div class="td amt bal" data-label="left over"><span class="sub">–</span></div>` };
+    const empty = { st: null, miss: 0, html: `<div class="td amt bal"><span class="sub">–</span></div>` };
     const balance = (made, used, word, k, machine) => {
       if (!made && !used) return empty;
       const bal = made - used, isShort = bal < 0 && !near(bal, 0), v = Math.abs(bal), pct = used > 0 ? Math.min(100, made / used * 100) : 100;
@@ -1379,7 +1379,7 @@
     const flowRows = (makers, users, fluid, amt) => {
       const a = amt || (v => amountText(v, fluid)), cap = w => capOf(w, fluid || !!amt);   // an amount given its own unit (MW) says it itself
       const line = (u, mk) => { const go = u.go || '#i/' + u.by, nm = u.label || nameOf(u.by);
-        return `<div class="tr cons ${mk ? 'makes' : 'uses'}"><div class="td item" style="--d:1"><span class="exp none"></span><span class="side">${mk ? 'made by' : 'used by'}</span>${ic(iconOf(u.by), 'sm')}<span class="nmtxt"><a class="lnk" href="${go}" data-go="${go}" title="Open ${esc(nm)}">${esc(nm)}</a>${u.fuel ? ' <span class="sub">fuel</span>' : ''}</span></div><div class="td mach" data-label="machines">${u.machine ? `${fmt(u.machines)} × ${esc(mName(u.machine))}` : esc(u.what || 'rocket launches')}</div><div class="td amt"${mk ? ` data-label="${cap('outputting')}"` : ''}>${mk ? a(u.rate) : ''}</div><div class="td amt"${mk ? '' : ` data-label="${cap('inputting')}"`}>${mk ? '' : a(u.rate)}</div><div class="td amt"></div></div>`; };
+        return `<div class="tr cons ${mk ? 'makes' : 'uses'}"><div class="td item" style="--d:1"><span class="exp none"></span><span class="side">${mk ? 'made by' : 'used by'}</span>${ic(iconOf(u.by), 'sm')}<span class="nmtxt"><a class="lnk" href="${go}" data-go="${go}" title="Open ${esc(nm)}">${esc(nm)}</a>${u.fuel ? ' <span class="sub">fuel</span>' : ''}</span></div><div class="td mach" data-label="machines">${u.machine ? `${fmt(u.machines)} × ${esc(mName(u.machine))}` : esc(u.what || 'rocket launches')}</div><div class="td amt"${mk ? ` data-label="${cap('supply')}"` : ''}>${mk ? a(u.rate) : ''}</div><div class="td amt"${mk ? '' : ` data-label="${cap('demand')}"`}>${mk ? '' : a(u.rate)}</div><div class="td amt"></div></div>`; };
       return makers.map(u => line(u, true)).join('') + users.slice().sort((x, y) => y.rate - x.rate).map(u => line(u, false)).join('');
     };
     const showUnit = id => (id === 'refinery' ? refAll() : id === 'nuclear' ? nucAll() + nucShown.size : unitN(id)) > 0 || facKeep.has('unit:' + id) || STARTER_UNITS.includes(id);
@@ -1388,7 +1388,7 @@
       return `<div class="tr${cnt ? ' product' : ''}" data-fac="unit:${id}"><div class="td item" style="--d:0"><span class="exp none"></span>${ic(u.icon)}<span class="nmtxt"><a class="lnk" href="${u.go}" data-go="${u.go}" title="Open ${esc(u.name)}">${esc(u.name)}</a>${sub ? `<div class="sub">${sub}</div>` : ''}${rmBtn('unit:' + id, u.name, cnt > 0)}</span></div><div class="td mach" data-label="machines"><input class="num" inputmode="decimal" data-path="unit:${id}" data-k="1" data-kind="mach" value="${cnt ? fmtIn(cnt) : ''}" placeholder="0" aria-label="${esc(u.name)}"><span class="mbtn">${ic(mid)}<span class="mname">${esc(nameOf(mid))}</span></span></div><div class="td amt"></div><div class="td amt"></div>${bal ? bal.html : '<div class="td amt"></div>'}</div>`;
     };
     // a row that adds up other rows (steam, electricity, an oil product): no box of its own
-    const sumRow = (key, icon, name, sub, from, made, used, unitTxt, bal, n, listHtml) => `<div class="tr${made ? ' product' : ''}" data-fac="${key}"><div class="td item" style="--d:0">${expBtn(key, n, 'what uses it')}${ic(icon)}<span class="nmtxt"><b>${esc(name)}</b>${sub ? `<div class="sub">${sub}</div>` : ''}</span></div><div class="td mach" data-label="made by"><span class="sub">${from}</span></div><div class="td amt" data-label="outputting">${made ? fmt(made) + ` <span class="unit">${unitTxt}</span>` : '<span class="sub">–</span>'}</div><div class="td amt" data-label="inputting">${used ? fmt(used) + ` <span class="unit">${unitTxt}</span>` : '<span class="sub">–</span>'}</div>${bal.html}</div>` + (facOpen.has(key) ? listHtml : '');
+    const sumRow = (key, icon, name, sub, from, made, used, unitTxt, bal, n, listHtml) => `<div class="tr${made ? ' product' : ''}" data-fac="${key}"><div class="td item" style="--d:0">${expBtn(key, n, 'what uses it')}${ic(icon)}<span class="nmtxt"><b>${esc(name)}</b>${sub ? `<div class="sub">${sub}</div>` : ''}</span></div><div class="td mach" data-label="made by"><span class="sub">${from}</span></div><div class="td amt" data-label="supply">${made ? fmt(made) + ` <span class="unit">${unitTxt}</span>` : '<span class="sub">–</span>'}</div><div class="td amt" data-label="demand">${used ? fmt(used) + ` <span class="unit">${unitTxt}</span>` : '<span class="sub">–</span>'}</div>${bal.html}</div>` + (facOpen.has(key) ? listHtml : '');
 
     // power: boilers, steam engines, solar panels, then steam and electricity added up
     const B = FD.power.boiler, E = FD.power.steam_engine;
@@ -1521,11 +1521,11 @@
       // a cell's amount: water and crude oil in pumps, other fluids per second (the number big, its unit small), items bare
       const qty = v => { if (!fluid) return amountText(v, fluid); const n = fmt(PUMP_OF[i] ? v / pumpRate(i) : v); return `${n} <span class="unit">${PUMP_OF[i] ? PUMP_OF[i] + (n === '1' ? '' : 's') : 'per second'}</span>`; };
       const word = v => PUMP_OF[i] ? pumpsText(i, v) : amtWord(v, fluid);
-      let mach, makes = `<div class="td amt" data-label="${capOf('outputting', fluid)}">${made ? qty(made) : '<span class="sub">–</span>'}</div>`;
+      let mach, makes = `<div class="td amt" data-label="${capOf('supply', fluid)}">${made ? qty(made) : '<span class="sub">–</span>'}</div>`;
       if (im) mach = facBox(i, im.k, made ? im.k * made : null, im);
       else {   // nothing makes it by the machine: type the amount
         mach = `<div class="td mach" data-label="machines"><span class="sub">${originText(i) || 'not made by a machine'}</span></div>`;
-        makes = `<div class="td amt" data-label="${capOf('outputting', fluid)}"><input class="num" inputmode="decimal" data-path="${i}" data-k="1" data-kind="rate" data-fluid="${fluid ? 1 : 0}" value="${made ? fmtIn(toUnit(made, fluid)) : ''}" placeholder="0" aria-label="amount of ${esc(nameOf(i))} made">${fluid ? '<span class="unit">per second</span>' : ''}</div>`;
+        makes = `<div class="td amt" data-label="${capOf('supply', fluid)}"><input class="num" inputmode="decimal" data-path="${i}" data-k="1" data-kind="rate" data-fluid="${fluid ? 1 : 0}" value="${made ? fmtIn(toUnit(made, fluid)) : ''}" placeholder="0" aria-label="amount of ${esc(nameOf(i))} made">${fluid ? '<span class="unit">per second</span>' : ''}</div>`;
       }
       const b = balance(made, used, word, im ? im.k : 0, im ? im.machine : null);
       tally(tab, b.st, i, nameOf(i), i, word(b.miss), used ? b.miss / used : 1);
@@ -1535,7 +1535,7 @@
       const recs = new Set((partsOf(i) || []).map(q => q.recipe));   // lines on different recipes are named by their recipe
       const makers = runsOf[i] ? runsOf[i].map(([t, r]) => ({ by: i, label: recs.size > 1 ? FD.recipes[t.recipe].name : nameOf(i), go: page || '#i/' + i, rate: r, machines: t.kMach * r, machine: t.machine }))
         : made ? (partsOf(i) || [{ machine: null, scale: made }]).filter(q => q.scale > 0).map(q => { const s = supply(i, 1, q.machine); return { by: i, label: nameOf(i), go: page || '#i/' + i, rate: q.scale, machines: s ? s.k * q.scale : 0, machine: s ? s.id : null, what: s ? '' : originText(i) || 'what you entered' }; }) : [];
-      const rowHtml = (`<div class="tr${made ? ' product' : ''}" data-fac="${i}"><div class="td item" style="--d:0">${expBtn(i, list.length || makers.length > 1, 'what makes and uses ' + nameOf(i))}${ic(i)}<span class="nmtxt">${link}${nick(i)}${i === 'crude-oil' ? yieldLine() : ''}${rmBtn(i, nameOf(i), made > 0)}</span></div>${mach}${makes}<div class="td amt" data-label="${capOf('inputting', fluid)}">${used ? qty(used) : '<span class="sub">–</span>'}</div>${b.html}</div>` + (facOpen.has(i) ? flowRows(makers, list, fluid, fluid ? qty : undefined) : ''));
+      const rowHtml = (`<div class="tr${made ? ' product' : ''}" data-fac="${i}"><div class="td item" style="--d:0">${expBtn(i, list.length || makers.length > 1, 'what makes and uses ' + nameOf(i))}${ic(i)}<span class="nmtxt">${link}${nick(i)}${i === 'crude-oil' ? yieldLine() : ''}${rmBtn(i, nameOf(i), made > 0)}</span></div>${mach}${makes}<div class="td amt" data-label="${capOf('demand', fluid)}">${used ? qty(used) : '<span class="sub">–</span>'}</div>${b.html}</div>` + (facOpen.has(i) ? flowRows(makers, list, fluid, fluid ? qty : undefined) : ''));
       (i === 'crude-oil' ? oilFirst : body[tab]).push(rowHtml);
       if (i === 'coal' || i === 'water') shared[i] = rowHtml;
     }
@@ -1576,7 +1576,7 @@
     const badge = t => { const n = t === 'all' ? FAC_ORDER.reduce((a, x) => a + counts[x].short, 0) : counts[t].short; return n ? `<span class="n" title="${n} short">${n}</span>` : ''; };
     const tabBar = `<div class="factabs" role="tablist">${FAC_TABS.map(([t, label, icon]) => `<button tabindex="-1" role="tab" data-fac-tab="${t}" class="${t === facTab ? 'on' : ''}">${icon ? ic(icon, 'xs') : ''}<span>${esc(label)}</span>${badge(t)}</button>`).join('')}</div>`;   // a tab's icon is its kind of machine, no tier
     const thU = tabs.some(t => laneTab.has(t)) ? `<span class="u">${esc(unitShort())}</span>` : '';   // Power counts no items, only steam and MW
-    const th = `<div class="th"></div><div class="th">Machines</div><div class="th amth">Outputting${thU}</div><div class="th amth">Inputting${thU}</div><div class="th amth"></div>`;
+    const th = `<div class="th"></div><div class="th">Machines</div><div class="th amth">Supply${thU}</div><div class="th amth">Demand${thU}</div><div class="th amth"></div>`;
     // dismissing only changes the top: redraw the tabs and the summary, and leave everything below them as it is
     if (topOnly) {
       const s = $('#main .fac-sum'), tb = $('#main .factabs');
