@@ -13,7 +13,8 @@
   // ---------- settings ----------
   // "Your base" has no defaults to go back to: a fresh browser starts at the early game (assembler 1, stone furnace,
   // burner drill, yellow belt, no research) and from then on it is simply whatever was chosen last.
-  const S = Object.assign(Engine.defaults(), { tier: 1, furnace: 'stone-furnace', drill: 'burner-mining-drill', mp: 0, rateUnit: 'lane', cap: 0 }, store.get('settings', {}));
+  const fresh = () => Object.assign(Engine.defaults(), { tier: 1, furnace: 'stone-furnace', drill: 'burner-mining-drill', mp: 0, rateUnit: 'lane', cap: 0 });
+  const S = Object.assign(fresh(), store.get('settings', {}));
   if (!['lane', 'belt', 's', 'min'].includes(S.rateUnit)) S.rateUnit = 'lane';
   const saveS = () => { const { machineOf, recipeOf, ...base } = S; store.set('settings', base); };   // the factory's choices are saved with the factory
   document.getElementById('ver').textContent = FD.version;
@@ -232,6 +233,16 @@
     for (const [k, m] of Object.entries(machineOf)) if (m && saved(chainMem[k])) machines[k] = m;
     for (const [k, r] of Object.entries(recipeOf)) if (r && saved(chainMem[k])) recipes[k] = r;
     store.set('mem', { chains, cards, units, machines, recipes, dismissed: [...facDismiss], refs: 2 });
+  }
+  // your factory as another tab of this page saved it, in place of this tab's copy (persist writes all of it, so an older
+  // copy would go back over it); what this visit has open or picked on a page stays
+  function loadMem(m) {
+    for (const st of Object.values(chainMem)) { st.scale = null; st.anchor = null; st.touched = false; delete st.parts; }
+    for (const [k, v] of Object.entries(m.chains || {})) { const st = chainState(k); Object.assign(st, { scale: v.scale, anchor: v.anchor, touched: true }); if (v.parts) st.parts = v.parts.map(p => Object.assign({}, p)); }
+    const cards = m.cards || {};
+    for (const id of new Set([...Object.keys(cardMem), ...Object.keys(cards)])) { const st = cardState(id); for (const f of ['time', 'bonus', 'basic', 'coal', 'yield', 'fuel']) st[f] = cards[id] && f in cards[id] ? cards[id][f] : CARD_DEF[f]; }
+    for (const [to, from] of [[facUnits, m.units], [machineOf, m.machines], [recipeOf, m.recipes]]) { for (const k of Object.keys(to)) delete to[k]; Object.assign(to, from); }
+    facDismiss.clear(); for (const d of m.dismissed || []) facDismiss.add(d);
   }
   // earlier versions kept labs, boilers (with two steam engines each) and refineries as card counts: they are units now
   {
@@ -2418,6 +2429,15 @@
   for (const [id, m] of Object.entries(chainMem)) if (saved(m)) pin(id);
   for (const m of [machineOf, recipeOf]) for (const id of Object.keys(m)) if (!saved(chainMem[id])) delete m[id];
   persist();
+  // another tab of this page saved Defaults or your factory: take them up here and redraw in place, so this tab never
+  // saves its older copy back over them
+  window.addEventListener('storage', e => {
+    if (e.key !== null && e.key !== 'fr:settings' && e.key !== 'fr:mem') return;   // null: that tab cleared everything
+    let v; try { v = JSON.parse(e.newValue) || {}; } catch (err) { return; }   // taken out: a fresh start
+    if (e.key !== 'fr:settings') loadMem(v);
+    if (e.key !== 'fr:mem') { Object.assign(S, fresh(), v); if (!['lane', 'belt', 's', 'min'].includes(S.rateUnit)) S.rateUnit = 'lane'; }
+    keepPlace = true; try { renderSettings(); render(); } finally { keepPlace = false; }
+  });
   renderSettings();
   render();   // the root URL is always the home screen; a chain is only restored when its own #i/... address is opened
   if (fine()) { q.focus(); }

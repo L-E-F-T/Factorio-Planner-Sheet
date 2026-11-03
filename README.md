@@ -201,7 +201,8 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
 * **Memory** lives in this browser, and only here: nothing is stored on the server, so on a hosted copy every
   visitor has their own memory and nobody else's changes can reach yours. The browser keeps the memory per
   address, so `http://localhost:8765/` and the LAN or public address are separate memories even on the same
-  PC. Petroleum gas, crude oil, steam and uranium in a chain open their page set to that amount. Changing a
+  PC. Tabs and windows open on the same address share it: Defaults or a factory change made in one show up
+  in the others at once, so an older tab never saves over a newer change. Petroleum gas, crude oil, steam and uranium in a chain open their page set to that amount. Changing a
   Defaults setting redraws the page where you are, without jumping to the top.
 * Keyboard: type anywhere to search, **Tab** moves between boxes, **↑/↓** nudge a box by 1 (Shift: 10),
   **Esc** reverts a box, then goes back.
