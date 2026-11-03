@@ -147,8 +147,8 @@ const Engine = (() => {
         if (drill.burner) out.burnerKw += k * drill.kw; else out.kw += k * drill.kw;
         if (res.fluid) row.fluid = { item: res.fluid[0], kRate: kRate / mp * res.fluid[1] };
       } else if (item === 'crude-oil') {
-        const perJack = FD.resources['crude-oil'].amount * mp; // at 100% yield
-        row.machines.push({ id: 'pumpjack', k: kRate / perJack, note: 'at 100% yield' });
+        const yld = S.jackYield || 1, perJack = FD.resources['crude-oil'].amount * mp * yld;   // at your pumpjacks' yield
+        row.machines.push({ id: 'pumpjack', k: kRate / perJack, note: `at ${Math.round(yld * 100)}% yield` });
         out.kw += kRate / perJack * FD.machines.pumpjack.kw;
       } else if (item === 'water') {
         row.machines.push({ id: 'offshore-pump', k: kRate / FD.power.offshore_pump.per_s });
@@ -215,12 +215,17 @@ const Engine = (() => {
       const s = tryCase(uh, ul);
       if (s && (!best || s.R < best.R - 1e-9)) best = s;
     }
-    const R = best.R, Hc = Math.max(0, best.Hc), Lc = Math.max(0, best.Lc);
+    const R = best.R;
+    let Hc = Math.max(0, best.Hc), Lc = Math.max(0, best.Lc);
     const surplus = { heavy: r.h * R - hc.in * Hc - H, light: best.light - L, petroleum: r.p * R + lc.out * Lc - P };
+    // oil nothing uses is cracked as far as it goes, heavy into light and light into petroleum gas, as players do: so
+    // only petroleum gas is ever left over (a refinery stops once any of its oils has nowhere to go)
+    if (surplus.heavy > 1e-9) { const x = surplus.heavy / hc.in; Hc += x; surplus.light += x * hc.out; surplus.heavy = 0; }
+    if (surplus.light > 1e-9) { const y = surplus.light / lc.in; Lc += y; surplus.petroleum += y * lc.out; surplus.light = 0; }
     const crude = R * r.crude, water = R * r.water + Hc * hc.water + Lc * lc.water;
     const mp = 1 + S.mp / 100;
     const kw = R * FD.machines['oil-refinery'].kw + (Hc + Lc) * FD.machines['chemical-plant'].kw;
-    return { refineries: R, heavyCrackers: Hc, lightCrackers: Lc, crude, water, pumpjacks: crude / (10 * mp), surplus, kw,
+    return { refineries: R, heavyCrackers: Hc, lightCrackers: Lc, crude, water, pumpjacks: crude / (FD.resources['crude-oil'].amount * mp * (S.jackYield || 1)), surplus, kw,
       basic: { refineries: P / (45 / 5), crude: P / (45 / 5) * 20, note: L + H > 0 ? 'basic oil makes petroleum gas only' : '' } };
   }
 

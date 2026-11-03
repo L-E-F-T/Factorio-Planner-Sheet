@@ -71,7 +71,8 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
 * **Your base** (the strip under the search box) is what the numbers assume: assembler tier, furnace,
   drill, belt colour, mining productivity. A fresh browser starts at the early game (assembler 1, stone
   furnace, burner drill, yellow belt, no research); after that it is simply whatever you chose last. There
-  is nothing to reset: change it when your base changes.
+  is nothing to reset: change it when your base changes. Changing mining productivity keeps your factory's
+  drills and pumpjacks as many as you entered: what they mine changes.
 * **Amounts in** picks the one unit used everywhere: lanes of your belt (default; a belt has two lanes,
   so a yellow lane is 7.5 items per second), full belts (15 per second for yellow), items per second,
   or items per minute. Fluids are always per second.
@@ -131,25 +132,31 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     Boilers' coal and water show on the Coal and Water rows.
   * **Science** has your labs, with the research time and lab speed they run at; they eat each science
     pack you make.
-  * **Oil & chemicals** starts with crude oil: your pumpjacks against what your refineries take, running flat
-    out like every other machine (20 per second each). Then your oil refineries (basic or advanced
-    processing, with what each takes and makes) and heavy and light oil cracking plants, each set against
-    what your factory's oil products need, with how busy they are. Refineries on Advanced and cracking
-    plants also take water, which shows on the Water row. The
-    petroleum gas, light oil and heavy oil rows show what your refineries really deliver with nothing
-    backing up: a refinery stops once any of its outputs has nowhere to go, so too little cracking shows
-    up as a shortage, with the reason on the refinery row. Plastic, sulfur and the other chemical plant
-    items live here too.
+  * **Oil & chemicals** follows the oil. First crude oil: your pumpjacks, at the yield you type on the row
+    (the % the game shows on an oil field), against what your refineries take running flat out like every
+    other machine (20 per second each). Then your oil refineries (Basic or Advanced, with what each takes
+    and makes) and your heavy and light oil cracking plants, each saying in grey how many your factory
+    needs ("needs 2.05 of your 3", "not entered: add 2 × Chemical plant", or "idle" with why). Then heavy
+    oil, light oil and petroleum gas: what your refineries make at full speed plus what cracking turns
+    into each, against what your factory and the cracking use. A refinery stops once any of its oils has
+    nowhere to go, so an oil is short when the refineries cannot deliver it with nothing backing up; its
+    row says why and what to add ("light oil backs up: add 2 × light oil cracking"), and the oil with
+    nowhere to go reads "backs up". Each gap is counted once, on the oil. Refineries on Advanced and
+    cracking plants also take water, which shows on the Water row. Plastic, sulfur and the other chemical
+    plant items live here too; uranium drills' sulfuric acid counts on the Sulfuric acid row.
   * **Clear all** at the bottom of Everything forgets everything, dismissals included, after asking. On any
     other tab the button reads **Clear this tab** and forgets only that tab: its rows' numbers, machine
     choices and dismissals, plus the research time and lab speed on Science or Basic/Advanced on Oil.
-* **Oil processing** (home screen, or search "oil" or "10 refineries") is the oil calculator. It opens at
-  what your factory's machines use of petroleum gas, light oil and heavy oil, and shows what that takes:
-  refineries, cracking plants, crude oil, pumpjacks, water and electricity, for basic or advanced
-  processing. Type a product to change that product, or a machine count to see what that many supply;
-  the products then say how far short or over your factory's use they are. Oil that would be left over
-  even with everything cracked is called out, since it backs up and stops the refineries. "Add to factory"
-  puts the whole machines into your ledger.
+* **Oil processing** (home screen, or search "oil", "10 refineries", "8 pumpjacks", "100 crude oil" or
+  "3 light oil cracking") is the oil calculator. It opens at what your factory's machines use of petroleum
+  gas, light oil and heavy oil (with nothing using oil yet, at your own refineries), and shows what that
+  takes: refineries, cracking plants, crude oil, pumpjacks, water and electricity, each machine with how
+  many your factory has. Type a product to change that product, or a machine count to see what that many
+  supply; the products then say how far short or over your factory's use they are, and a machine count
+  you typed stays when you switch between Basic and Advanced (that switch is your factory's own setting).
+  Oil that would be left over even with everything cracked is called out, since it backs up and stops the
+  refineries. "Add to factory" puts the whole refineries and the cracking it needs into your ledger, plus
+  the pumpjacks for their crude oil; it leaves cracking you have alone when it needs none.
 * **Every other page is a scenario.** Item pages, resource pages and the cards open at your factory's numbers
   (an item at its ledger number, otherwise sized to the tightest factory component in its chain, with a line
   under the title saying which; labs and boilers at their ledger counts) and whatever you type there is a
