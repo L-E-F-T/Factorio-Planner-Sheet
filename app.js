@@ -838,7 +838,8 @@
       const page = cur || curRes; if (!page) return;
       const st = page.st, mid = cur ? cur.tree.machine : (supply(page.id, 1) || {}).id, im = itemMachine(page.id);
       if (mid && im && im.options.includes(mid)) machineOf[page.id] = mid;
-      delete st.parts; st.scale = page.scale; st.anchor = { path: page.id, kind: 'mach' }; st.touched = true;   // the page's one recipe replaces a split saveChain(page.id, st); delete viewMem[page.id]; clearViews(); rerender(); return;
+      delete st.parts;   // the page's one recipe replaces a split
+      st.scale = page.scale; st.anchor = { path: page.id, kind: 'mach' }; st.touched = true; saveChain(page.id, st); delete viewMem[page.id]; clearViews(); rerender(); return;
     }
     const tc = e.target.closest('[data-tofactory-card]');
     if (tc && curCard && curCard.def) {   // labs, or boilers with their steam engines, into the ledger
@@ -1849,7 +1850,8 @@
   const oilWant = (plan, basic) => ({ refinery: Math.ceil(plan.R - 1e-9), 'heavy-oil-cracking': basic ? 0 : Math.ceil(plan.Hc - 1e-9), 'light-oil-cracking': basic ? 0 : Math.ceil(plan.Lc - 1e-9) });
   // the crude oil that many refineries take at full speed, plus what else in your factory takes crude oil
   const oilCrudeNeed = (R, mode, uses) => R * oilIn(OIL_PROC[oilModeOf(mode)], 'crude-oil', 'oil-refinery')
-    + Object.keys(OIL_PROC).filter(m => m !== oilModeOf(mode)).reduce((a, m) => a + refN(m) * oilIn(OIL_PROC[m], 'crude-oil', 'oil-refinery'), 0) +   // your refineries on another processing ((uses && uses['crude-oil']) || []).filter(u => u.by !== 'refinery').reduce((a, u) => a + u.rate, 0);
+    + Object.keys(OIL_PROC).filter(m => m !== oilModeOf(mode)).reduce((a, m) => a + refN(m) * oilIn(OIL_PROC[m], 'crude-oil', 'oil-refinery'), 0)   // your refineries on another processing
+    + ((uses && uses['crude-oil']) || []).filter(u => u.by !== 'refinery').reduce((a, u) => a + u.rate, 0);
   // a box on the Oil processing page: a product sets that product; any machine or flow box scales all three together
   function onOilInput(inp) {
     const key = inp.dataset.oil, text = inp.value, t = text.trim(), st = cardState('oil'), F = factoryModel().oil.D;
