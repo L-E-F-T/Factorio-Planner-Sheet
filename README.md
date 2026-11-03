@@ -15,7 +15,7 @@ Every number comes from the game's own prototype files, not from a wiki table.
   its caption above it, and a chain's deeper rows step in. Below 900 px "Your base" folds into one line
   showing its choices as icons (tap it to open the full strip; it folds again when you go to another page),
   and the search suggestions stay on one line that scrolls sideways. On the ledger the tabs sit three to a
-  row, "what uses it" rows tuck in under their item, and on a touch screen the short list is one line you
+  row, "made by" and "used by" rows tuck in under their item, and on a touch screen the short list is one line you
   swipe. On a phone the home cards sit two to a row and the reference tables wrap, with the first column
   pinned where a table still needs scrolling. Touch screens get bigger buttons, and picking a search result
   or adding a row puts the keyboard away. A machine picker opens above its button when there is no room
@@ -104,15 +104,19 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     item is made in mixed tiers, the tier with the most machines wins and the rest count as the same output
     in it. On a tab, the import only touches that tab: the rest is listed as "Not added here", by the tab
     it goes on, so import on that tab or on Everything to add it; on Everything it covers all of them.
-    Refineries take the processing most of them run (Basic, Advanced or Coal liquefaction). Modules and
-    beacons are ignored.
+    Refineries are counted on each processing they run, and an item made with more than one recipe (solid
+    fuel from two oils) keeps a line per recipe. Modules and beacons are ignored.
   * An item row has the machines making it, what they make, what the rest of your factory uses, and what is
     left over: "short" in red, with how many machines close the gap, or "fulfilled" in green, with how much
     is left over. Type into any box and the page recounts as you type; empty or 0 takes the item out.
     **Remove** under a row's name does the same and also forgets its machine choice and any dismissal;
     the row stays until you leave the page, with **Put back** to bring it back as it was.
     Anything your machines use that you have not entered shows grey as "not entered", with how many
-    machines to add, the same as a short row.
+    machines to add, the same as a short row. **▸** opens a row: what makes it ("made by", with the
+    amount under Makes) and what uses it ("used by", biggest first, with the amount under Uses), each with
+    its machines, so you can see where a shortage comes from.
+  * An item with more than one recipe (solid fuel) has **+ another recipe** on its row: each recipe gets a
+    line of its own, with its own count and machine, and the row adds them up. × takes a line off.
   * **The top of each tab** counts what is short, what is used but not entered (rows marked "not entered")
     and what is fulfilled; a count of 0 is left out, except short. Click a count to see only those rows
     (dismissed shortages stay out of **short**, as they do out of its count): a row you change meanwhile
@@ -136,10 +140,12 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     pack you make.
   * **Oil & chemicals** follows the oil. First crude oil: your pumpjacks, at the yield you type on the row
     (the % the game shows on an oil field), against what your refineries take running flat out like every
-    other machine (20 per second each). Then your oil refineries (Basic, Advanced or Coal liquefaction,
-    with what each takes and makes; on coal liquefaction they take coal, shown on the Coal row, and steam
-    from your boilers, shown on the Steam row, instead of crude oil) and your heavy and light oil cracking
-    plants, each saying in grey how many your factory
+    other machine (20 per second each), with coal, steam and water under it when your oil machines take
+    them (the same rows as on Mining & smelting and Power). Then your oil refineries: a line per
+    processing you run (Basic, Advanced or Coal liquefaction; **+ another processing** adds one, and each
+    line's picker moves its refineries to another), with what each takes and makes; on coal liquefaction
+    they take coal and steam from your boilers instead of crude oil. Then your heavy and light oil cracking
+    plants. Refineries and cracking each say in grey how many your factory
     needs ("needs 2.05 of your 3", "not entered: add 2 × Chemical plant", or "idle" with why). Then heavy
     oil, light oil and petroleum gas: what your refineries make at full speed plus what cracking turns
     into each, against what your factory and the cracking use. A refinery stops once any of its oils has
@@ -158,11 +164,13 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
   takes: refineries, cracking plants, crude oil, pumpjacks, water and electricity, each machine with how
   many your factory has. Type a product to change that product, or a machine count to see what that many
   supply; the products then say how far short or over your factory's use they are, and a machine count
-  you typed stays when you switch between Basic, Advanced and Coal liquefaction (that switch is your
-  factory's own setting; on coal liquefaction the page lists the coal, the steam and the boilers for it).
+  you typed stays when you switch between Basic, Advanced and Coal liquefaction (that switch is what the
+  page plans with and what new refineries in your factory run; on coal liquefaction the page lists the
+  coal, the steam and the boilers for it).
   Oil that would be left over even with everything cracked is called out, since it backs up and stops the
-  refineries. "Add to factory" puts the whole refineries and the cracking it needs into your ledger, plus
-  the pumpjacks for their crude oil; it leaves cracking you have alone when it needs none.
+  refineries. "Add to factory" puts the whole refineries (on the page's processing; any on another
+  processing stay) and the cracking it needs into your ledger, plus the pumpjacks for their crude oil; it
+  leaves cracking you have alone when it needs none.
 * **Every other page is a scenario.** Item pages, resource pages and the cards open at your factory's numbers
   (an item at its ledger number, otherwise sized to the tightest factory component in its chain, with a line
   under the title saying which; labs and boilers at their ledger counts) and whatever you type there is a
