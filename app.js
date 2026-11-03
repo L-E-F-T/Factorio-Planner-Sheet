@@ -457,7 +457,7 @@
   const header = (first) => `<div class="th">${first}</div><div class="th">Machines</div><div class="th amth">Amount<span class="u">${esc(unitShort())}</span></div>`;
 
   function renderItem(id, spec) {
-    setBg('item');
+    setBg('item-' + FD.items[id].group);   // one view per category: intermediate products, logistics, production, combat, fluids
     const st = preview ? cloneState(chainState(id)) : chainState(id);   // a preview must not change what is remembered
     const tree = Engine.build(id, S, st.overrides);
     const nodes = {}; Engine.walk(tree, n => { nodes[n.path] = n; });
