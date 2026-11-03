@@ -2614,6 +2614,8 @@
   // what the steps look at: the app's own rows, boxes and buttons
   const $$ = s => [...doc.querySelectorAll(s)];
   const facRow = id => $(`#tree .tr[data-fac="${id}"]`);
+  // a ledger row with the made by / used by lines it was opened with
+  const withCons = id => { const r = facRow(id), out = r ? [r] : []; let n = r && r.nextElementSibling; while (n && n.classList.contains('cons')) { out.push(n); n = n.nextElementSibling; } return out; };
   const afterLine = () => { const rows = $$('#main .tbl.two > .tr'), i = rows.findIndex(r => r.classList.contains('line')); return i < 0 ? [] : rows.slice(i + 1); };
   const facTabTo = t => { if (facTab !== t || facFilter) { facTab = t; facFilter = null; facFiltSeen.clear(); renderFactory(true); } };
   const coalInView = () => { if (!facRow('coal')) facTabTo('all'); };
