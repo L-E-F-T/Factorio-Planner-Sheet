@@ -9,9 +9,14 @@ Every number comes from the game's own prototype files, not from a wiki table.
 * **Beside the game:** a chromeless window fits well next to Factorio:
   `chrome --app=file:///C:/path/to/factorioSheet/index.html --window-size=460,800`.
 * **Phones and small windows:** below 700 px wide every table turns into one card per row, each value with
-  its caption above it, and the search box gets a row of its own. Below 900 px "Your base" folds into one
-  line showing its choices as icons; tap it to open the full strip. On the ledger the tabs sit three to a
-  row and the short list is one line that scrolls sideways. Touch screens get bigger buttons.
+  its caption above it, and a chain's deeper rows step in. Below 900 px "Your base" folds into one line
+  showing its choices as icons (tap it to open the full strip; it folds again when you go to another page),
+  and the search suggestions stay on one line that scrolls sideways. On the ledger the tabs sit three to a
+  row, "what uses it" rows tuck in under their item, and on a touch screen the short list is one line you
+  swipe. On a phone the home cards sit two to a row and the reference tables wrap, with the first column
+  pinned where a table still needs scrolling. Touch screens get bigger buttons, and picking a search result
+  or adding a row puts the keyboard away. A machine picker opens above its button when there is no room
+  below it.
 
 ## Host it
 

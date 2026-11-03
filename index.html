@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
 <title>Factorio Ratios</title>
 <link rel="icon" href="icons/iron-gear-wheel.png">
@@ -64,6 +64,7 @@ header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px so
 .base-sum .lead{margin:0 2px 0 0}
 .base-sum .arr{margin-left:auto;color:var(--faint);font-size:14px}
 .chiprow{display:contents}
+.nw{white-space:nowrap}
 main{padding:12px 10px 40px;max-width:1040px;margin:0 auto}
 h1{font-size:22px;margin:4px 0 6px;display:flex;align-items:center;gap:10px}
 h1 .ttl{flex:1;min-width:0}
@@ -194,10 +195,10 @@ input.txt::placeholder{color:var(--faint)}
 .tr.add-hits .td:empty{display:none}
 #addhits.all{max-height:320px;overflow-y:auto;align-content:flex-start}
 #addhits .add-group{width:100%;margin:6px 0 0}
-#addhits .add-head{width:100%;display:flex;justify-content:flex-end;position:sticky;top:0;z-index:1;height:0;overflow:visible}
+#addhits .add-head{width:100%;display:flex;justify-content:flex-end;position:sticky;top:0;z-index:1}
 #addhits .add-head .iconbtn{font-size:20px;line-height:1;padding:0;width:32px;background:var(--panel2)}
 /* popover */
-.pop{position:absolute;z-index:20;background:var(--panel);border:1px solid var(--accent);border-radius:var(--r);padding:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;box-shadow:0 10px 30px rgba(0,0,0,.6);max-width:min(96vw,520px)}
+.pop{position:absolute;z-index:20;background:var(--panel);border:1px solid var(--accent);border-radius:var(--r);padding:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;box-shadow:0 10px 30px rgba(0,0,0,.6);max-width:min(calc(100% - 12px),520px)}
 .pop .lead{width:100%}
 .pop button{border:1px solid var(--line);background:#141314;border-radius:var(--r);min-width:64px;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;color:var(--muted);padding:4px}
 .pop button.on{border-color:var(--accent);color:var(--fg)}
@@ -221,39 +222,56 @@ th,td{padding:6px 8px;border-bottom:1px solid #3c3b3c;text-align:left;vertical-a
 th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
 td.n,th.n{text-align:right;font-family:var(--mono)}
 footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30px}
-/* small windows and phones: "Your base" folds into one line (its choices as icons) that opens the full strip */
+/* small windows and phones: "Your base" folds into one line (its choices as icons) that opens the full strip,
+   and the search suggestions stay on one line that scrolls sideways */
 @media (max-width:900px){
-  .settings .base-sum{display:flex}
-  .settings > .lead{display:none}
-  .settings:not(.open) > :not(.base-sum){display:none}
-  .settings.open{max-height:55vh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:4px}
-  .settings.open .base-sum{position:sticky;top:0;z-index:1}
+  #settings .base-sum{display:flex}
+  #settings > .lead{display:none}
+  #settings:not(.open) > :not(.base-sum){display:none}
+  #settings.open{max-height:55vh;overflow-y:auto;overscroll-behavior:contain;padding-bottom:4px}
+  #settings.open .base-sum{position:sticky;top:0;z-index:1}
+  #strip{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;padding-bottom:2px}
+  #strip > *{flex:none}
+  .parse{white-space:nowrap}
 }
-/* small desktop windows: the ledger's five columns, narrower, so they still fit */
-@media (min-width:701px) and (max-width:900px){
-  .tbl.fac{grid-template-columns:minmax(120px,1fr) minmax(230px,1fr) repeat(3,minmax(84px,.5fr))}
+/* small desktop windows: the ledger's five columns, narrower, so they still fit; a machine picker moves under its box
+   when its name would not fit beside it; amounts and their units may take two lines */
+@media (min-width:701px) and (max-width:1000px){
+  .tbl.fac{grid-template-columns:minmax(200px,1fr) minmax(210px,1fr) repeat(3,minmax(84px,.5fr))}
   .tbl.fac input.num{width:76px}
+  .tbl.fac .td.item .nmtxt{overflow-wrap:break-word;hyphens:auto}
+  .tbl.fac .td.item b,.tbl.fac .td.item .lnk{font-size:15px}
+  .tbl.fac .td.item select{max-width:100%}
+  .tbl .td.mach{flex-wrap:wrap;row-gap:4px}
+  .tbl.fac .td.mach .mbtn.can{flex:1 1 136px}
+  .tbl:not(.fac) .td.mach .mbtn{flex:1 1 140px}
+  .tbl:not(.fac) .mbtn .mname{white-space:normal;line-height:1.15}
+  .tbl .td.amt{flex-wrap:wrap;row-gap:0;align-content:center}
+}
+@media (min-width:701px) and (max-width:800px){
+  .td.item{padding-left:calc(10px + var(--d,0) * 10px)}
+  .td.item .nmtxt{overflow-wrap:break-word}
 }
 /* phones and narrow windows */
 @media (max-width:700px){
-  /* header: back, Home and Factory, the search box on its own row, and "Your base" folded into one line */
   .iconbtn.home{padding:0 9px 0 8px;font-size:14px;gap:5px}
-  .searchwrap{flex-wrap:wrap}
-  #q{flex-basis:100%;order:9}
   .settings{gap:8px 10px}
   .settings label{flex-wrap:wrap;max-width:100%}
   .settings .seg{flex-wrap:wrap;max-width:100%}
   main{padding:10px 8px 40px}
-  /* a page title keeps the width; its buttons go under it */
+  footer{font-size:13px}
+  /* a page title keeps the width beside its icon and the star; "Add to factory" goes on the line under it */
   h1{font-size:19px;flex-wrap:wrap}
-  h1 .ttl{flex:1 1 220px}
-  h1 .ttl + .iconbtn{margin-left:auto}
-  /* tables: one card per row, each value with its caption above it */
+  h1 .ttl{flex:1 1 calc(100% - 120px)}
+  h1 .iconbtn.sm{order:1;margin-left:auto}
+  h1 > img.ic.lg{align-self:flex-start}
+  /* tables: one card per row, each value with its caption above it; a chain's deeper rows step in */
   .tbl,.tbl.two,.tbl.fac{grid-template-columns:1fr;gap:0}
   .th{display:none}
   .tbl:not(.fac) .th.amth{display:block;text-align:left;padding:0 2px 6px}
   .tbl.fac .th.amth{display:none}
   .tr{display:grid;grid-template-columns:1fr 1fr;margin:0 0 8px;border:1px solid #3c3b3c;border-radius:var(--r);overflow:hidden;background:var(--panel)}
+  .tbl:not(.fac) .tr{margin-left:calc(min(var(--d,0), 4) * 12px)}
   .tr > .td{grid-column:1/-1}
   .tbl.fac .tr:not(.cons):not(.add) > .td.amt:not(.bal){grid-column:auto}
   .tr.product{border-color:#6a5230}
@@ -262,6 +280,7 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   .tr.line .td{padding:2px 0}
   .td{border:0 !important;border-radius:0 !important;min-height:0;padding:6px 10px}
   .td.item{padding-top:8px;padding-left:calc(10px + var(--d,0) * 10px)}
+  .tbl:not(.fac) .td.item{padding-left:10px}
   .td.mach,.td.amt{padding-top:0;justify-content:flex-start;flex-wrap:wrap;text-align:left}
   .td.amt{font-size:18px}
   .td.amt.bal{align-items:stretch}
@@ -273,14 +292,44 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   .td.mach .mbtn{flex:1 1 130px;min-width:0}
   .td:empty{display:none}
   input.num{width:88px;font-size:20px}
-  /* the ledger: tabs three to a row, and the short list in one line that scrolls sideways */
+  /* the ledger: tabs three to a row; "what uses it" rows tucked under their item, machines and use side by side */
   .factabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
   .factabs button{justify-content:center;text-align:center;padding:4px 6px;font-size:13px;line-height:1.15}
   .factabs button .icw,.factabs button img.ic{display:none}
+  .tbl.fac .tr.cons{margin:-4px 0 8px 14px}
+  .tr.cons .td{min-height:0}
+  .tbl.fac .tr.cons > .td.mach,.tbl.fac .tr.cons > .td.amt{grid-column:auto}
+  /* the blueprint box: its lead on a line of its own, the furnace and drill boxes in even columns */
+  .bp .lead{flex:1 1 100%}
+  .bp-split label{flex:1 1 140px}
+  .bp-split label span{flex:1;min-width:0}
+  /* the reference tables: headers and names wrap so most fit; a table that still does not fit scrolls inside its
+     panel with its first column pinned */
+  #main .panel{overflow-x:auto}
+  #main th{font-family:var(--sans);text-transform:none;letter-spacing:0}
+  #main th,#main td{padding:6px 5px}
+  #main td.n{white-space:nowrap}
+  #main .panel tr > :first-child{position:sticky;left:0;z-index:1;background:var(--panel)}
+}
+/* touch screens on a narrow screen: the short list is one line you swipe sideways (with a mouse it wraps instead) */
+@media (max-width:700px) and (pointer:coarse){
   .fac-sum .chiprow{display:flex;flex:1 1 100%;flex-wrap:nowrap;align-items:center;gap:6px;overflow-x:auto;padding-bottom:3px;scrollbar-width:thin}
   .fac-sum .chiprow > *{flex:none}
-  /* the reference tables scroll sideways instead of running off the screen */
-  #main table{display:block;overflow-x:auto;white-space:nowrap}
+}
+/* the search box gets a row of its own only where it would be too narrow beside the buttons */
+@media (max-width:519px){
+  .searchwrap{flex-wrap:wrap}
+  #q{flex-basis:100%;order:9}
+}
+@media (max-width:380px){
+  #settings .seg button{padding:3px 6px;gap:4px}
+}
+/* phones: the home cards two to a row, names only */
+@media (max-width:480px){
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .card{padding:8px;gap:8px;min-height:52px}
+  .card img.ic.lg{width:32px;height:32px;padding:2px}
+  .card .d{display:none}
 }
 /* touch screens: bigger targets, and 16px text in typed boxes so phones do not zoom in on them */
 @media (pointer:coarse){
@@ -288,11 +337,17 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   input.txt,select{font-size:16px}
   .iconbtn.sm{height:38px;min-width:38px}
   .chip2.dz .x{width:36px;height:36px;font-size:18px}
-  .undo{width:32px;height:32px}
-  .settings .undo{width:30px;height:30px}
+  .undo,.settings .undo{width:36px;height:36px}
   .seg.mini button{min-height:34px}
+  #settings .seg button{min-height:38px}
   .summary .s{min-height:30px}
+  .summary button.s{min-height:38px;padding:2px 12px 2px 6px}
   .td .sub select,.mbtn select,.settings select{min-height:36px}
+  .hit{padding:6px}
+  .exp:not(.none){width:38px;height:44px}
+  .td.item .lnk{position:relative}
+  .td.item .lnk::after{content:"";position:absolute;inset:-9px -4px}
+  footer .keys{display:none}
 }
 </style>
 </head>
@@ -302,13 +357,13 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
     <button id="back" class="iconbtn" title="Back (Esc)" aria-label="Back" tabindex="-1">&#8592;</button>
     <button id="home" class="iconbtn home" title="Home screen" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-6h4v6"/></svg><span>Home</span></button>
     <button id="fac" class="iconbtn home" title="Your factory: what you have, and where it runs short" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V9.5l5.5 3.5V9.5l5.5 3.5V9.5l5.5 3.5V20z"/><path d="M16.5 9V4h3v8"/></svg><span>Factory</span></button>
-    <input id="q" type="text" placeholder="What are you making?" autocomplete="off" spellcheck="false" enterkeyhint="go" aria-label="Search">
+    <input id="q" type="text" placeholder="What are you making?" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-label="Search">
   </div>
   <div id="strip" hidden></div>
   <div id="settings" class="settings"></div>
 </header>
 <main id="main"></main>
-<footer>Change any number and the rest follow. Numbers come from the Factorio <span id="ver"></span> base-game files; no modules, beacons, quality or Space Age. <b>Esc</b> goes back, <b>Tab</b> moves between boxes.</footer>
+<footer>Change any number and the rest follow. Numbers come from the Factorio <span id="ver"></span> base-game files; no modules, beacons, quality or Space Age. <span class="keys"><b>Esc</b> goes back, <b>Tab</b> moves between boxes.</span></footer>
 <script src="data.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>

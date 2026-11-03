@@ -248,6 +248,7 @@
 
   let keepPlace = false;   // set while a "Your base" change redraws the page: stay where you are, leave the focus alone
   function render() {
+    if (baseOpen && !keepPlace) { baseOpen = false; renderSettings(); }   // an opened "Your base" folds again on another page
     const w = doc.defaultView || window, y = keepPlace ? w.scrollY : 0;
     const v = preview || route();
     $('#back').style.visibility = v.kind === 'home' ? 'hidden' : 'visible';
@@ -300,6 +301,8 @@
     strip.innerHTML = (ch.length ? `<span class="parse">${ch.join('')}</span>` : '') +
       (hits.length ? hits.map((e, i) => `<span class="hit ${i === selIdx ? 'sel' : ''}" data-i="${i}">${ic(e.kind === 'card' ? CARDS[e.id].icon : e.id, 'sm')}<span class="nm">${i === selIdx ? '<kbd>↵</kbd>' : ''}${esc(e.name)}</span></span>`).join('') : '<span class="sub">nothing called that</span>');
     strip.hidden = false;
+    // on a narrow screen the suggestions are one line that scrolls sideways: keep the chosen one in sight
+    const sel = strip.querySelector('.hit.sel'); if (sel && strip.scrollWidth > strip.clientWidth) sel.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
   function showPreview() {
     if (!hits.length) return;
@@ -326,11 +329,11 @@
       if (!hits.length) return; e.preventDefault();
       selIdx = (selIdx + (e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : hits.length - 1)) % hits.length;
       showStrip(); showPreview();
-    } else if (e.key === 'Enter') { e.preventDefault(); if (preview) commitPreview(fine()); else if (hits.length) { showPreview(); commitPreview(fine()); } }
+    } else if (e.key === 'Enter') { e.preventDefault(); if (preview) commitPreview(fine()); else if (hits.length) { showPreview(); commitPreview(fine()); } if (!fine()) q.blur(); }   // a phone's keyboard goes away
     else if (e.key === 'Escape') { e.preventDefault(); if (q.value) { q.value = ''; hits = []; strip.hidden = true; preview = null; render(); } else { q.blur(); back(); } }
     else if (e.key === 'Tab' && preview) { commitPreview(false); }
   });
-  strip.addEventListener('mousedown', e => { const h = e.target.closest('.hit'); if (h) { e.preventDefault(); selIdx = Number(h.dataset.i); showStrip(); showPreview(); commitPreview(false); } });
+  strip.addEventListener('mousedown', e => { const h = e.target.closest('.hit'); if (h) { e.preventDefault(); selIdx = Number(h.dataset.i); showStrip(); showPreview(); commitPreview(false); if (!fine()) q.blur(); } });
   function back() { if (route().kind === 'home') return; if (history.length > 1) history.back(); else go('#'); }
 
   function bindDoc(d) {
@@ -475,15 +478,15 @@
     const fav = favs.includes('i/' + id);
     const perCraft = rec.out.find(o => o[0] === id)[1];
     const recipeLine = rec.cat === 'launch'
-      ? `Made by launching a rocket: 100 ${ic('rocket-part', 'xs')} rocket parts + 1 ${ic('satellite', 'xs')} satellite → 1,000 packs.`
-      : `Recipe: ${rec.in.map(([i, a]) => `${fmt(a)} ${ic(i, 'xs')} ${esc(nameOf(i))}`).join(' + ')} → ${fmt(perCraft)} ${ic(id, 'xs')} ${esc(nameOf(id))}, ${fmt(rec.time)} s per craft.`;
+      ? `Made by launching a rocket: <span class="nw">100 ${ic('rocket-part', 'xs')} rocket parts</span> + <span class="nw">1 ${ic('satellite', 'xs')} satellite</span> → 1,000 packs.`
+      : `Recipe: ${rec.in.map(([i, a]) => `<span class="nw">${fmt(a)} ${ic(i, 'xs')} ${esc(nameOf(i))}</span>`).join(' + ')} → <span class="nw">${fmt(perCraft)} ${ic(id, 'xs')} ${esc(nameOf(id))}</span>, ${fmt(rec.time)} s per craft.`;
     const bump =tree.fluidBump ? `<div class="note">This recipe needs a fluid, so it runs in Assembling machine 2 even though Assembler 1 is selected.</div>` : '';
     // science: labs row
     let labsRow = '';
     if (SCI.has(id)) {
       const sc = cardState('science');
       const kLabs = sc.time / (1 + sc.bonus / 100);   // labs per 1 pack/s
-      labsRow = `<div class="tr"><div class="td item" style="--d:1"><span class="exp none"></span>${ic('lab')}<span class="nmtxt"><b>Labs</b> it keeps busy<div class="sub">on a technology that shows <select data-sci="time" tabindex="-1">${[5, 10, 15, 20, 30, 45, 60].map(t => `<option value="${t}" ${t === sc.time ? 'selected' : ''}>${t} s</option>`).join('')}</select>${undoBtn('sci:time', sc.time !== 30)} next to its science packs${sc.bonus ? ', with +' + sc.bonus + '% lab speed research' : ''}</div></span></div>` +
+      labsRow = `<div class="tr" style="--d:1"><div class="td item"><span class="exp none"></span>${ic('lab')}<span class="nmtxt"><b>Labs</b> it keeps busy<div class="sub">on a technology that shows <select data-sci="time" tabindex="-1">${[5, 10, 15, 20, 30, 45, 60].map(t => `<option value="${t}" ${t === sc.time ? 'selected' : ''}>${t} s</option>`).join('')}</select>${undoBtn('sci:time', sc.time !== 30)} next to its science packs${sc.bonus ? ', with +' + sc.bonus + '% lab speed research' : ''}</div></span></div>` +
         `<div class="td mach" data-label="labs"><input class="num" inputmode="decimal" data-path="labs" data-k="${kLabs}" data-kind="mach" value="${fmtIn(kLabs * R)}" aria-label="labs"><span class="build" data-k="${kLabs}" data-kind="build">${buildText(kLabs * R)}</span><span class="mbtn">${ic('lab')}<span class="mname">Lab</span></span></div><div class="td amt"></div></div>`;
     }
     const focusPath = mode === 'driven' ? tree.path : anchor.path;   // Enter lands on the top row, even when a component sizes the page
@@ -669,7 +672,7 @@
     else if (!n.leaf || isResource(n.item)) name = `<a class="lnk" data-nav="${esc(n.item)}" data-k="${n.kRate}" href="#i/${n.item}" title="Open ${nm} at this amount">${nm}</a>`;
     else if (CARD_FEED[n.item]) name = `<a class="lnk" data-card="${esc(n.item)}" data-k="${n.kRate}" href="#c/${CARD_FEED[n.item].card}" title="Open ${esc(CARDS[CARD_FEED[n.item].card].title)} for this much ${nm.toLowerCase()}">${nm}</a>`;
     else name = `<b>${nm}</b>`;
-    return `<div class="tr ${isRoot ? 'product' : ''}" data-path="${esc(n.path)}"><div class="td item" style="--d:${depth}">${exp}${ic(n.item)}<span class="nmtxt">${name}${nick(n.item)}${recipeNote}</span></div>${mach}${amt}</div>`;
+    return `<div class="tr ${isRoot ? 'product' : ''}" data-path="${esc(n.path)}" style="--d:${depth}"><div class="td item">${exp}${ic(n.item)}<span class="nmtxt">${name}${nick(n.item)}${recipeNote}</span></div>${mach}${amt}</div>`;
   }
 
   // a box accepts "5", "15/s", "900/min", "1b", "1 belt", "2 lanes", "60 spm", "10 labs"
@@ -751,11 +754,20 @@
     popEl = doc.createElement('div'); popEl.className = 'pop'; popEl.innerHTML = `<span class="lead">Make ${esc(nameOf(n.item))} in:</span>` + opts + global + (recs ? `<span class="lead">using recipe:</span>` + recs : '');
     popEl.dataset.path = n.path; popEl.dataset.block = ctx.id;
     doc.body.appendChild(popEl);
-    const b = btn.getBoundingClientRect();
-    const w = doc.defaultView || window;
-    popEl.style.top = (b.bottom + w.scrollY + 4) + 'px';
-    popEl.style.left = Math.max(6, Math.min(b.left + w.scrollX, w.innerWidth - popEl.offsetWidth - 6)) + 'px';
+    placePop(btn);
   }
+  // a picker goes under its button, or above it when there is no room below, inside the visible width (not under a
+  // scrollbar); it closes when the window gets narrower or wider, since the page then lays out again
+  function placePop(btn) {
+    const w = doc.defaultView || window, de = doc.documentElement, b = btn.getBoundingClientRect();
+    const vw = de.clientWidth, vh = de.clientHeight, ph = popEl.offsetHeight, pw = popEl.offsetWidth;
+    let top = b.bottom + 4; if (top + ph > vh - 6 && b.top - 4 - ph >= 6) top = b.top - 4 - ph;
+    popEl.style.top = (top + w.scrollY) + 'px';
+    popEl.style.left = (w.scrollX + Math.max(6, Math.min(b.left, vw - pw - 6))) + 'px';
+    popEl.dataset.vw = vw;
+    if (top + ph > vh) popEl.scrollIntoView({ block: 'nearest' });
+  }
+  (doc.defaultView || window).addEventListener('resize', () => { if (popEl && doc.documentElement.clientWidth !== Number(popEl.dataset.vw)) closePop(); });
 
   // ---------- main interactions ----------
   const main = document.getElementById('main');
@@ -849,7 +861,7 @@
       if (!row) return;
       const box = row.querySelector('input.num');
       (row.querySelector('.td') || row).scrollIntoView({ block: 'center' });   // a .tr has no box of its own on wide screens
-      if (box) { box.focus({ preventScroll: true }); box.select(); }
+      if (box && fine()) { box.focus({ preventScroll: true }); box.select(); }
       return;
     }
     if (!cur && !curRes) return;
@@ -947,7 +959,7 @@
   // "Everything" shows them all. A tab's dashed add row only offers what belongs in that tab.
   const FAC_TABS = [['all', 'Everything', ''], ['mining', 'Mining & smelting', 'electric-mining-drill'], ['assembling', 'Assembling', 'assembling-machine-2'], ['oil', 'Oil & chemicals', 'oil-refinery'], ['power', 'Power', 'steam-engine'], ['science', 'Science', 'lab']];
   const FAC_ORDER = ['mining', 'assembling', 'oil', 'power', 'science'];
-  const ADD_HINT = { all: 'Add anything: pick from the list, or type to narrow it', mining: 'Add drills on an ore, or furnaces making plates or bricks', assembling: 'Add an assembled item: pick from the list, or type', oil: 'Add refineries, cracking, pumpjacks or a chemical plant item', power: 'Add boilers, steam engines or solar panels', science: 'Add labs or a science pack' };
+  const ADD_HINT = { all: 'Add anything: pick or type a name', mining: 'Add drills or furnaces', assembling: 'Add an assembled item', oil: 'Add refineries, cracking or chemicals', power: 'Add boilers, steam engines, solar', science: 'Add labs or a science pack' };
   let facTab = store.get('factab', 'all'); if (!FAC_TABS.some(t => t[0] === facTab)) facTab = 'all';
   const facOpen = new Set();   // rows opened to show what uses the item
   let facFilter = null;            // 'none': the table shows only what your factory uses but you have not entered (this visit)
@@ -1276,7 +1288,10 @@
     const intro = entered ? 'What you have making each item, and what is left after your own factory uses it. Rows marked "not entered" are things your machines use that you have not entered.'
       : 'Nothing entered yet. Each tab\'s dashed row adds what you have; Everything shows it all together.';
     // dismissing only changes the top: redraw the tabs and the summary, and leave everything below them as it is
-    if (topOnly) { const s = $('#main .fac-sum'), tb = $('#main .factabs'); if (s && tb && sum) { s.outerHTML = sum; tb.outerHTML = tabBar; return; } }
+    if (topOnly) {
+      const s = $('#main .fac-sum'), tb = $('#main .factabs');
+      if (s && tb && sum) { const cr = s.querySelector('.chiprow'), x = cr ? cr.scrollLeft : 0; s.outerHTML = sum; tb.outerHTML = tabBar; const cr2 = $('#main .fac-sum .chiprow'); if (cr2) cr2.scrollLeft = x; return; }
+    }
     const fav = favs.includes('c/factory');
     $('#main').innerHTML = `
       <h1>${ic('assembling-machine-2', 'lg')}<span class="ttl">Your factory<div class="sub">${intro}</div></span>
@@ -1370,7 +1385,7 @@
       saveChain(id, st); clearViews();
     }
     addSel = null; renderFactory(true);
-    const q2 = $('#addq'); if (q2) q2.focus();
+    const q2 = $('#addq'); if (q2 && fine()) q2.focus();   // on a phone that would bring the keyboard and the list back over the ledger
   }
   let restoringFocus = false;
   // a box on the ledger: an item's number (empty or 0 takes it out) or a unit's count; then the whole page is recounted
@@ -1404,9 +1419,7 @@
     popEl = doc.createElement('div'); popEl.className = 'pop'; popEl.innerHTML = opts + recs;
     popEl.dataset.facItem = id;
     doc.body.appendChild(popEl);
-    const b = btn.getBoundingClientRect(), w = doc.defaultView || window;
-    popEl.style.top = (b.bottom + w.scrollY + 4) + 'px';
-    popEl.style.left = Math.max(6, Math.min(b.left + w.scrollX, w.innerWidth - popEl.offsetWidth - 6)) + 'px';
+    placePop(btn);
   }
   // a new machine or recipe for a factory item: you still have the same number of machines
   function facSetMachine(id, machine, recipe) {
