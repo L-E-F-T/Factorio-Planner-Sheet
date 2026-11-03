@@ -113,9 +113,11 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
   * **The top of each tab** counts what is short, what is used but not entered (rows marked "not entered")
     and what is fulfilled; a count of 0 is left out, except short. Click a count to see only those rows
     (dismissed shortages stay out of **short**, as they do out of its count): a row you change meanwhile
-    stays until you click the count again, which shows every row. Under the counts, what is short is
-    listed, biggest gap first: click a name to go to its row, or × to dismiss a shortage you are fine
-    with. **Dismiss all** dismisses everything listed, and **Bring back N dismissed** lists them again.
+    stays until you click the count again, which shows every row. Steam and Electricity have no box of
+    their own, so they come with the boilers, steam engines and solar panels that make them. Under the
+    counts, what is short is listed, biggest gap first: click a name to go to its row, or × to dismiss a
+    shortage you are fine with. **Dismiss all** dismisses everything listed, and
+    **Bring back N dismissed** lists them again.
     Both work on the tab you are on, so you can dismiss all the science on the Science tab; on Everything
     they cover every tab. Dismissing only takes a shortage out of that list, the short count and the tabs'
     red counts: its row below still shows it short. Dismissals are saved with your factory.

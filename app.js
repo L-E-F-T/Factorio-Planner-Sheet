@@ -397,18 +397,12 @@
   }
   function renderHome() {
     doc.title = 'Factorio Ratios';
-    const chip = key => {
-      const [k, id] = key.split('/');
-      if (k === 'c' && !CARDS[id]) return ''; if (k === 'i' && !FD.items[id]) return '';
-      const name = k === 'c' ? CARDS[id].title : nameOf(id);
-      const icon = k === 'c' ? CARDS[id].icon : id;
-      return `<button class="chip2${remembered(k, id) ? ' mem' : ''}" data-go="#${k}/${id}" tabindex="-1"${remembered(k, id) ? ' title="In your factory"' : ''}>${ic(icon, 'sm')}${esc(name)}</button>`;
-    };
+    const chip = id => FD.items[id] ? `<button class="chip2${remembered('i', id) ? ' mem' : ''}" data-go="#i/${id}" tabindex="-1"${remembered('i', id) ? ' title="In your factory"' : ''}>${ic(id, 'sm')}${esc(nameOf(id))}</button>` : '';
     $('#main').innerHTML = `
       <div class="cards">${Object.entries(CARDS).filter(([id]) => id !== 'factory').map(([id, c]) => `<button class="card${remembered('c', id) ? ' mem' : ''}" data-go="#c/${id}" tabindex="-1"${remembered('c', id) ? ' title="In your factory"' : ''}>${ic(c.icon, 'lg')}<span><span class="t">${esc(c.title)}</span><br><span class="d">${esc(c.desc)}</span></span></button>`).join('')}</div>
-      <h3>Raw resources</h3><div class="chips">${RESOURCES.map(id => chip('i/' + id)).join('')}</div>
-      ${GROUPS.map(([g, title]) => { const ids = makeable.filter(id => (FD.items[id].group || 'other') === g); return ids.length ? `<h3>${esc(title)}</h3><div class="chips">${ids.map(id => chip('i/' + id)).join('')}</div>` : ''; }).join('')}
-      ${(() => { const rest = makeable.filter(id => !GROUPS.some(([g]) => (FD.items[id].group || 'other') === g)); return rest.length ? `<h3>Other</h3><div class="chips">${rest.map(id => chip('i/' + id)).join('')}</div>` : ''; })()}`;
+      <h3>Raw resources</h3><div class="chips">${RESOURCES.map(chip).join('')}</div>
+      ${GROUPS.map(([g, title]) => { const ids = makeable.filter(id => (FD.items[id].group || 'other') === g); return ids.length ? `<h3>${esc(title)}</h3><div class="chips">${ids.map(chip).join('')}</div>` : ''; }).join('')}
+      ${(() => { const rest = makeable.filter(id => !GROUPS.some(([g]) => (FD.items[id].group || 'other') === g)); return rest.length ? `<h3>Other</h3><div class="chips">${rest.map(chip).join('')}</div>` : ''; })()}`;
   }
 
   // ---------- item chain view (a table: Item | Machines making it | Amount) ----------
@@ -812,7 +806,8 @@
       if (fg.dataset.forget === 'ask') fg.outerHTML = facTab === 'all'
         ? `<span class="lead">Clear everything you entered, on every page?</span><button class="iconbtn sm" data-forget="yes" tabindex="-1">Yes, clear all</button><button class="iconbtn sm" data-forget="no" tabindex="-1">Keep it</button>`
         : `<span class="lead">Clear everything you entered on the ${esc(tabName)} tab?</span><button class="iconbtn sm" data-forget="yes" tabindex="-1">Yes, clear this tab</button><button class="iconbtn sm" data-forget="no" tabindex="-1">Keep it</button>`;
-      else { if (fg.dataset.forget === 'yes') { forgetTab(facTab); bpImport = null; } render(); }
+      else if (fg.dataset.forget === 'yes' && facTab === 'all') { forgetAll(); bpImport = null; render(); }
+      else { if (fg.dataset.forget === 'yes') { forgetTab(facTab); bpImport = null; } renderFactory(true); }   // Keep it, or one tab: the rest stays as it is
       return;
     }
     const tf = e.target.closest('[data-tofactory]');
@@ -848,7 +843,7 @@
     const of = e.target.closest('[data-open-f]'); if (of) { const i = of.dataset.openF; if (facOpen.has(i)) facOpen.delete(i); else facOpen.add(i); renderFactory(true); return; }
     // the ledger's short list: × or Dismiss all dismisses (rows, space-separated), Bring back lists them again
     const dz = e.target.closest('[data-dismiss-f]'); if (dz) { for (const d of dz.dataset.dismissF.split(' ')) if (d) facDismiss.add(d); persist(); renderFactory(true, true); return; }
-    const uz = e.target.closest('[data-undismiss-f]'); if (uz) { for (const d of uz.dataset.undismissF.split(' ')) facDismiss.delete(d); persist(); renderFactory(true, true); return; }
+    const uz = e.target.closest('[data-undismiss-f]'); if (uz) { for (const d of uz.dataset.undismissF.split(' ')) facDismiss.delete(d); persist(); renderFactory(true, facFilter !== 'short'); return; }   // under the short filter, their rows join the table
     // a count at the top (short, used but not entered, fulfilled): show only those rows, or every row again
     const fl = e.target.closest('[data-fac-filter]'); if (fl) { facFilter = facFilter === fl.dataset.facFilter ? null : fl.dataset.facFilter; facFiltSeen.clear(); renderFactory(true); return; }
     // Remove on a row: out of your factory; Put back: as it was
@@ -1144,8 +1139,8 @@
 
   function renderFactory(fromInput, topOnly) {
     cur = null; curRes = null; curCard = { id: 'factory', st: {}, fields: [] };
-    if (!fromInput) { facKeep.clear(); for (const k of Object.keys(facRemoved)) delete facRemoved[k]; }
-    if (!fromInput && !keepPlace) { facFilter = null; facFiltSeen.clear(); }
+    // arriving on the page (a Your base change redraws in place and keeps them): no kept rows, Put back or filter yet
+    if (!fromInput && !keepPlace) { facKeep.clear(); for (const k of Object.keys(facRemoved)) delete facRemoved[k]; facFilter = null; facFiltSeen.clear(); }
     const { have, uses, ids, power, steam, oil, sci } = factoryModel();
     const unitOf = fluid => fluid ? 'per second' : unitShort();
     const amtWord = (v, fluid) => `${fmt(toUnit(v, fluid))} ${fluid ? 'per second' : unitWord(toUnit(v, fluid))}`;
@@ -1291,6 +1286,8 @@
     // you turned it on, so a row you fix stays until you turn it off
     const FILT = { short: (k, st) => st === 'short' && !facDismiss.has(k), none: (k, st) => st === 'none', ok: (k, st) => st === 'balanced' || st === 'spare' };
     if (FILT[facFilter]) for (const [k, st] of Object.entries(rowSt)) if (FILT[facFilter](k, st)) facFiltSeen.add(k);
+    // Steam and Electricity have no box of their own: the rows that make them come with them
+    for (const [k, makers] of [['steam', ['unit:boiler']], ['power', ['unit:steam-engine', 'unit:solar-panel']]]) if (facFiltSeen.has(k)) for (const m of makers) facFiltSeen.add(m);
     const keyOf = h => (/data-fac="([^"]*)"/.exec(h) || [])[1];
     const groups = tabs.map(t => head[t].concat(body[t]).filter(h => !facFilter || facFiltSeen.has(keyOf(h)))).filter(g => g.length);
     const cnt = tabs.reduce((a, t) => ({ short: a.short + counts[t].short, none: a.none + counts[t].none, ok: a.ok + counts[t].ok }), { short: 0, none: 0, ok: 0 });
@@ -1309,7 +1306,7 @@
     const counted = (cnt.short || facFilter === 'short' ? filt('short', cnt.short, cnt.short ? ' short' : '', 'short', 'Show only what is short') : `<span class="s"><b>0</b> short</span>`)
       + (cnt.none || facFilter === 'none' ? filt('none', cnt.none, ' none', 'used but not entered', 'Show only what your factory uses with nothing entered making it (so it cannot tell whether you have enough)') : '')
       + (cnt.ok || facFilter === 'ok' ? filt('ok', cnt.ok, '', 'fulfilled', 'Show only what is made at least as fast as your factory uses it') : '');
-    const sum = entered ? `<div class="summary fac-sum">${counted}${shortHere.length ? `<span class="chiprow"><span class="lead">Short:</span>${shortHere.map(chip).join('')}</span>` : ''}${dismissAll}${bringBack}</div>` : '';
+    const sum = entered || facFilter ? `<div class="summary fac-sum">${counted}${shortHere.length ? `<span class="chiprow"><span class="lead">Short:</span>${shortHere.map(chip).join('')}</span>` : ''}${dismissAll}${bringBack}</div>` : '';
     const badge = t => { const n = t === 'all' ? FAC_ORDER.reduce((a, x) => a + counts[x].short, 0) : counts[t].short; return n ? `<span class="n" title="${n} short">${n}</span>` : ''; };
     const tabBar = `<div class="factabs" role="tablist">${FAC_TABS.map(([t, label, icon]) => `<button tabindex="-1" role="tab" data-fac-tab="${t}" class="${t === facTab ? 'on' : ''}">${icon ? icb(icon, 'xs') : ''}<span>${esc(label)}</span>${badge(t)}</button>`).join('')}</div>`;
     const th = `<div class="th">Item</div><div class="th"># Machines making it</div><div class="th amth">Makes<span class="u">in ${esc(unitShort())}</span></div><div class="th amth">Your factory uses<span class="u">in ${esc(unitShort())}</span></div><div class="th amth">Left over</div>`;
@@ -1477,8 +1474,8 @@
     if (key.startsWith('unit:')) facUnits[key.slice(5)] = was.n;
     else {
       const st = chainState(key); st.scale = was.scale; st.anchor = was.anchor; st.touched = true;
-      if (was.machine) machineOf[key] = was.machine;
-      if (was.recipe) recipeOf[key] = was.recipe;
+      if (was.machine) machineOf[key] = was.machine; else delete machineOf[key];
+      if (was.recipe) recipeOf[key] = was.recipe; else delete recipeOf[key];
     }
     if (was.dismissed) facDismiss.add(key);
     delete facRemoved[key]; closePop(); persist(); clearViews(); renderFactory(true);
@@ -1502,6 +1499,9 @@
     for (const k of [...facOpen]) if (rowTab(k) === tab) facOpen.delete(k);
     if (tab === 'science' && cardMem.science) Object.assign(cardMem.science, { time: CARD_DEF.time, bonus: CARD_DEF.bonus });
     if (tab === 'oil' && cardMem.oil) cardMem.oil.basic = CARD_DEF.basic;
+    for (const k of Object.keys(facRemoved)) if (rowTab(k) === tab) delete facRemoved[k];
+    for (const k of [...facKeep]) if (rowTab(k) === tab) facKeep.delete(k);
+    facFilter = null; facFiltSeen.clear();
     clearViews(); persist();
   }
 

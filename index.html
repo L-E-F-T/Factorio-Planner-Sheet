@@ -107,7 +107,7 @@ h3{font-size:13px;color:var(--faint);margin:12px 0 4px;font-weight:600}
 .exp:hover{color:var(--fg)}
 .exp.none{visibility:hidden;width:6px}
 /* Remove, under the name of a ledger row you entered; Put back while you are still on the page */
-.rm{display:block;margin:2px 0 0 -6px;height:22px;padding:0 6px;border:0;border-radius:var(--r);background:transparent;color:var(--faint);font:12px var(--sans);cursor:pointer}
+.rm{position:relative;display:block;margin:2px 0 0 -6px;height:22px;padding:0 6px;border:0;border-radius:var(--r);background:transparent;color:var(--faint);font:12px var(--sans);cursor:pointer}
 .rm:hover{background:#2a292a;color:var(--fg)}
 .rm.back{color:var(--accent2)}
 input.num{width:96px;height:44px;text-align:right;font:22px var(--mono);font-variant-numeric:tabular-nums;background:#141314;border:2px solid var(--line);border-radius:var(--r);color:var(--fg);padding:0 8px;outline:none;flex:none}
@@ -351,6 +351,8 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   .rm{height:34px;padding:0 8px;margin-left:-8px}
   .td.item .lnk{position:relative}
   .td.item .lnk::after{content:"";position:absolute;inset:-9px -4px}
+  /* what sits right under a name (Remove, the Basic/Advanced switch, the labs' pickers) stays on top of its bigger tap area */
+  .td.item .sub .seg,.td.item .sub select{position:relative}
   footer .keys{display:none}
 }
 </style>
