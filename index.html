@@ -108,6 +108,10 @@ h3{font-size:13px;color:var(--faint);margin:12px 0 4px;font-weight:600}
 .exp{width:28px;height:40px;border:0;background:transparent;color:var(--faint);font-size:28px;line-height:1;padding:0;flex:none}
 .exp:hover{color:var(--fg)}
 .exp.none{visibility:hidden;width:6px}
+.exp.gap{visibility:hidden}
+/* − before a line of an opened ledger row: takes that line out of your factory; drawn as a bar so it is as large as the ▸ */
+.exp.minus{font-size:0}
+.exp.minus::before{content:"";display:block;width:18px;height:2px;margin:auto;border-radius:1px;background:currentColor}
 /* Remove, under the name of a ledger row you entered; Put back while you are still on the page */
 .rm{position:relative;display:block;margin:2px 0 0 -6px;height:22px;padding:0 6px;border:0;border-radius:var(--r);background:transparent;color:var(--faint);font:12px var(--sans);cursor:pointer}
 .rm:hover{background:#2a292a;color:var(--fg)}
@@ -135,6 +139,7 @@ h3{font-size:13px;color:var(--faint);margin:12px 0 4px;font-weight:600}
 .addline:hover{background:#2a292a;color:var(--fg)}
 /* a row opened with ▸: "made by" and "used by" before each line's name */
 .tr.cons .side{flex:none;width:52px;font:11px/1.2 var(--sans);color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
+.tr.cons .cwho{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 auto}
 /* the crude oil row's pumpjack yield box */
 input.yld{width:58px;height:26px;margin:0 2px;text-align:right;font:14px var(--mono);background:#141314;border:1px solid var(--line);border-radius:4px;color:var(--fg);padding:0 5px;outline:none;vertical-align:baseline}
 input.yld:focus{border-color:var(--accent2)}
@@ -285,6 +290,10 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   .tbl:not(.fac) .td.mach .mbtn{flex:1 1 140px}
   .tbl:not(.fac) .mbtn .mname{white-space:normal;line-height:1.15}
   .tbl .td.amt{flex-wrap:wrap;row-gap:0;align-content:center}
+  /* an opened row's lines: "made by" / "used by" over the name, so the name keeps the room it has on its own row */
+  .tbl.fac .tr.cons .cwho{flex-wrap:wrap;row-gap:2px}
+  .tbl.fac .tr.cons .side{flex:1 1 100%;width:auto}
+  .tbl.fac .tr.cons .cwho .nmtxt{flex:1 1 0}
 }
 @media (min-width:701px) and (max-width:800px){
   .td.item{padding-left:calc(10px + var(--d,0) * 10px)}
