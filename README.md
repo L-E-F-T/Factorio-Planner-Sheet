@@ -138,10 +138,13 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     Anything your machines use that you have not entered shows grey as "missing", with how many
     machines to add, the same as a short row. **▸** opens a row: what makes it ("made by", with the
     amount under Supply) and what uses it ("used by", biggest first, with the amount under Demand),
-    each with its machines, so you can see where a shortage comes from. The **−** before a line takes it out
-    of your factory on a second click (the first turns it red and reads "remove?"; any other click or Esc
-    leaves it): just those machines when the item has other lines (as its × would), else the item itself,
-    with Put back on its row (as Remove would); boilers, engines, refineries and the like the same way.
+    each with its machines, so you can see where a shortage comes from. The **−** before a line deactivates
+    it: those machines stay saved but stop counting everywhere (Supply, Demand, the verdicts, the pages) until
+    you bring them back, even if you leave the page or reload it. The line stays where it was, dimmed and
+    marked deactivated, and also stays in sight under its own row when that row is closed. On it, **+** brings
+    it back and **−** deletes it for good. Boilers, engines, refineries and the like work the same way. A
+    row's box shows only the machines still running, so a number typed there is a new line, and + adds the
+    deactivated machines to it when they are on the same machine and recipe.
   * A row can have a line per machine and recipe: gears in assembler 1 and 2, iron plate in stone and steel
     furnaces, iron ore under burner and electric drills. Each line has its own count, picker and ×, and the row
     adds them up; switching a line to a machine another line uses joins the two. A row with machines entered
@@ -150,7 +153,9 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
     until its × takes it off, so after upgrading machines in game, take the old tier's line off (or set it
     to 0).
   * **The top of each tab** counts what is short, what is missing (rows marked "missing") and what is
-    fulfilled; a count of 0 is left out, except short. Click a count to see only those rows (dismissed
+    fulfilled, then the rows with deactivated lines (**deactivated**) and the rows with machines running
+    (**activated**); a row with both is in each. A count of 0 is left out, except short. The column headings
+    stay under the header as you scroll. Click a count to see only those rows (dismissed
     shortages stay out of **short**, as they do out of its count): a row you change meanwhile stays until
     you click the count again, which shows every row. Steam and Electricity have no box of their own, so
     they come with the boilers, steam engines, solar panels and reactors that make them. Under the counts,

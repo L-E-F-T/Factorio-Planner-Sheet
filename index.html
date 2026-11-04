@@ -109,9 +109,11 @@ h3{font-size:13px;color:var(--faint);margin:12px 0 4px;font-weight:600}
 .exp:hover{color:var(--fg)}
 .exp.none{visibility:hidden;width:6px}
 .exp.gap{visibility:hidden}
-/* − before a line of an opened ledger row: takes that line out of your factory; drawn as a bar so it is as large as the ▸ */
-.exp.minus{font-size:0}
-.exp.minus::before{content:"";display:block;width:12px;height:2px;margin:auto;border-radius:1px;background:currentColor}
+/* − before a line of an opened ledger row: deactivates that line, and on a deactivated line deletes it; + beside it brings
+   the line back. Drawn as bars so they are as large as the ▸ */
+.exp.minus,.exp.plus{position:relative;font-size:0}
+.exp.minus::before,.exp.plus::before{content:"";display:block;width:12px;height:2px;margin:auto;border-radius:1px;background:currentColor}
+.exp.plus::after{content:"";position:absolute;left:50%;top:50%;width:2px;height:12px;margin:-6px 0 0 -1px;border-radius:1px;background:currentColor}
 /* Remove, under the name of a ledger row you entered; Put back while you are still on the page */
 .rm{position:relative;display:block;margin:2px 0 0 -6px;height:22px;padding:0 6px;border:0;border-radius:var(--r);background:transparent;color:var(--faint);font:12px var(--sans);cursor:pointer}
 .rm:hover{background:#2a292a;color:var(--fg)}
@@ -137,11 +139,16 @@ h3{font-size:13px;color:var(--faint);margin:12px 0 4px;font-weight:600}
 /* "+" at the end of a row's machines: another line, on a machine (recipe, processing) the row is not on yet */
 .addline{flex:none;margin-left:auto;width:34px;height:34px;border:0;border-radius:50%;background:transparent;color:var(--faint);font:300 28px/1 var(--sans);padding:0 0 3px;cursor:pointer}
 .addline:hover{background:#2a292a;color:var(--fg)}
-/* a − clicked once: red, and its "made by" / "used by" reads "remove?"; a second click takes the line out */
-.exp.minus.sure,.exp.minus.sure:hover,.tr.cons .side.sure{color:var(--bad)}
 /* a row opened with ▸: "made by" and "used by" before each line's name */
 .tr.cons .side{flex:none;width:52px;font:11px/1.2 var(--sans);color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
 .tr.cons .cwho{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 auto}
+/* a deactivated line: dimmed, with "deactivated" over its name (the word is too long to sit beside it with − and +) */
+.offbtns{display:flex;flex:none;gap:8px}
+.tr.cons.off .cwho{flex-wrap:wrap;row-gap:2px}
+.tr.cons.off .side{flex:1 1 100%;width:auto}
+.tr.cons.off .cwho .nmtxt{flex:1 1 0}
+.tr.cons.off img.ic{opacity:.5}
+.tr.cons.off .td.item .lnk{color:var(--faint);font-weight:400;font-size:14px}
 /* the crude oil row's pumpjack yield box */
 input.yld{width:58px;height:26px;margin:0 2px;text-align:right;font:14px var(--mono);background:#141314;border:1px solid var(--line);border-radius:4px;color:var(--fg);padding:0 5px;outline:none;vertical-align:baseline}
 input.yld:focus{border-color:var(--accent2)}
@@ -169,6 +176,9 @@ input.num.bad{border-color:var(--bad)}
 .tbl.fac .td.amt{flex-wrap:wrap;column-gap:5px;align-content:center}   /* a unit goes under its number when they do not fit side by side */
 .tr.cons .td{background:#2b2a2b;min-height:40px;font-size:13px;color:var(--muted)}
 .tr.cons .td.amt{font-size:15px}
+.tr.cons.off .td{background:#242324;color:var(--faint)}
+/* the ledger's headings stay in sight under the header as you scroll (--hdr: its height, kept by app.js) */
+.tbl.fac > .th{position:sticky;top:var(--hdr,0px);z-index:2;background:var(--bg);box-shadow:0 1px 0 var(--line)}
 .td.amt.bal{flex-direction:column;align-items:flex-end;justify-content:center;gap:4px;font:14px var(--sans)}
 .td.amt.bal .short{color:var(--bad)}
 .td.amt.bal .spare{color:var(--ok)}
@@ -337,6 +347,10 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   .tbl.fac .tr.cons .cwho{flex-wrap:wrap;row-gap:2px}
   .tbl.fac .tr.cons .side{flex:1 1 100%;width:auto}
   .tbl.fac .tr.cons .cwho .nmtxt{flex:1 1 0}
+  /* a deactivated line: − over +, and no icon, so "deactivated" and the name fit the narrow first column */
+  .tbl.fac .tr.cons.off .offbtns{flex-direction:column;gap:0}
+  .tbl.fac .tr.cons.off .exp{height:30px}
+  .tbl.fac .tr.cons.off img.ic{display:none}
 }
 @media (min-width:701px) and (max-width:800px){
   .td.item{padding-left:calc(10px + var(--d,0) * 10px)}
@@ -473,7 +487,7 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   .summary button.s{min-height:38px;padding:2px 12px 2px 6px}
   .td .sub select,.mbtn select,.settings select{min-height:36px}
   .hit{padding:6px}
-  .exp:not(.none){width:38px;height:44px}
+  .exp:not(.none),.tbl.fac .tr.cons.off .exp{width:38px;height:44px}
   .rm{height:34px;padding:0 8px;margin-left:-8px}
   .td.item .lnk{position:relative}
   .td.item .lnk::after{content:"";position:absolute;inset:-9px -4px}
@@ -491,7 +505,7 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   #settings .seg button{min-height:34px}
   .summary button.s{min-height:34px;padding:2px 10px 2px 5px}
   .summary .s{min-height:28px}
-  .exp:not(.none){width:34px;height:40px}
+  .exp:not(.none),.tbl.fac .tr.cons.off .exp{width:34px;height:40px}
   .rm{height:28px}
   .partx{width:32px;height:32px}
   .part{gap:8px}
