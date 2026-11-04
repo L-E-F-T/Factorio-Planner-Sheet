@@ -2796,7 +2796,7 @@
       Object.assign({}, FACTORY, { target: () => withCons('coal'), show: coalInView, try: true,
         text: () => { const top = $('#tree .tr.cons.uses .nmtxt .lnk'); return `The made by lines add up to Supply and the used by lines add up to Demand, biggest first, so you can see where a shortage comes from.${top ? ` Here ${top.textContent.trim()} use${/s$/.test(top.textContent.trim()) ? '' : 's'} the most.` : ''} The − on a line deactivates it, so it stays saved but stops counting. Then + brings it back and − deletes it.`; } }),
       Object.assign({}, FACTORY, { target: () => { const r = facRow('coal'); return r ? [r.querySelector('input.num'), r.querySelector('.td.amt.bal')] : []; }, show: coalInView, focus: () => facRow('coal') && facRow('coal').querySelector('input.num'), typing: true,
-        mark: () => (chainMem.coal || {}).scale, done: m => (chainMem.coal || {}).scale !== m, text: () => `Type how many drills you have on coal. The bar ${tourSheet() ? 'under the numbers' : 'on the right'} fills up as Supply catches up with Demand.` }),
+        mark: () => (chainMem.coal || {}).scale, done: m => (chainMem.coal || {}).scale !== m, text: () => `Type how many drills you have on coal. The bar ${tourSheet() ? 'on the left' : 'on the right'} fills up as Supply catches up with Demand.` }),
       Object.assign({}, FACTORY, { target: () => [$('#tree .tr.add'), $('#tree .tr.add-hits')], show: () => { if (facFilter) facTabTo(facTab); }, auto: true, mark: () => (tour.addBase = addsMade), done: m => !!addSel || addsMade > m,
         text: 'To add an item, click this box and pick one from the list.' }),
       Object.assign({}, FACTORY, { target: () => [$('#tree .tr.add'), $('#tree .tr.add-hits')], auto: true, focus: () => $('#addn'), keep: () => $('#addgo'), done: () => addsMade > (tour.addBase || 0),
@@ -2990,7 +2990,7 @@
     return true;
   }
   // the top of the room for what a step rings: under the header, and under the ledger's headings for what is in its table
-  const tourTop = els => { const th = $('#tree.fac > .th'); return $('header').getBoundingClientRect().bottom + (th && els.some(el => el.closest('#tree')) ? th.offsetHeight : 0); };
+  const tourTop = els => { const th = $('#tree.fac > .th.amth'); return $('header').getBoundingClientRect().bottom + (th && els.some(el => el.closest('#tree')) ? th.offsetHeight : 0); };
   // the bottom of what you can see: above a phone's keyboard, where the browser only shrinks the visual viewport
   const tourVisBottom = () => { const w = doc.defaultView || window, vv = w.visualViewport; return vv ? Math.min(w.innerHeight, vv.offsetTop + vv.height) : w.innerHeight; };
   // the next part you have not done

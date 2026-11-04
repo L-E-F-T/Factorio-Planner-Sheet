@@ -386,7 +386,6 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   .tr{display:grid;grid-template-columns:1fr 1fr;margin:0 0 6px;border:1px solid #3c3b3c;border-radius:var(--r);overflow:hidden;background:var(--panel)}
   .tbl:not(.fac) .tr{margin-left:calc(min(var(--d,0), 4) * 12px)}
   .tr > .td{grid-column:1/-1}
-  .tbl.fac .tr:not(.cons):not(.add) > .td.amt:not(.bal){grid-column:auto}
   /* a chain's row: its amount beside its name, its machines under both */
   .tbl:not(.fac) .tr:not(.sep):not(.line){grid-template-columns:minmax(0,1fr) fit-content(170px)}
   .tbl:not(.fac) .tr > .td.item{grid-column:1;grid-row:1}
@@ -422,9 +421,29 @@ footer{color:var(--faint);font-size:12px;text-align:center;padding:10px 10px 30p
   .factabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:2px 0 8px}
   .factabs button{justify-content:center;text-align:center;padding:3px 6px;font-size:13px;line-height:1.15;min-height:34px}
   .factabs button .icw,.factabs button img.ic{display:none}
-  .tbl.fac .tr.cons{margin:-3px 0 6px 14px}
+  .tbl.fac .tr.cons{margin:-3px 0 6px 14px;background:#2b2a2b}
+  .tbl.fac .tr.cons.off{background:#242324}
   .tr.cons .td{min-height:0}
-  .tbl.fac .tr.cons > .td.mach,.tbl.fac .tr.cons > .td.amt{grid-column:auto}
+  /* the ledger stays a balance sheet: Supply and Demand keep a column each down the whole page, under the same headings as
+     on a wide screen. The columns are measured from the right, so an opened row's lines, set in from the left, line up too.
+     A row reads its name, then its machines, then the verdict beside the two amounts; a line its name, then its machines
+     beside the amount, in Supply's column or Demand's. */
+  .tbl.fac{--amt:min(27vw,150px);grid-template-columns:minmax(0,1fr) var(--amt) var(--amt)}
+  .tbl.fac > .th{display:flex;padding:3px 10px;font-size:11px}
+  .tbl.fac > .th.amth{display:block}
+  .tbl.fac > .th .u{font-size:12px}
+  .tbl.fac > .th:first-child,.tbl.fac > .th:nth-child(5){display:none}
+  .tbl.fac > .tr{grid-column:1/-1}
+  .tbl.fac > .tr:not(.add,.line,.full,.add-hits){grid-template-columns:minmax(0,1fr) var(--amt) var(--amt)}
+  .tbl.fac > .tr:not(.add,.line,.full,.add-hits) > .td[data-label]::before{display:none}
+  .tbl.fac > .tr:not(.add,.line,.full,.add-hits) > .td:nth-child(3){grid-column:2;grid-row:3}
+  .tbl.fac > .tr:not(.add,.line,.full,.add-hits) > .td:nth-child(4){grid-column:3;grid-row:3}
+  .tbl.fac > .tr:not(.add,.line,.full,.add-hits) > .td:nth-child(5){grid-column:1;grid-row:3}
+  .tbl.fac > .tr.cons > .td.mach{grid-column:1;grid-row:2}
+  .tbl.fac > .tr.cons > .td:nth-child(3),.tbl.fac > .tr.cons > .td:nth-child(4){grid-row:2}
+  .tbl.fac > .tr:not(.add,.line,.full,.add-hits) > .td.amt:not(.bal){justify-content:flex-end;align-content:flex-start;text-align:right;padding-bottom:6px}
+  .tbl.fac .td.amt .unit{white-space:normal}
+  .tbl.fac .td.amt input.num{flex:0 1 76px;min-width:0}
   /* the blueprint box: its lead on a line of its own, the furnace and drill boxes in even columns */
   .bp .lead{flex:1 1 100%}
   .bp-split label{flex:1 1 140px}

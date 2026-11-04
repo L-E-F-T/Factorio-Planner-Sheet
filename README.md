@@ -155,7 +155,9 @@ what to build and the small one says the exact count, as in `12 exactly 11.4`.
   * **The top of each tab** counts what is short, what is missing (rows marked "missing") and what is
     fulfilled, then the rows with deactivated lines (**deactivated**) and the rows with machines running
     (**activated**); a row with both is in each. A count of 0 is left out, except short. The column headings
-    stay under the header as you scroll. Click a count to see only those rows (dismissed
+    stay under the header as you scroll, and on a phone or in a small window Supply and Demand keep a column
+    each like on a wide screen, so what a row makes and uses still lines up. Click a count to see only those
+    rows (dismissed
     shortages stay out of **short**, as they do out of its count): a row you change meanwhile stays until
     you click the count again, which shows every row. Steam and Electricity have no box of their own, so
     they come with the boilers, steam engines, solar panels and reactors that make them. Under the counts,
